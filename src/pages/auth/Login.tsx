@@ -108,7 +108,7 @@ const onSubmit = async (values: z.infer<typeof idLoginSchema>) => {
                     <FormItem>
                       <FormLabel>Identifiant</FormLabel>
                       <FormControl>
-                        <Input type="text" inputMode="text" placeholder="Votre ID" {...field} />
+                        <Input type="text" inputMode="text" placeholder="Votre ID" {...field} value={field.value ?? ""} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -121,7 +121,7 @@ const onSubmit = async (values: z.infer<typeof idLoginSchema>) => {
                     <FormItem>
                       <FormLabel>Email</FormLabel>
                       <FormControl>
-                        <Input type="email" inputMode="email" placeholder="vous@exemple.com" {...field} />
+                        <Input type="email" inputMode="email" placeholder="vous@exemple.com" {...field} value={field.value ?? ""} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -134,7 +134,7 @@ const onSubmit = async (values: z.infer<typeof idLoginSchema>) => {
                     <FormItem>
                       <FormLabel>Code (si déjà défini)</FormLabel>
                       <FormControl>
-                        <Input type="password" placeholder="Votre code" {...field} />
+                        <Input type="password" placeholder="Votre code" {...field} value={field.value ?? ""} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>

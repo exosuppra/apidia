@@ -103,7 +103,7 @@ export default function SetCode() {
                     <FormItem>
                       <FormLabel>Identifiant</FormLabel>
                       <FormControl>
-                        <Input type="text" inputMode="text" placeholder="Votre ID" {...field} />
+                        <Input type="text" inputMode="text" placeholder="Votre ID" {...field} value={field.value ?? ""} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -116,7 +116,7 @@ export default function SetCode() {
                     <FormItem>
                       <FormLabel>Nouveau code</FormLabel>
                       <FormControl>
-                        <Input type="password" placeholder="Au moins 8 caractères" {...field} />
+                        <Input type="password" placeholder="Au moins 8 caractères" {...field} value={field.value ?? ""} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -129,7 +129,7 @@ export default function SetCode() {
                     <FormItem>
                       <FormLabel>Confirmer le code</FormLabel>
                       <FormControl>
-                        <Input type="password" placeholder="Répétez votre code" {...field} />
+                        <Input type="password" placeholder="Répétez votre code" {...field} value={field.value ?? ""} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
