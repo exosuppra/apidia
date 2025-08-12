@@ -1,4 +1,4 @@
-import { LayoutDashboard } from "lucide-react";
+import { LayoutDashboard, FileText } from "lucide-react";
 import { NavLink } from "react-router-dom";
 
 import {
@@ -14,6 +14,7 @@ import {
 
 const items = [
   { title: "Aperçu", url: "/dashboard", icon: LayoutDashboard },
+  { title: "Fiches", url: "/dashboard/fiches", icon: FileText },
 ];
 
 export default function AppSidebar() {

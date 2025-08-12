@@ -1,6 +1,8 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Seo from "@/components/Seo";
-import { Activity, MessageSquare, Star, TrendingUp } from "lucide-react";
+import { Activity, MessageSquare, Star, TrendingUp, FileText } from "lucide-react";
+import { Link } from "react-router-dom";
+import { Button } from "@/components/ui/button";
 
 export default function Overview() {
   const kpis = [
@@ -17,9 +19,16 @@ export default function Overview() {
         description="Vue d'ensemble: KPIs, santé de la réputation et actions prioritaires."
       />
       <section className="space-y-6 animate-fade-in">
-        <header>
-          <h1 className="text-3xl font-playfair">Tableau de bord — Aperçu</h1>
-          <p className="text-muted-foreground mt-1">Suivez vos indicateurs clés en un coup d'œil.</p>
+        <header className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-playfair">Tableau de bord — Aperçu</h1>
+            <p className="text-muted-foreground mt-1">Suivez vos indicateurs clés en un coup d'œil.</p>
+          </div>
+          <Button asChild>
+            <Link to="/dashboard/fiches" aria-label="Aller à mes fiches">
+              <FileText className="mr-2 h-4 w-4" /> Mes fiches
+            </Link>
+          </Button>
         </header>
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

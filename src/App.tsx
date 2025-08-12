@@ -11,6 +11,7 @@ import AuthProvider from "./context/AuthProvider";
 import RequireAuth from "./components/RequireAuth";
 import Login from "./pages/auth/Login";
 import SetCode from "./pages/auth/SetCode";
+import Fiches from "./pages/dashboard/Fiches";
 
 const queryClient = new QueryClient();
 
@@ -34,6 +35,7 @@ const App = () => (
               }
             >
               <Route index element={<Overview />} />
+              <Route path="fiches" element={<Fiches />} />
             </Route>
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
