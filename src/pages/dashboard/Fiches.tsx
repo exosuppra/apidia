@@ -21,8 +21,50 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
+import { RefreshCw, Search, Edit3 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+
+const FichesHeader = ({
+  email,
+  count,
+  search,
+  onSearch,
+  onRefresh,
+  refreshing,
+}: {
+  email: string;
+  count: number;
+  search: string;
+  onSearch: (v: string) => void;
+  onRefresh: () => void;
+  refreshing: boolean;
+}) => (
+  <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    <div>
+      <h1 className="text-2xl font-semibold">Mes fiches</h1>
+      <p className="text-sm text-muted-foreground">Fiches liées à {email}</p>
+    </div>
+    <div className="flex w-full sm:w-auto items-center gap-2">
+      <div className="relative flex-1 sm:w-72">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder="Rechercher dans vos fiches..."
+          className="pl-9"
+          value={search}
+          onChange={(e) => onSearch(e.target.value)}
+        />
+      </div>
+      <Badge variant="secondary" className="whitespace-nowrap">{count} fiche{count > 1 ? "s" : ""}</Badge>
+      <Button variant="outline" onClick={onRefresh} disabled={refreshing}>
+        <RefreshCw className="mr-2 h-4 w-4" /> Rafraîchir
+      </Button>
+    </div>
+  </header>
+);
 
 export default function Fiches() {
   const { user } = useAuth();
@@ -30,6 +72,7 @@ export default function Fiches() {
   const [open, setOpen] = useState(false);
   const [original, setOriginal] = useState<Record<string, any> | null>(null);
   const [edited, setEdited] = useState<Record<string, any>>({});
+  const [search, setSearch] = useState("");
 
   const email = user?.email ?? "";
 
@@ -41,15 +84,23 @@ export default function Fiches() {
         body: { email },
       });
       if (error) throw error;
-      // Edge function returns { data: rows }
       return (data as any)?.data ?? [];
     },
   });
 
+  const data = query.data ?? [];
+  const filteredData = useMemo(() => {
+    if (!search) return data;
+    const s = search.toLowerCase();
+    return data.filter((row: Record<string, any>) =>
+      Object.values(row).some((v) => String(v ?? "").toLowerCase().includes(s))
+    );
+  }, [data, search]);
+
   const columns = useMemo(() => {
-    const first = query.data?.[0] || {};
+    const first = data?.[0] || {};
     return Object.keys(first).filter((k) => k !== "code");
-  }, [query.data]);
+  }, [data]);
 
   const nonEditable = new Set(["id", "email", "code"]);
 
@@ -115,58 +166,87 @@ export default function Fiches() {
         title="Mes fiches | Apidia"
         description="Consultez et demandez la mise à jour de vos fiches associées à votre email."
       />
-      <section className="space-y-6">
-        <header className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-semibold">Mes fiches</h1>
-            <p className="text-sm text-muted-foreground">Fiches liées à {email}</p>
-          </div>
-          <Button variant="outline" onClick={() => query.refetch()} disabled={query.isFetching}>
-            Rafraîchir
-          </Button>
-        </header>
+      <section className="space-y-6 animate-fade-in">
+        <FichesHeader
+          email={email}
+          count={filteredData.length}
+          search={search}
+          onSearch={setSearch}
+          onRefresh={() => query.refetch()}
+          refreshing={query.isFetching}
+        />
 
-        {query.isLoading ? (
-          <div className="text-sm text-muted-foreground">Chargement…</div>
+{query.isLoading ? (
+          <div className="space-y-2">
+            <div className="h-8 w-48"><Skeleton className="h-8 w-48" /></div>
+            <div className="overflow-hidden rounded-md border">
+              {[...Array(6)].map((_, i) => (
+                <div key={i} className="grid grid-cols-4 gap-4 p-3 border-b last:border-b-0">
+                  <Skeleton className="h-4 w-20" />
+                  <Skeleton className="h-4 w-40" />
+                  <Skeleton className="h-4 w-32" />
+                  <Skeleton className="h-8 w-24 justify-self-end" />
+                </div>
+              ))}
+            </div>
+          </div>
         ) : query.isError ? (
-          <div className="text-sm text-destructive">Erreur: {(query.error as any)?.message}</div>
-        ) : (query.data?.length ?? 0) === 0 ? (
-          <div className="text-sm text-muted-foreground">Aucune fiche trouvée pour cet email.</div>
+          <Alert variant="destructive">
+            <AlertTitle>Erreur</AlertTitle>
+            <AlertDescription>{(query.error as any)?.message}</AlertDescription>
+          </Alert>
+        ) : (data?.length ?? 0) === 0 ? (
+          <div className="rounded-lg border p-8 text-center">
+            <div className="text-lg font-medium mb-1">Aucune fiche trouvée</div>
+            <p className="text-sm text-muted-foreground mb-4">Aucune fiche associée à l'adresse {email}.</p>
+            <Button variant="outline" onClick={() => query.refetch()}>
+              <RefreshCw className="mr-2 h-4 w-4" /> Rafraîchir
+            </Button>
+          </div>
+        ) : (filteredData?.length ?? 0) === 0 ? (
+          <div className="rounded-lg border p-8 text-center">
+            <div className="text-lg font-medium mb-1">Aucun résultat</div>
+            <p className="text-sm text-muted-foreground">Aucune fiche ne correspond à votre recherche.</p>
+          </div>
         ) : (
           <div className="overflow-auto rounded-md border">
             <Table>
-              <TableHeader>
+              <TableHeader className="sticky top-0 bg-background z-10">
                 <TableRow>
                   {columns.map((col) => (
-                    <TableHead key={col}>{col}</TableHead>
+                    <TableHead key={col} className="whitespace-nowrap">{col}</TableHead>
                   ))}
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {query.data.map((row: any, idx: number) => (
-                  <TableRow key={idx}>
+                {filteredData.map((row: any, idx: number) => (
+                  <TableRow key={idx} className="hover:bg-muted/50">
                     {columns.map((col) => (
                       <TableCell key={col} className="max-w-[320px] truncate" title={row[col]}>
                         {row[col]}
                       </TableCell>
                     ))}
-                    <TableCell>
-                      <Button size="sm" onClick={() => openEdit(row)}>Modifier</Button>
+                    <TableCell className="text-right">
+                      <Button size="sm" onClick={() => openEdit(row)} className="hover-scale">
+                        <Edit3 className="mr-2 h-4 w-4" /> Modifier
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
-              <TableCaption>Liste de vos fiches</TableCaption>
+              <TableCaption>{filteredData.length} fiche{filteredData.length > 1 ? "s" : ""}</TableCaption>
             </Table>
           </div>
         )}
       </section>
 
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent>
+<Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="sm:max-w-2xl animate-enter">
           <DialogHeader>
-            <DialogTitle>Modifier la fiche</DialogTitle>
+            <DialogTitle>
+              {`Modifier la fiche${original ? ` #${(original as any)["id"] || (original as any)["identifiant"] || ""} — ${(original as any)["nom"] || ""}` : ""}`}
+            </DialogTitle>
           </DialogHeader>
 
           {original && (
