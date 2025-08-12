@@ -1,99 +1,45 @@
-import { useEffect, useMemo, useState } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useEffect, useState } from "react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/components/ui/use-toast";
 import Seo from "@/components/Seo";
 
-const emailSchema = z.object({
+const idLoginSchema = z.object({
+  id: z.string().min(1, "Identifiant requis"),
   email: z.string().email("Email invalide"),
 });
 
-const signinSchema = emailSchema.extend({
-  pin: z
-    .string()
-    .min(6, "PIN à 6 chiffres")
-    .max(6, "PIN à 6 chiffres")
-    .regex(/^\d{6}$/g, "Uniquement 6 chiffres"),
-});
-
 export default function Login() {
-  const navigate = useNavigate();
-  const location = useLocation();
   const { toast } = useToast();
-  const [loading, setLoading] = useState<{ signin?: boolean; magic?: boolean; signup?: boolean }>({});
-  const redirectTo = useMemo(() => (location.state as any)?.from?.pathname || "/dashboard", [location.state]);
+  const [loading, setLoading] = useState(false);
 
-  const signinForm = useForm<z.infer<typeof signinSchema>>({
-    resolver: zodResolver(signinSchema),
-    defaultValues: { email: "", pin: "" },
+  const form = useForm<z.infer<typeof idLoginSchema>>({
+    resolver: zodResolver(idLoginSchema),
+    defaultValues: { id: "", email: "" },
   });
 
-  const magicForm = useForm<z.infer<typeof emailSchema>>({
-    resolver: zodResolver(emailSchema),
-    defaultValues: { email: "" },
-  });
-
-  const signupForm = useForm<z.infer<typeof signinSchema>>({
-    resolver: zodResolver(signinSchema),
-    defaultValues: { email: "", pin: "" },
-  });
-
-  const handleSignin = async (values: z.infer<typeof signinSchema>) => {
-    setLoading((s) => ({ ...s, signin: true }));
-    const { error } = await supabase.auth.signInWithPassword({
-      email: values.email,
-      password: values.pin,
-    });
-    setLoading((s) => ({ ...s, signin: false }));
-
-    if (error) {
-      toast({ title: "Connexion échouée", description: error.message, variant: "destructive" });
-    } else {
-      toast({ title: "Bienvenue !", description: "Connexion réussie." });
-      navigate(redirectTo, { replace: true });
-    }
-  };
-
-  const handleMagic = async (values: z.infer<typeof emailSchema>) => {
-    setLoading((s) => ({ ...s, magic: true }));
-    const { error } = await supabase.auth.signInWithOtp({
-      email: values.email,
-      options: {
-        emailRedirectTo: `${window.location.origin}/dashboard`,
-      },
-    });
-    setLoading((s) => ({ ...s, magic: false }));
-
-    if (error) {
-      toast({ title: "Envoi du lien échoué", description: error.message, variant: "destructive" });
-    } else {
-      toast({ title: "Vérifiez votre email", description: "Lien magique envoyé." });
-    }
-  };
-
-  const handleSignup = async (values: z.infer<typeof signinSchema>) => {
-    setLoading((s) => ({ ...s, signup: true }));
-    const { error } = await supabase.auth.signUp({
-      email: values.email,
-      password: values.pin,
-      options: {
-        emailRedirectTo: `${window.location.origin}/dashboard`,
-      },
-    });
-    setLoading((s) => ({ ...s, signup: false }));
-
-    if (error) {
-      toast({ title: "Inscription échouée", description: error.message, variant: "destructive" });
-    } else {
-      toast({ title: "Confirmez votre email", description: "Nous avons envoyé un lien de confirmation." });
+  const onSubmit = async (values: z.infer<typeof idLoginSchema>) => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase.functions.invoke("request-login", {
+        body: {
+          id: values.id.trim(),
+          email: values.email.trim(),
+          redirectUrl: `${window.location.origin}/dashboard`,
+        },
+      });
+      if (error) throw error;
+      toast({ title: "Vérifiez votre email", description: "Nous avons envoyé un lien de connexion." });
+    } catch (err: any) {
+      toast({ title: "Connexion refusée", description: err?.message || "Une erreur est survenue.", variant: "destructive" });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -104,113 +50,51 @@ export default function Login() {
   return (
     <>
       <Seo
-        title="Connexion ApidIA | Authentification"
-        description="Connectez-vous à ApidIA via PIN, lien magique ou créez votre compte."
+        title="Connexion ApidIA | ID + Email"
+        description="Connectez-vous à ApidIA avec votre identifiant et votre adresse email."
         canonical={`${window.location.origin}/auth/login`}
       />
       <main className="min-h-screen grid place-items-center bg-background px-4">
         <Card className="w-full max-w-md">
           <CardHeader>
-            <CardTitle>ApidIA – Authentification</CardTitle>
-            <CardDescription>Choisissez votre méthode de connexion</CardDescription>
+            <CardTitle>ApidIA – Connexion</CardTitle>
+            <CardDescription>Saisissez votre ID et votre email</CardDescription>
           </CardHeader>
           <CardContent>
-            <Tabs defaultValue="signin" className="w-full">
-              <TabsList className="grid grid-cols-3">
-                <TabsTrigger value="signin">Connexion</TabsTrigger>
-                <TabsTrigger value="magic">Lien magique</TabsTrigger>
-                <TabsTrigger value="signup">Première connexion</TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="signin" className="mt-4">
-                <Form {...signinForm}>
-                  <form onSubmit={signinForm.handleSubmit(handleSignin)} className="space-y-4">
-                    <FormField
-                      control={signinForm.control}
-                      name="email"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Email</FormLabel>
-                          <FormControl>
-                            <Input type="email" inputMode="email" placeholder="vous@exemple.com" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={signinForm.control}
-                      name="pin"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>PIN (6 chiffres)</FormLabel>
-                          <FormControl>
-                            <Input type="password" inputMode="numeric" placeholder="••••••" maxLength={6} {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <Button className="w-full" type="submit" disabled={loading.signin}>Se connecter</Button>
-                  </form>
-                </Form>
-              </TabsContent>
-
-              <TabsContent value="magic" className="mt-4">
-                <Form {...magicForm}>
-                  <form onSubmit={magicForm.handleSubmit(handleMagic)} className="space-y-4">
-                    <FormField
-                      control={magicForm.control}
-                      name="email"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Email</FormLabel>
-                          <FormControl>
-                            <Input type="email" inputMode="email" placeholder="vous@exemple.com" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <Button className="w-full" type="submit" disabled={loading.magic}>Envoyer le lien</Button>
-                  </form>
-                </Form>
-              </TabsContent>
-
-              <TabsContent value="signup" className="mt-4">
-                <Form {...signupForm}>
-                  <form onSubmit={signupForm.handleSubmit(handleSignup)} className="space-y-4">
-                    <FormField
-                      control={signupForm.control}
-                      name="email"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Email</FormLabel>
-                          <FormControl>
-                            <Input type="email" inputMode="email" placeholder="vous@exemple.com" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={signupForm.control}
-                      name="pin"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>PIN (6 chiffres)</FormLabel>
-                          <FormControl>
-                            <Input type="password" inputMode="numeric" placeholder="••••••" maxLength={6} {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <Button className="w-full" type="submit" disabled={loading.signup}>Créer mon compte</Button>
-                  </form>
-                </Form>
-              </TabsContent>
-            </Tabs>
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="id"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Identifiant</FormLabel>
+                      <FormControl>
+                        <Input type="text" inputMode="text" placeholder="Votre ID" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email</FormLabel>
+                      <FormControl>
+                        <Input type="email" inputMode="email" placeholder="vous@exemple.com" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <Button className="w-full" type="submit" disabled={loading}>Recevoir le lien de connexion</Button>
+              </form>
+            </Form>
+            <p className="mt-4 text-sm text-muted-foreground">
+              Si vos informations correspondent à notre registre, vous recevrez un lien magique par email.
+            </p>
           </CardContent>
         </Card>
       </main>
