@@ -132,6 +132,19 @@ export default function Fiches() {
     return changes;
   };
 
+  const previewOf = (row: Record<string, any>) => {
+    const parts: string[] = [];
+    const nom = row["nom"] || row["Nom"] || row["title"];
+    if (nom) parts.push(String(nom));
+    const commune = row["commune"] || row["Commune"];
+    const lieu = row["lieu"] || row["nom du lieu (adresse)"];
+    const desc = row["descriptif court"] || row["descriptif détaillé"];
+    const more = desc || lieu || commune;
+    if (more) parts.push(String(more));
+    const text = parts.filter(Boolean).join(" — ");
+    return text.length > 160 ? text.slice(0, 160) + "…" : text;
+  };
+
   const submitUpdate = async () => {
     if (!original) return;
     const changes = computeChanges();
@@ -213,27 +226,30 @@ export default function Fiches() {
             <Table>
               <TableHeader className="sticky top-0 bg-background z-10">
                 <TableRow>
-                  {columns.map((col) => (
-                    <TableHead key={col} className="whitespace-nowrap">{col}</TableHead>
-                  ))}
+                  <TableHead className="whitespace-nowrap">ID</TableHead>
+                  <TableHead className="whitespace-nowrap">Type</TableHead>
+                  <TableHead className="whitespace-nowrap">Aperçu</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredData.map((row: any, idx: number) => (
-                  <TableRow key={idx} className="hover:bg-muted/50">
-                    {columns.map((col) => (
-                      <TableCell key={col} className="max-w-[320px] truncate" title={row[col]}>
-                        {row[col]}
+                {filteredData.map((row: any, idx: number) => {
+                  const id = row["id"] ?? row["identifiant"] ?? "";
+                  const type = row["type"] ?? "";
+                  const preview = previewOf(row);
+                  return (
+                    <TableRow key={idx} className="hover:bg-muted/50">
+                      <TableCell className="font-medium">{id}</TableCell>
+                      <TableCell>{type}</TableCell>
+                      <TableCell className="max-w-[520px] truncate" title={preview}>{preview || "—"}</TableCell>
+                      <TableCell className="text-right">
+                        <Button size="sm" onClick={() => openEdit(row)} className="hover-scale">
+                          <Edit3 className="mr-2 h-4 w-4" /> Modifier
+                        </Button>
                       </TableCell>
-                    ))}
-                    <TableCell className="text-right">
-                      <Button size="sm" onClick={() => openEdit(row)} className="hover-scale">
-                        <Edit3 className="mr-2 h-4 w-4" /> Modifier
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                    </TableRow>
+                  );
+                })}
               </TableBody>
               <TableCaption>{filteredData.length} fiche{filteredData.length > 1 ? "s" : ""}</TableCaption>
             </Table>
