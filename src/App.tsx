@@ -10,6 +10,7 @@ import Overview from "./pages/dashboard/Overview";
 import AuthProvider from "./context/AuthProvider";
 import RequireAuth from "./components/RequireAuth";
 import Login from "./pages/auth/Login";
+import SetCode from "./pages/auth/SetCode";
 
 const queryClient = new QueryClient();
 
@@ -23,6 +24,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/auth/login" element={<Login />} />
+            <Route path="/auth/set-code" element={<SetCode />} />
             <Route
               path="/dashboard"
               element={

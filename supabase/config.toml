@@ -2,3 +2,9 @@ project_id = "krmeineyonriifvoexkx"
 
 [functions.request-login]
 verify_jwt = false
+
+[functions.verify-login]
+verify_jwt = false
+
+[functions.set-user-code]
+verify_jwt = true
