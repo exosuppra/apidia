@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/components/ui/use-toast";
 import Seo from "@/components/Seo";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 const idLoginSchema = z.object({
   id: z.string().min(1, "Identifiant requis"),
@@ -19,6 +20,7 @@ const idLoginSchema = z.object({
 export default function Login() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [mode, setMode] = useState<"first" | "standard">("first");
 
   const form = useForm<z.infer<typeof idLoginSchema>>({
     resolver: zodResolver(idLoginSchema),
@@ -85,6 +87,11 @@ const onSubmit = async (values: z.infer<typeof idLoginSchema>) => {
     document.body.classList.remove("overflow-hidden");
   }, []);
 
+  useEffect(() => {
+    if (mode === "first") {
+      form.setValue("code", "");
+    }
+  }, [mode, form]);
   return (
     <>
       <Seo
@@ -99,6 +106,12 @@ const onSubmit = async (values: z.infer<typeof idLoginSchema>) => {
             <CardDescription>Saisissez votre ID et votre email</CardDescription>
           </CardHeader>
           <CardContent>
+            <Tabs value={mode} onValueChange={(v) => setMode(v as "first" | "standard")} className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="first">Première connexion</TabsTrigger>
+                <TabsTrigger value="standard">Connexion standard</TabsTrigger>
+              </TabsList>
+            </Tabs>
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                 <FormField
@@ -114,7 +127,7 @@ const onSubmit = async (values: z.infer<typeof idLoginSchema>) => {
                     </FormItem>
                   )}
                 />
-<FormField
+                <FormField
                   control={form.control}
                   name="email"
                   render={({ field }) => (
@@ -127,25 +140,29 @@ const onSubmit = async (values: z.infer<typeof idLoginSchema>) => {
                     </FormItem>
                   )}
                 />
-                <FormField
-                  control={form.control}
-                  name="code"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Code (si déjà défini)</FormLabel>
-                      <FormControl>
-                        <Input type="password" placeholder="Votre code" {...field} value={field.value ?? ""} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <Button className="w-full" type="submit" disabled={loading}>Recevoir le lien de connexion</Button>
+                {mode === "standard" && (
+                  <FormField
+                    control={form.control}
+                    name="code"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Code</FormLabel>
+                        <FormControl>
+                          <Input type="password" placeholder="Votre code" {...field} value={field.value ?? ""} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+                <Button className="w-full" type="submit" disabled={loading}>
+                  {mode === "first" ? "Recevoir le lien de connexion" : "Se connecter"}
+                </Button>
               </form>
             </Form>
-<p className="mt-4 text-sm text-muted-foreground">
-               Première connexion: laissez le champ « Code » vide et vérifiez votre email pour créer votre code. Ensuite, utilisez ID + email + code.
-             </p>
+            <p className="mt-4 text-sm text-muted-foreground">
+              Utilisez les onglets: « Première connexion » pour recevoir le lien par email, puis « Connexion standard » avec ID + email + code.
+            </p>
           </CardContent>
         </Card>
       </main>
