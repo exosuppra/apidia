@@ -14,7 +14,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 const idLoginSchema = z.object({
   id: z.string().min(1, "Identifiant requis"),
   email: z.string().email("Email invalide"),
-  code: z.string().min(4, "Code trop court").optional(),
+  code: z.string().optional(),
 });
 
 export default function Login() {
@@ -51,6 +51,12 @@ const onSubmit = async (values: z.infer<typeof idLoginSchema>) => {
       });
       await supabase.auth.signOut({ scope: "global" } as any);
     } catch {}
+
+    // Validation manuelle pour le mode standard
+    if (mode === "standard" && (!code || code.length < 4)) {
+      toast({ title: "Erreur", description: "Le code doit contenir au moins 4 caractères", variant: "destructive" });
+      return;
+    }
 
     if (code) {
       // Connexion directe: vérifier l'ID/email/code dans le Google Sheet
