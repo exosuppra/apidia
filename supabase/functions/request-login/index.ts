@@ -35,22 +35,39 @@ async function findUserInSheet(sheetId: string, serviceAccountJson: string, id: 
 
   const sheets = google.sheets({ version: "v4", auth });
 
-  // Read header + rows from Connexion sheet (with fallback)
+  // Read header + rows from Connexion sheet
+  console.log("Trying to access sheet:", sheetId);
   let resp;
   try {
+    console.log("Attempting to read Connexion!A:Z");
     resp = await sheets.spreadsheets.values.get({
       spreadsheetId: sheetId,
       range: "Connexion!A:Z",
       majorDimension: "ROWS",
     });
+    console.log("Successfully read Connexion sheet");
   } catch (error) {
-    console.log("Connexion sheet not found, trying first sheet:", error.message);
-    // Fallback to first sheet if Connexion doesn't exist
+    console.log("Error accessing Connexion sheet:", error.message);
+    console.log("Full error:", error);
+    
+    // Try to get sheet metadata first
+    try {
+      const metadata = await sheets.spreadsheets.get({
+        spreadsheetId: sheetId,
+      });
+      console.log("Available sheets:", metadata.data.sheets?.map(s => s.properties?.title));
+    } catch (metaError) {
+      console.log("Could not get sheet metadata:", metaError.message);
+    }
+    
+    // Fallback to first sheet
+    console.log("Trying fallback to first sheet A:Z");
     resp = await sheets.spreadsheets.values.get({
       spreadsheetId: sheetId,
       range: "A:Z",
       majorDimension: "ROWS",
     });
+    console.log("Fallback successful");
   }
 
   const rows = resp.data.values || [];
