@@ -28,6 +28,7 @@ defaultValues: { id: "", email: "", code: "" },
   });
 
 const onSubmit = async (values: z.infer<typeof idLoginSchema>) => {
+  console.log("Form submitted with values:", values);
   try {
     setLoading(true);
 
