@@ -33,11 +33,24 @@ async function findUserWithCode(sheetId: string, serviceAccountJson: string, id:
   });
 
   const sheets = google.sheets({ version: "v4", auth });
-  const resp = await sheets.spreadsheets.values.get({
-    spreadsheetId: sheetId,
-    range: "Connexion!A:Z",
-    majorDimension: "ROWS",
-  });
+  
+  // Read header + rows from Connexion sheet (with fallback)
+  let resp;
+  try {
+    resp = await sheets.spreadsheets.values.get({
+      spreadsheetId: sheetId,
+      range: "Connexion!A:Z",
+      majorDimension: "ROWS",
+    });
+  } catch (error) {
+    console.log("Connexion sheet not found, trying first sheet:", error.message);
+    // Fallback to first sheet if Connexion doesn't exist
+    resp = await sheets.spreadsheets.values.get({
+      spreadsheetId: sheetId,
+      range: "A:Z",
+      majorDimension: "ROWS",
+    });
+  }
 
   const rows = resp.data.values || [];
   if (rows.length === 0) return null;
