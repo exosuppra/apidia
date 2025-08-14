@@ -7,14 +7,91 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "13.0.4"
   }
   public: {
     Tables: {
-      [_ in never]: never
+      admin_actions: {
+        Row: {
+          action_type: Database["public"]["Enums"]["action_type"]
+          admin_email: string
+          created_at: string
+          description: string
+          id: string
+          metadata: Json | null
+          target_id: string | null
+          target_type: string
+        }
+        Insert: {
+          action_type: Database["public"]["Enums"]["action_type"]
+          admin_email: string
+          created_at?: string
+          description: string
+          id?: string
+          metadata?: Json | null
+          target_id?: string | null
+          target_type: string
+        }
+        Update: {
+          action_type?: Database["public"]["Enums"]["action_type"]
+          admin_email?: string
+          created_at?: string
+          description?: string
+          id?: string
+          metadata?: Json | null
+          target_id?: string | null
+          target_type?: string
+        }
+        Relationships: []
+      }
+      user_requests: {
+        Row: {
+          admin_response: string | null
+          created_at: string
+          fiche_id: string | null
+          id: string
+          original_data: Json | null
+          processed_at: string | null
+          processed_by: string | null
+          request_type: string
+          requested_changes: Json
+          status: string
+          updated_at: string
+          user_email: string
+        }
+        Insert: {
+          admin_response?: string | null
+          created_at?: string
+          fiche_id?: string | null
+          id?: string
+          original_data?: Json | null
+          processed_at?: string | null
+          processed_by?: string | null
+          request_type: string
+          requested_changes: Json
+          status?: string
+          updated_at?: string
+          user_email: string
+        }
+        Update: {
+          admin_response?: string | null
+          created_at?: string
+          fiche_id?: string | null
+          id?: string
+          original_data?: Json | null
+          processed_at?: string | null
+          processed_by?: string | null
+          request_type?: string
+          requested_changes?: Json
+          status?: string
+          updated_at?: string
+          user_email?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +100,13 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      action_type:
+        | "view"
+        | "create"
+        | "update"
+        | "delete"
+        | "approve"
+        | "reject"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +233,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      action_type: ["view", "create", "update", "delete", "approve", "reject"],
+    },
   },
 } as const
