@@ -12,12 +12,6 @@ import RequireAuth from "./components/RequireAuth";
 import Login from "./pages/auth/Login";
 import SetCode from "./pages/auth/SetCode";
 import Fiches from "./pages/dashboard/Fiches";
-import AdminRequireAuth from "./components/AdminRequireAuth";
-import AdminLayout from "./layouts/AdminLayout";
-import AdminLogin from "./pages/admin/AdminLogin";
-import AdminDashboard from "./pages/admin/AdminDashboard";
-import AdminFiches from "./pages/admin/AdminFiches";
-import AdminHistory from "./pages/admin/AdminHistory";
 
 const queryClient = new QueryClient();
 
@@ -42,20 +36,6 @@ const App = () => (
             >
               <Route index element={<Overview />} />
               <Route path="fiches" element={<Fiches />} />
-            </Route>
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="/admin/login" element={<AdminLogin />} />
-            <Route
-              path="/admin/*"
-              element={
-                <AdminRequireAuth>
-                  <AdminLayout />
-                </AdminRequireAuth>
-              }
-            >
-              <Route path="dashboard" element={<AdminDashboard />} />
-              <Route path="fiches" element={<AdminFiches />} />
-              <Route path="history" element={<AdminHistory />} />
             </Route>
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />

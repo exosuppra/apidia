@@ -35,40 +35,12 @@ async function findUserInSheet(sheetId: string, serviceAccountJson: string, id: 
 
   const sheets = google.sheets({ version: "v4", auth });
 
-  // Read header + rows from Connexion sheet
-  console.log("Trying to access sheet:", sheetId);
-  let resp;
-  try {
-    console.log("Attempting to read Connexion!A:Z");
-    resp = await sheets.spreadsheets.values.get({
-      spreadsheetId: sheetId,
-      range: "Connexion!A:Z",
-      majorDimension: "ROWS",
-    });
-    console.log("Successfully read Connexion sheet");
-  } catch (error) {
-    console.log("Error accessing Connexion sheet:", error.message);
-    console.log("Full error:", error);
-    
-    // Try to get sheet metadata first
-    try {
-      const metadata = await sheets.spreadsheets.get({
-        spreadsheetId: sheetId,
-      });
-      console.log("Available sheets:", metadata.data.sheets?.map(s => s.properties?.title));
-    } catch (metaError) {
-      console.log("Could not get sheet metadata:", metaError.message);
-    }
-    
-    // Fallback to first sheet
-    console.log("Trying fallback to first sheet A:Z");
-    resp = await sheets.spreadsheets.values.get({
-      spreadsheetId: sheetId,
-      range: "A:Z",
-      majorDimension: "ROWS",
-    });
-    console.log("Fallback successful");
-  }
+  // Read header + rows from first sheet (A:Z to cover typical columns)
+  const resp = await sheets.spreadsheets.values.get({
+    spreadsheetId: sheetId,
+    range: "A:Z",
+    majorDimension: "ROWS",
+  });
 
   const rows = resp.data.values || [];
   if (rows.length === 0) return null;

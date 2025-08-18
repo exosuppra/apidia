@@ -14,15 +14,3 @@ verify_jwt = true
 
 [functions.request-update]
 verify_jwt = true
-
-[functions.verify-admin]
-verify_jwt = false
-
-[functions.admin-list-all-fiches]
-verify_jwt = false
-
-[functions.admin-update-fiche]
-verify_jwt = false
-
-[functions.admin-get-history]
-verify_jwt = false
