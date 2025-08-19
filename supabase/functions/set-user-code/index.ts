@@ -134,7 +134,8 @@ serve(async (req: Request) => {
       });
     }
 
-    // Vérification Google Sheet (optionnelle)
+    // TEMPORAIREMENT DÉSACTIVÉ - Vérification Google Sheet
+    /*
     if (SHEET_ID && SA_JSON) {
       console.log("Checking user existence in Google Sheet...");
       try {
@@ -163,6 +164,8 @@ serve(async (req: Request) => {
     } else {
       console.log("Skipping sheet verification - missing config");
     }
+    */
+    console.log("Sheet verification DISABLED for testing");
 
     // Appel du webhook Make
     console.log("Calling Make webhook...");
