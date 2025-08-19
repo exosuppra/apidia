@@ -38,7 +38,12 @@ export default function SetCode() {
   }, []);
 
   const onSubmit = async (values: z.infer<typeof setCodeSchema>) => {
+    console.log("=== SetCode onSubmit START ===");
+    console.log("Form values:", values);
+    console.log("User:", user);
+    
     if (!user?.email) {
+      console.log("No user email found");
       toast({ title: "Non authentifié", description: "Veuillez vous reconnecter.", variant: "destructive" });
       return;
     }
@@ -51,24 +56,20 @@ export default function SetCode() {
         code: values.code.trim() 
       });
 
-      // Timeout après 25 secondes pour éviter l'erreur à 30s
-      const timeoutPromise = new Promise<never>((_, reject) => 
-        setTimeout(() => reject(new Error('Timeout: La requête a pris trop de temps')), 25000)
-      );
-      
-      const requestPromise = supabase.functions.invoke("set-user-code", {
+      // Test simple sans timeout d'abord
+      console.log("About to call supabase.functions.invoke...");
+      const { data, error } = await supabase.functions.invoke("set-user-code", {
         body: { id: values.id.trim(), email: user.email, code: values.code.trim() },
       });
-
-      // 1) Met à jour le Google Sheet via l'Edge Function protégée
-      const result = await Promise.race([requestPromise, timeoutPromise]);
-      console.log('Set-user-code response:', result);
       
-      if (result.error) {
-        console.error('Edge function error:', result.error);
-        throw new Error(result.error.message || 'Erreur lors de la mise à jour du code');
+      console.log('Set-user-code response:', { data, error });
+      
+      if (error) {
+        console.error('Edge function error details:', error);
+        throw new Error(error.message || 'Erreur lors de la mise à jour du code');
       }
 
+      console.log("Edge function success, now updating Supabase auth...");
       // 2) Met à jour le mot de passe Supabase pour l'utilisateur courant
       const { error: updErr } = await supabase.auth.updateUser({ password: values.code.trim() });
       if (updErr) {
@@ -76,12 +77,13 @@ export default function SetCode() {
         throw updErr;
       }
 
+      console.log("Both operations successful!");
       toast({ title: "Code enregistré", description: "Votre code a été défini avec succès." });
 
       // Rediriger vers le tableau de bord
       window.location.href = "/dashboard";
     } catch (err: any) {
-      console.error('SetCode error:', err);
+      console.error('SetCode error details:', err);
       let errorMessage = "Une erreur est survenue.";
       
       if (err?.message?.includes('Timeout')) {
