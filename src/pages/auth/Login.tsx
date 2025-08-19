@@ -10,6 +10,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { useToast } from "@/hooks/use-toast";
 import Seo from "@/components/Seo";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Loader2 } from "lucide-react";
 
 const idLoginSchema = z.object({
   id: z.string().min(1, "Identifiant requis"),
@@ -69,15 +70,23 @@ const onSubmit = async (values: z.infer<typeof idLoginSchema>) => {
 
     // Première connexion: envoi d'un lien magique vers la page de création du code
     console.log('Calling request-login function with:', { id, email });
-    const { data, error } = await supabase.functions.invoke("request-login", {
+    
+    // Timeout après 25 secondes pour éviter l'erreur à 30s
+    const timeoutPromise = new Promise<never>((_, reject) => 
+      setTimeout(() => reject(new Error('Timeout: La requête a pris trop de temps')), 25000)
+    );
+    
+    const requestPromise = supabase.functions.invoke("request-login", {
       body: {
         id,
         email,
         redirectUrl: `${window.location.origin}/auth/set-code`,
       },
     });
-    console.log('Request-login response:', { data, error });
-    if (error) throw error;
+    
+    const result = await Promise.race([requestPromise, timeoutPromise]);
+    console.log('Request-login response:', result);
+    if (result.error) throw result.error;
     toast({ title: "Vérifiez votre email", description: "Un lien vous a été envoyé pour créer votre code." });
   } catch (err: any) {
     toast({ title: "Connexion refusée", description: err?.message || "Une erreur est survenue.", variant: "destructive" });
@@ -199,6 +208,7 @@ const onSubmit = async (values: z.infer<typeof idLoginSchema>) => {
                     await onSubmit(values);
                   }}
                 >
+                  {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   {loading ? "Chargement..." : (mode === "first" ? "Recevoir le lien de connexion" : "Se connecter")}
                 </Button>
               </form>
