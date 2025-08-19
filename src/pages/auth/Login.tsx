@@ -180,9 +180,24 @@ const onSubmit = async (values: z.infer<typeof idLoginSchema>) => {
                 )}
                 <Button 
                   className="w-full" 
-                  type="submit" 
+                  type="button"
                   disabled={loading}
-                  onClick={() => console.log('Button clicked, form values:', form.getValues())}
+                  onClick={async () => {
+                    console.log('Button clicked directly');
+                    const values = form.getValues();
+                    console.log('Form values:', values);
+                    
+                    if (!values.id || !values.email) {
+                      toast({ 
+                        title: "Erreur", 
+                        description: "Veuillez remplir l'ID et l'email", 
+                        variant: "destructive" 
+                      });
+                      return;
+                    }
+                    
+                    await onSubmit(values);
+                  }}
                 >
                   {loading ? "Chargement..." : (mode === "first" ? "Recevoir le lien de connexion" : "Se connecter")}
                 </Button>
