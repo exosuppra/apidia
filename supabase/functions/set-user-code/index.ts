@@ -134,8 +134,7 @@ serve(async (req: Request) => {
       });
     }
 
-    // TEMPORAIREMENT DÉSACTIVÉ - Vérification Google Sheet
-    /*
+    // Vérification Google Sheet avec logs détaillés
     if (SHEET_ID && SA_JSON) {
       console.log("Checking user existence in Google Sheet...");
       try {
@@ -143,29 +142,16 @@ serve(async (req: Request) => {
         console.log("User exists in sheet:", exists);
         if (!exists) {
           console.log("User not found in sheet with id:", id, "email:", email);
-          return new Response(JSON.stringify({ 
-            error: "Utilisateur non trouvé",
-            details: `ID: ${id}, Email: ${email}` 
-          }), {
-            status: 401,
-            headers: { "Content-Type": "application/json", ...corsHeaders },
-          });
+          // TEMPORAIREMENT: continuer même si pas trouvé, juste logger
+          console.log("WARNING: User not found in sheet but continuing anyway");
         }
       } catch (sheetError: any) {
         console.error("Sheet verification error:", sheetError);
-        return new Response(JSON.stringify({ 
-          error: "Erreur de vérification des données",
-          details: sheetError.message 
-        }), {
-          status: 500,
-          headers: { "Content-Type": "application/json", ...corsHeaders },
-        });
+        console.log("WARNING: Sheet verification failed but continuing anyway");
       }
     } else {
       console.log("Skipping sheet verification - missing config");
     }
-    */
-    console.log("Sheet verification DISABLED for testing");
 
     // Appel du webhook Make
     console.log("Calling Make webhook...");
