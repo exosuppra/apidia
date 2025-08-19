@@ -10,6 +10,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/context/AuthProvider";
 import Seo from "@/components/Seo";
+import { Loader2 } from "lucide-react";
 
 const setCodeSchema = z
   .object({
@@ -44,22 +45,54 @@ export default function SetCode() {
 
     try {
       setLoading(true);
-      // 1) Met à jour le Google Sheet via l'Edge Function protégée
-      const { data, error } = await supabase.functions.invoke("set-user-code", {
+      console.log('Calling set-user-code function with:', { 
+        id: values.id.trim(), 
+        email: user.email, 
+        code: values.code.trim() 
+      });
+
+      // Timeout après 25 secondes pour éviter l'erreur à 30s
+      const timeoutPromise = new Promise<never>((_, reject) => 
+        setTimeout(() => reject(new Error('Timeout: La requête a pris trop de temps')), 25000)
+      );
+      
+      const requestPromise = supabase.functions.invoke("set-user-code", {
         body: { id: values.id.trim(), email: user.email, code: values.code.trim() },
       });
-      if (error) throw error;
+
+      // 1) Met à jour le Google Sheet via l'Edge Function protégée
+      const result = await Promise.race([requestPromise, timeoutPromise]);
+      console.log('Set-user-code response:', result);
+      
+      if (result.error) {
+        console.error('Edge function error:', result.error);
+        throw new Error(result.error.message || 'Erreur lors de la mise à jour du code');
+      }
 
       // 2) Met à jour le mot de passe Supabase pour l'utilisateur courant
       const { error: updErr } = await supabase.auth.updateUser({ password: values.code.trim() });
-      if (updErr) throw updErr;
+      if (updErr) {
+        console.error('Supabase auth error:', updErr);
+        throw updErr;
+      }
 
       toast({ title: "Code enregistré", description: "Votre code a été défini avec succès." });
 
       // Rediriger vers le tableau de bord
       window.location.href = "/dashboard";
     } catch (err: any) {
-      toast({ title: "Erreur", description: err?.message || "Une erreur est survenue.", variant: "destructive" });
+      console.error('SetCode error:', err);
+      let errorMessage = "Une erreur est survenue.";
+      
+      if (err?.message?.includes('Timeout')) {
+        errorMessage = "La requête a pris trop de temps. Veuillez réessayer.";
+      } else if (err?.message?.includes('2xx') || err?.message?.includes('status')) {
+        errorMessage = "Erreur de serveur. Vérifiez que vos données sont correctes dans le système.";
+      } else if (err?.message) {
+        errorMessage = err.message;
+      }
+      
+      toast({ title: "Erreur", description: errorMessage, variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -136,7 +169,8 @@ export default function SetCode() {
                   )}
                 />
                 <Button className="w-full" type="submit" disabled={loading}>
-                  Enregistrer mon code
+                  {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  {loading ? "Enregistrement..." : "Enregistrer mon code"}
                 </Button>
               </form>
             </Form>
