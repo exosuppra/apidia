@@ -65,12 +65,15 @@ async function ensureUserExistsInSheet(sheetId: string, serviceAccountJson: stri
 }
 
 serve(async (req: Request) => {
+  console.log("=== SET-USER-CODE FUNCTION CALLED ===");
+  
   if (req.method === "OPTIONS") {
+    console.log("Handling OPTIONS request");
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    console.log("=== SET-USER-CODE START ===");
+    console.log("Method:", req.method);
     
     if (req.method !== "POST") {
       console.log("Invalid method:", req.method);
@@ -80,30 +83,58 @@ serve(async (req: Request) => {
       });
     }
 
-    const body = (await req.json()) as SetCodeBody;
+    const bodyText = await req.text();
+    console.log("Raw body:", bodyText);
+    
+    let body: SetCodeBody;
+    try {
+      body = JSON.parse(bodyText);
+    } catch (parseError) {
+      console.error("JSON parse error:", parseError);
+      return new Response(JSON.stringify({ error: "Invalid JSON" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
+    }
+
     const id = normalize(body?.id);
     const email = normalize(body?.email);
     const code = normalize(body?.code);
 
-    console.log("Received data:", { id, email, code: code ? "***" : "missing" });
+    console.log("Parsed data:", { 
+      id: id || "MISSING", 
+      email: email || "MISSING", 
+      code: code ? "PROVIDED" : "MISSING" 
+    });
 
     if (!id || !email || !code) {
-      console.log("Missing required fields:", { hasId: !!id, hasEmail: !!email, hasCode: !!code });
+      console.log("Missing required fields");
       return new Response(JSON.stringify({ error: "Missing id, email or code" }), {
         status: 400,
         headers: { "Content-Type": "application/json", ...corsHeaders },
       });
     }
 
+    // Vérifier les variables d'environnement
     const MAKE_WEBHOOK_URL = Deno.env.get("MAKE_WEBHOOK_URL");
-    if (!MAKE_WEBHOOK_URL) {
-      console.log("Missing MAKE_WEBHOOK_URL secret");
-      throw new Error("Missing MAKE_WEBHOOK_URL secret");
-    }
-
-    // Optionnel: vérifier que l'utilisateur existe dans le Sheet
     const SHEET_ID = Deno.env.get("GOOGLE_SHEETS_ID");
     const SA_JSON = Deno.env.get("GOOGLE_SERVICE_ACCOUNT_JSON");
+    
+    console.log("Environment check:", {
+      hasMakeWebhook: !!MAKE_WEBHOOK_URL,
+      hasSheetId: !!SHEET_ID,
+      hasServiceAccount: !!SA_JSON
+    });
+
+    if (!MAKE_WEBHOOK_URL) {
+      console.log("Missing MAKE_WEBHOOK_URL secret");
+      return new Response(JSON.stringify({ error: "Configuration manquante: MAKE_WEBHOOK_URL" }), {
+        status: 500,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
+    }
+
+    // Vérification Google Sheet (optionnelle)
     if (SHEET_ID && SA_JSON) {
       console.log("Checking user existence in Google Sheet...");
       try {
@@ -111,49 +142,72 @@ serve(async (req: Request) => {
         console.log("User exists in sheet:", exists);
         if (!exists) {
           console.log("User not found in sheet with id:", id, "email:", email);
-          return new Response(JSON.stringify({ error: "ID/email non trouvés dans la feuille" }), {
+          return new Response(JSON.stringify({ 
+            error: "Utilisateur non trouvé",
+            details: `ID: ${id}, Email: ${email}` 
+          }), {
             status: 401,
             headers: { "Content-Type": "application/json", ...corsHeaders },
           });
         }
       } catch (sheetError: any) {
-        console.error("Error checking sheet:", sheetError);
-        return new Response(JSON.stringify({ error: "Erreur lors de la vérification des données: " + sheetError.message }), {
+        console.error("Sheet verification error:", sheetError);
+        return new Response(JSON.stringify({ 
+          error: "Erreur de vérification des données",
+          details: sheetError.message 
+        }), {
           status: 500,
           headers: { "Content-Type": "application/json", ...corsHeaders },
         });
       }
     } else {
-      console.log("Skipping sheet verification (missing SHEET_ID or SA_JSON)");
+      console.log("Skipping sheet verification - missing config");
     }
 
-    // Déclenche le scénario Make pour écrire le code dans la bonne cellule
+    // Appel du webhook Make
     console.log("Calling Make webhook...");
+    const makePayload = { id, email, code };
+    console.log("Payload:", { id, email, code: "***" });
+
     const resp = await fetch(MAKE_WEBHOOK_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id, email, code }),
+      body: JSON.stringify(makePayload),
     });
 
-    console.log("Make webhook response status:", resp.status);
+    console.log("Make webhook status:", resp.status);
     
     if (!resp.ok) {
       const text = await resp.text();
-      console.error("Make webhook failed:", resp.status, text);
-      throw new Error(`Make webhook failed: ${resp.status} ${text}`);
+      console.error("Make webhook error:", resp.status, text);
+      return new Response(JSON.stringify({ 
+        error: "Erreur webhook Make",
+        status: resp.status,
+        details: text
+      }), {
+        status: 500,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
     }
 
     const responseText = await resp.text();
-    console.log("Make webhook success response:", responseText);
+    console.log("Make webhook success:", responseText);
 
     console.log("=== SET-USER-CODE SUCCESS ===");
-    return new Response(JSON.stringify({ ok: true }), {
+    return new Response(JSON.stringify({ 
+      ok: true, 
+      message: "Code enregistré avec succès" 
+    }), {
       status: 200,
       headers: { "Content-Type": "application/json", ...corsHeaders },
     });
+
   } catch (err: any) {
-    console.error("=== SET-USER-CODE ERROR ===", err?.message || err);
-    return new Response(JSON.stringify({ error: err?.message || "Internal error" }), {
+    console.error("=== SET-USER-CODE FATAL ERROR ===", err);
+    return new Response(JSON.stringify({ 
+      error: "Erreur interne du serveur",
+      details: err?.message || "Erreur inconnue"
+    }), {
       status: 500,
       headers: { "Content-Type": "application/json", ...corsHeaders },
     });
