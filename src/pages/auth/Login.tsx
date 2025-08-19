@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import Seo from "@/components/Seo";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
@@ -124,7 +124,14 @@ const onSubmit = async (values: z.infer<typeof idLoginSchema>) => {
                     <FormItem>
                       <FormLabel>Identifiant</FormLabel>
                       <FormControl>
-                        <Input type="text" inputMode="text" placeholder="Votre ID" {...field} value={field.value ?? ""} />
+                        <Input 
+                          type="text" 
+                          inputMode="text" 
+                          placeholder="Votre ID" 
+                          {...field} 
+                          value={field.value ?? ""} 
+                          required
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -137,7 +144,14 @@ const onSubmit = async (values: z.infer<typeof idLoginSchema>) => {
                     <FormItem>
                       <FormLabel>Email</FormLabel>
                       <FormControl>
-                        <Input type="email" inputMode="email" placeholder="vous@exemple.com" {...field} value={field.value ?? ""} />
+                        <Input 
+                          type="email" 
+                          inputMode="email" 
+                          placeholder="vous@exemple.com" 
+                          {...field} 
+                          value={field.value ?? ""} 
+                          required
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -151,15 +165,26 @@ const onSubmit = async (values: z.infer<typeof idLoginSchema>) => {
                       <FormItem>
                         <FormLabel>Code</FormLabel>
                         <FormControl>
-                          <Input type="password" placeholder="Votre code" {...field} value={field.value ?? ""} />
+                          <Input 
+                            type="password" 
+                            placeholder="Votre code" 
+                            {...field} 
+                            value={field.value ?? ""} 
+                            required
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
                 )}
-                <Button className="w-full" type="submit" disabled={loading}>
-                  {mode === "first" ? "Recevoir le lien de connexion" : "Se connecter"}
+                <Button 
+                  className="w-full" 
+                  type="submit" 
+                  disabled={loading}
+                  onClick={() => console.log('Button clicked, form values:', form.getValues())}
+                >
+                  {loading ? "Chargement..." : (mode === "first" ? "Recevoir le lien de connexion" : "Se connecter")}
                 </Button>
               </form>
             </Form>
