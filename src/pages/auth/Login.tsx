@@ -30,6 +30,7 @@ defaultValues: { id: "", email: "", code: "" },
 const onSubmit = async (values: z.infer<typeof idLoginSchema>) => {
   try {
     setLoading(true);
+    console.log('Submitting form with mode:', mode, 'values:', values);
 
     const id = values.id.trim();
     const email = values.email.trim();
@@ -67,13 +68,15 @@ const onSubmit = async (values: z.infer<typeof idLoginSchema>) => {
     }
 
     // Première connexion: envoi d'un lien magique vers la page de création du code
-    const { error } = await supabase.functions.invoke("request-login", {
+    console.log('Calling request-login function with:', { id, email });
+    const { data, error } = await supabase.functions.invoke("request-login", {
       body: {
         id,
         email,
         redirectUrl: `${window.location.origin}/auth/set-code`,
       },
     });
+    console.log('Request-login response:', { data, error });
     if (error) throw error;
     toast({ title: "Vérifiez votre email", description: "Un lien vous a été envoyé pour créer votre code." });
   } catch (err: any) {
