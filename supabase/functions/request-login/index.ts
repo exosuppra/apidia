@@ -35,10 +35,10 @@ async function findUserInSheet(sheetId: string, serviceAccountJson: string, id: 
 
   const sheets = google.sheets({ version: "v4", auth });
 
-  // Read header + rows from first sheet (A:Z to cover typical columns)
+  // Read header + rows from ENT LOGIN sheet (A:Z to cover typical columns)
   const resp = await sheets.spreadsheets.values.get({
     spreadsheetId: sheetId,
-    range: "A:Z",
+    range: "ENT LOGIN!A:Z",
     majorDimension: "ROWS",
   });
 
