@@ -69,7 +69,8 @@ serve(async (req: Request) => {
     
     for (const sheetName of possibleSheets) {
       try {
-        const sheetRange = `${sheetName}!A:Z`;
+        // Étendre le range pour récupérer toutes les colonnes (jusqu'à ZZ)
+        const sheetRange = `${sheetName}!A1:ZZ1000`;
         console.log(`Trying sheet: ${sheetRange}`);
         
         resp = await sheets.spreadsheets.values.get({
