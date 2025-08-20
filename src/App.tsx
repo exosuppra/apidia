@@ -11,6 +11,8 @@ import AuthProvider from "./context/AuthProvider";
 import RequireAuth from "./components/RequireAuth";
 import Login from "./pages/auth/Login";
 import SetCode from "./pages/auth/SetCode";
+import AdminLogin from "./pages/auth/AdminLogin";
+import AdminDashboard from "./pages/admin/Dashboard";
 import Fiches from "./pages/dashboard/Fiches";
 
 const queryClient = new QueryClient();
@@ -26,6 +28,8 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/auth/login" element={<Login />} />
             <Route path="/auth/set-code" element={<SetCode />} />
+            <Route path="/admin/login" element={<AdminLogin />} />
+            <Route path="/admin/dashboard" element={<AdminDashboard />} />
             <Route
               path="/dashboard"
               element={
