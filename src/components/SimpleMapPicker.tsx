@@ -5,6 +5,7 @@ interface SimpleMapPickerProps {
   longitude?: number;
   onCoordinatesChange: (lat: number, lng: number) => void;
   className?: string;
+  address?: string; // Nouvelle prop pour l'adresse
 }
 
 declare global {
@@ -17,12 +18,40 @@ export default function SimpleMapPicker({
   latitude, 
   longitude, 
   onCoordinatesChange, 
-  className 
+  className,
+  address 
 }: SimpleMapPickerProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
   const markerRef = useRef<any>(null);
   const [isMapReady, setIsMapReady] = useState(false);
+  const [isGeocoding, setIsGeocoding] = useState(false);
+
+  // Fonction de géocodage avec Nominatim (gratuit)
+  const geocodeAddress = async (addressString: string) => {
+    if (!addressString || addressString.trim().length < 5) return null;
+    
+    try {
+      setIsGeocoding(true);
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(addressString)}&limit=1&countrycodes=fr`
+      );
+      const data = await response.json();
+      
+      if (data && data.length > 0) {
+        return {
+          lat: parseFloat(data[0].lat),
+          lng: parseFloat(data[0].lon)
+        };
+      }
+      return null;
+    } catch (error) {
+      console.error('Erreur de géocodage:', error);
+      return null;
+    } finally {
+      setIsGeocoding(false);
+    }
+  };
 
   useEffect(() => {
     const loadLeaflet = async () => {
@@ -124,6 +153,35 @@ export default function SimpleMapPicker({
     };
   }, []);
 
+  // Géocodage automatique quand l'adresse change
+  useEffect(() => {
+    const performGeocoding = async () => {
+      if (address && !latitude && !longitude && isMapReady) {
+        const coords = await geocodeAddress(address);
+        if (coords && mapRef.current) {
+          // Supprimer l'ancien marqueur s'il existe
+          if (markerRef.current) {
+            mapRef.current.removeLayer(markerRef.current);
+          }
+          
+          const L = window.L;
+          markerRef.current = L.marker([coords.lat, coords.lng], { draggable: true })
+            .addTo(mapRef.current);
+          
+          markerRef.current.on('dragend', (e: any) => {
+            const position = e.target.getLatLng();
+            onCoordinatesChange(position.lat, position.lng);
+          });
+          
+          mapRef.current.setView([coords.lat, coords.lng], 15);
+          onCoordinatesChange(coords.lat, coords.lng);
+        }
+      }
+    };
+
+    performGeocoding();
+  }, [address, latitude, longitude, isMapReady, onCoordinatesChange]);
+
   // Mettre à jour la position du marqueur quand les props changent
   useEffect(() => {
     if (mapRef.current && latitude && longitude && isMapReady) {
@@ -154,12 +212,17 @@ export default function SimpleMapPicker({
       >
         {!isMapReady && (
           <div className="h-full flex items-center justify-center bg-muted/50">
-            <div className="text-sm text-muted-foreground">Chargement de la carte...</div>
+            <div className="text-sm text-muted-foreground">
+              {isGeocoding ? 'Recherche de l\'adresse...' : 'Chargement de la carte...'}
+            </div>
           </div>
         )}
       </div>
       <div className="text-xs text-muted-foreground">
-        Cliquez sur la carte ou faites glisser le marqueur pour définir les coordonnées
+        {address && !latitude && !longitude 
+          ? `Géocodage automatique de : ${address}`
+          : 'Cliquez sur la carte ou faites glisser le marqueur pour définir les coordonnées'
+        }
       </div>
     </div>
   );

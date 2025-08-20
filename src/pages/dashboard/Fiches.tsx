@@ -268,36 +268,55 @@ export default function Fiches() {
 
           {original && (
             <div className="space-y-4 max-h-[60vh] overflow-auto pr-1">
-              {/* Carte interactive pour latitude/longitude */}
-              {(columns.includes('latitude') && columns.includes('longitude')) && (
-                <SimpleMapPicker
-                  latitude={parseFloat((edited as any)['latitude']) || undefined}
-                  longitude={parseFloat((edited as any)['longitude']) || undefined}
-                  onCoordinatesChange={(lat, lng) => {
-                    onChangeField('latitude', lat.toString());
-                    onChangeField('longitude', lng.toString());
-                  }}
-                />
-              )}
-              
-              {columns.map((key) => (
-                <div key={key} className="space-y-1">
-                  <div className="text-xs text-muted-foreground">{key}</div>
-                  {nonEditable.has(key) ? (
-                    <Input value={(edited as any)[key] ?? ""} disabled />
-                  ) : ((edited as any)[key]?.toString()?.length ?? 0) > 120 ? (
-                    <Textarea
-                      value={(edited as any)[key] ?? ""}
-                      onChange={(e) => onChangeField(key, e.target.value)}
-                    />
-                  ) : (
-                    <Input
-                      value={(edited as any)[key] ?? ""}
-                      onChange={(e) => onChangeField(key, e.target.value)}
-                    />
-                  )}
-                </div>
-              ))}
+              {columns.map((key, index) => {
+                // Afficher la carte après "descriptif détaillé" et avant "latitude"
+                const showMapAfter = key === "descriptif détaillé" || key === "Descriptif détaillé";
+                const shouldShowMap = (columns.includes('latitude') && columns.includes('longitude'));
+                
+                return (
+                  <div key={key}>
+                    {/* Champs normaux */}
+                    <div className="space-y-1">
+                      <div className="text-xs text-muted-foreground">{key}</div>
+                      {nonEditable.has(key) ? (
+                        <Input value={(edited as any)[key] ?? ""} disabled />
+                      ) : ((edited as any)[key]?.toString()?.length ?? 0) > 120 ? (
+                        <Textarea
+                          value={(edited as any)[key] ?? ""}
+                          onChange={(e) => onChangeField(key, e.target.value)}
+                        />
+                      ) : (
+                        <Input
+                          value={(edited as any)[key] ?? ""}
+                          onChange={(e) => onChangeField(key, e.target.value)}
+                        />
+                      )}
+                    </div>
+
+                    {/* Afficher la carte après le descriptif détaillé */}
+                    {showMapAfter && shouldShowMap && (
+                      <div className="mt-6 mb-2">
+                        <SimpleMapPicker
+                          latitude={parseFloat((edited as any)['latitude']) || undefined}
+                          longitude={parseFloat((edited as any)['longitude']) || undefined}
+                          onCoordinatesChange={(lat, lng) => {
+                            onChangeField('latitude', lat.toString());
+                            onChangeField('longitude', lng.toString());
+                          }}
+                          // Passer l'adresse pour géocodage automatique
+                          address={[
+                            (edited as any)['adresse 1'] || (edited as any)['Adresse 1'] || '',
+                            (edited as any)['adresse 2'] || (edited as any)['Adresse 2'] || '',
+                            (edited as any)['adresse 3'] || (edited as any)['Adresse 3'] || '',
+                            (edited as any)['code postal'] || (edited as any)['Code postal'] || '',
+                            (edited as any)['commune'] || (edited as any)['Commune'] || ''
+                          ].filter(Boolean).join(', ')}
+                        />
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           )}
 
