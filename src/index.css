@@ -2,6 +2,11 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Leaflet CSS fix for missing marker icons */
+.leaflet-default-icon-path { 
+  background-image: url('https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png');
+}
+
 /* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
 All colors MUST be HSL.
 */

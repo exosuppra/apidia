@@ -27,6 +27,7 @@ import { Badge } from "@/components/ui/badge";
 import { RefreshCw, Search, Edit3 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import MapPicker from "@/components/MapPicker";
 
 const FichesHeader = ({
   email,
@@ -267,6 +268,21 @@ export default function Fiches() {
 
           {original && (
             <div className="space-y-4 max-h-[60vh] overflow-auto pr-1">
+              {/* Carte interactive pour latitude/longitude */}
+              {(columns.includes('latitude') && columns.includes('longitude')) && (
+                <div className="space-y-2">
+                  <div className="text-xs text-muted-foreground">Coordonnées GPS</div>
+                  <MapPicker
+                    latitude={parseFloat((edited as any)['latitude']) || undefined}
+                    longitude={parseFloat((edited as any)['longitude']) || undefined}
+                    onCoordinatesChange={(lat, lng) => {
+                      onChangeField('latitude', lat.toString());
+                      onChangeField('longitude', lng.toString());
+                    }}
+                  />
+                </div>
+              )}
+              
               {columns.map((key) => (
                 <div key={key} className="space-y-1">
                   <div className="text-xs text-muted-foreground">{key}</div>
