@@ -100,7 +100,21 @@ export default function Fiches() {
 
   const columns = useMemo(() => {
     const first = data?.[0] || {};
-    return Object.keys(first).filter((k) => k !== "code");
+    const allColumns = Object.keys(first).filter((k) => k !== "code");
+    
+    // Filtrer les colonnes à ne pas afficher
+    const excludedColumns = [
+      "datemiseajourhumaine",
+      "publiée ?",
+      "date maj oto", 
+      "confirmation du propriétaire"
+    ];
+    
+    return allColumns.filter(col => 
+      !excludedColumns.some(excluded => 
+        col.toLowerCase().includes(excluded.toLowerCase())
+      )
+    );
   }, [data]);
 
   const nonEditable = new Set(["id", "email", "code"]);
