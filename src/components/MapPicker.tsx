@@ -1,10 +1,12 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
 import { Icon, LatLng } from 'leaflet';
+
+// Fix pour les icônes Leaflet
 import 'leaflet/dist/leaflet.css';
 
-// Icône du marqueur personnalisée pour Leaflet
-const markerIcon = new Icon({
+// Configuration de l'icône par défaut
+const DefaultIcon = new Icon({
   iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
   shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
   iconSize: [25, 41],
@@ -28,7 +30,7 @@ function LocationMarker({ position, setPosition }: LocationMarkerProps) {
   return position === null ? null : (
     <Marker 
       position={position} 
-      icon={markerIcon}
+      icon={DefaultIcon}
       draggable={true}
       eventHandlers={{
         dragend: (e) => {
@@ -49,7 +51,7 @@ interface MapPickerProps {
 
 export default function MapPicker({ latitude, longitude, onCoordinatesChange, className }: MapPickerProps) {
   const [position, setPosition] = useState<LatLng | null>(null);
-  const mapRef = useRef<any>(null);
+  const [mapKey, setMapKey] = useState(0);
 
   // Initialiser la position depuis les props
   useEffect(() => {
@@ -60,11 +62,23 @@ export default function MapPicker({ latitude, longitude, onCoordinatesChange, cl
   }, [latitude, longitude]);
 
   // Mettre à jour les coordonnées quand la position change
+  const handleCoordinatesChange = useCallback((lat: number, lng: number) => {
+    onCoordinatesChange(lat, lng);
+  }, [onCoordinatesChange]);
+
   useEffect(() => {
     if (position) {
-      onCoordinatesChange(position.lat, position.lng);
+      handleCoordinatesChange(position.lat, position.lng);
     }
-  }, [position, onCoordinatesChange]);
+  }, [position, handleCoordinatesChange]);
+
+  // Forcer le re-rendu de la carte quand elle devient visible
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setMapKey(prev => prev + 1);
+    }, 100);
+    return () => clearTimeout(timer);
+  }, []);
 
   // Position par défaut (centre de la France)
   const defaultCenter: [number, number] = [46.603354, 1.888334];
@@ -73,10 +87,13 @@ export default function MapPicker({ latitude, longitude, onCoordinatesChange, cl
   return (
     <div className={`h-64 w-full rounded-md border overflow-hidden ${className}`}>
       <MapContainer
+        key={mapKey}
         center={center}
         zoom={position ? 13 : 6}
         style={{ height: '100%', width: '100%' }}
-        ref={mapRef}
+        whenReady={() => {
+          // La carte est prête
+        }}
       >
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
