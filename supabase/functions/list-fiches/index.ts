@@ -59,16 +59,37 @@ serve(async (req: Request) => {
 
     const sheets = google.sheets({ version: "v4", auth });
     
-    // Lire spécifiquement la feuille "BD COS"
-    const sheetRange = "BD COS!A:Z";
-    console.log(`Reading from sheet range: ${sheetRange}`);
-    console.log(`Looking for email: ${email}`);
+    // Essayer plusieurs noms de feuilles possibles
+    const possibleSheets = ["BD COS", "BD_COS", "BDCOS", "Feuil1"];
+    let resp;
+    let sheetUsed = "";
     
-    const resp = await sheets.spreadsheets.values.get({
-      spreadsheetId: SHEET_ID,
-      range: sheetRange,
-      majorDimension: "ROWS",
-    });
+    console.log(`Looking for email: ${email}`);
+    console.log("Trying different sheet names...");
+    
+    for (const sheetName of possibleSheets) {
+      try {
+        const sheetRange = `${sheetName}!A:Z`;
+        console.log(`Trying sheet: ${sheetRange}`);
+        
+        resp = await sheets.spreadsheets.values.get({
+          spreadsheetId: SHEET_ID,
+          range: sheetRange,
+          majorDimension: "ROWS",
+        });
+        
+        sheetUsed = sheetName;
+        console.log(`SUCCESS: Found sheet "${sheetName}" with ${resp.data.values?.length || 0} rows`);
+        break;
+      } catch (sheetError: any) {
+        console.log(`Failed to read sheet "${sheetName}": ${sheetError.message}`);
+        continue;
+      }
+    }
+    
+    if (!resp) {
+      throw new Error(`Could not find any readable sheet. Tried: ${possibleSheets.join(", ")}`);
+    }
 
     const rows = resp.data.values || [];
     console.log(`Found ${rows.length} rows in sheet`);
