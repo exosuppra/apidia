@@ -4,9 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import Seo from "@/components/Seo";
-import { Shield, LogOut, Users, FileText, Eye, Loader2 } from "lucide-react";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { supabase } from "@/integrations/supabase/client";
+import { Shield, LogOut, Users, FileText, Eye } from "lucide-react";
 
 interface AdminSession {
   admin: {
@@ -17,16 +15,8 @@ interface AdminSession {
   loginTime: number;
 }
 
-interface FicheData {
-  sheetName: string;
-  data: Record<string, string>;
-}
-
 export default function AdminDashboard() {
   const [adminSession, setAdminSession] = useState<AdminSession | null>(null);
-  const [fiches, setFiches] = useState<FicheData[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [showFiches, setShowFiches] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -62,33 +52,6 @@ export default function AdminDashboard() {
       description: "Vous avez été déconnecté avec succès",
     });
     navigate("/admin/login");
-  };
-
-  const loadAllFiches = async () => {
-    setLoading(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('list-all-fiches', {
-        body: {}
-      });
-
-      if (error) throw error;
-      
-      setFiches(data.data || []);
-      setShowFiches(true);
-      toast({
-        title: "Fiches chargées",
-        description: `${data.data?.length || 0} fiches trouvées`,
-      });
-    } catch (error: any) {
-      console.error('Erreur lors du chargement des fiches:', error);
-      toast({
-        title: "Erreur",
-        description: "Impossible de charger les fiches",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
   };
 
   if (!adminSession) {
@@ -195,86 +158,13 @@ export default function AdminDashboard() {
                 <Button 
                   className="w-full mt-4" 
                   variant="outline"
-                  onClick={loadAllFiches}
-                  disabled={loading}
+                  onClick={() => navigate("/admin/fiches")}
                 >
-                  {loading ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Chargement...
-                    </>
-                  ) : (
-                    'Charger toutes les fiches'
-                  )}
+                  Voir toutes les fiches
                 </Button>
               </CardContent>
             </Card>
           </div>
-
-          {/* Fiches Display */}
-          {showFiches && (
-            <Card className="mt-8">
-              <CardHeader>
-                <CardTitle>Toutes les fiches ({fiches.length})</CardTitle>
-                <CardDescription>
-                  Fiches du Google Sheet (exclut les feuilles contenant "SOURCING")
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {fiches.length === 0 ? (
-                  <div className="text-sm text-muted-foreground">
-                    Aucune fiche trouvée
-                  </div>
-                ) : (
-                  <div className="max-h-96 overflow-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Feuille</TableHead>
-                          <TableHead>Email</TableHead>
-                          <TableHead>Nom</TableHead>
-                          <TableHead>Autres données</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {fiches.map((fiche, index) => {
-                          const email = fiche.data.email || fiche.data["e-mail"] || fiche.data.mail || "";
-                          const nom = fiche.data.nom || fiche.data.name || fiche.data.nomcomplet || "";
-                          const otherFields = Object.entries(fiche.data)
-                            .filter(([key]) => !["feuille", "email", "e-mail", "mail", "nom", "name", "nomcomplet"].includes(key.toLowerCase()))
-                            .filter(([, value]) => value && value.trim() !== "")
-                            .slice(0, 3); // Limiter à 3 champs supplémentaires
-
-                          return (
-                            <TableRow key={`${fiche.sheetName}-${index}`}>
-                              <TableCell className="font-medium">
-                                {fiche.sheetName}
-                              </TableCell>
-                              <TableCell>{email}</TableCell>
-                              <TableCell>{nom}</TableCell>
-                              <TableCell>
-                                {otherFields.length > 0 ? (
-                                  <div className="text-xs text-muted-foreground">
-                                    {otherFields.map(([key, value]) => (
-                                      <div key={key}>
-                                        <strong>{key}:</strong> {value.length > 30 ? `${value.substring(0, 30)}...` : value}
-                                      </div>
-                                    ))}
-                                  </div>
-                                ) : (
-                                  <span className="text-muted-foreground">-</span>
-                                )}
-                              </TableCell>
-                            </TableRow>
-                          );
-                        })}
-                      </TableBody>
-                    </Table>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          )}
 
           {/* Recent Activity */}
           <Card className="mt-8">

@@ -13,6 +13,7 @@ import Login from "./pages/auth/Login";
 import SetCode from "./pages/auth/SetCode";
 import AdminLogin from "./pages/auth/AdminLogin";
 import AdminDashboard from "./pages/admin/Dashboard";
+import AllFiches from "./pages/admin/AllFiches";
 import Fiches from "./pages/dashboard/Fiches";
 
 const queryClient = new QueryClient();
@@ -30,6 +31,7 @@ const App = () => (
             <Route path="/auth/set-code" element={<SetCode />} />
             <Route path="/admin/login" element={<AdminLogin />} />
             <Route path="/admin/dashboard" element={<AdminDashboard />} />
+            <Route path="/admin/fiches" element={<AllFiches />} />
             <Route
               path="/dashboard"
               element={

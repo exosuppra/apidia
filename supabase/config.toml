@@ -12,5 +12,11 @@ verify_jwt = true
 [functions.list-fiches]
 verify_jwt = true
 
+[functions.list-all-fiches]
+verify_jwt = true
+
 [functions.request-update]
 verify_jwt = true
+
+[functions.admin-login]
+verify_jwt = false
