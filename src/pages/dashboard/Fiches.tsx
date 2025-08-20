@@ -27,7 +27,7 @@ import { Badge } from "@/components/ui/badge";
 import { RefreshCw, Search, Edit3 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import MapPicker from "@/components/MapPicker";
+import SimpleMapPicker from "@/components/SimpleMapPicker";
 
 const FichesHeader = ({
   email,
@@ -268,40 +268,16 @@ export default function Fiches() {
 
           {original && (
             <div className="space-y-4 max-h-[60vh] overflow-auto pr-1">
-              {/* Carte interactive pour latitude/longitude - Temporairement désactivée */}
+              {/* Carte interactive pour latitude/longitude */}
               {(columns.includes('latitude') && columns.includes('longitude')) && (
-                <div className="space-y-2">
-                  <div className="text-xs text-muted-foreground">Coordonnées GPS</div>
-                  <div className="p-4 border rounded-md bg-muted/50">
-                    <p className="text-sm text-muted-foreground mb-2">
-                      Carte interactive temporairement désactivée
-                    </p>
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <label className="text-xs text-muted-foreground">Latitude</label>
-                        <input
-                          type="number"
-                          step="any"
-                          className="w-full px-2 py-1 text-sm border rounded"
-                          value={(edited as any)['latitude'] || ''}
-                          onChange={(e) => onChangeField('latitude', e.target.value)}
-                          placeholder="Ex: 46.603354"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-xs text-muted-foreground">Longitude</label>
-                        <input
-                          type="number"
-                          step="any"
-                          className="w-full px-2 py-1 text-sm border rounded"
-                          value={(edited as any)['longitude'] || ''}
-                          onChange={(e) => onChangeField('longitude', e.target.value)}
-                          placeholder="Ex: 1.888334"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                <SimpleMapPicker
+                  latitude={parseFloat((edited as any)['latitude']) || undefined}
+                  longitude={parseFloat((edited as any)['longitude']) || undefined}
+                  onCoordinatesChange={(lat, lng) => {
+                    onChangeField('latitude', lat.toString());
+                    onChangeField('longitude', lng.toString());
+                  }}
+                />
               )}
               
               {columns.map((key) => (
