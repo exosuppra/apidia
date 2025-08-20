@@ -58,14 +58,23 @@ serve(async (req: Request) => {
     });
 
     const sheets = google.sheets({ version: "v4", auth });
+    
+    // Lire spécifiquement la feuille "BD COS"
+    const sheetRange = "BD COS!A:Z";
+    console.log(`Reading from sheet range: ${sheetRange}`);
+    console.log(`Looking for email: ${email}`);
+    
     const resp = await sheets.spreadsheets.values.get({
       spreadsheetId: SHEET_ID,
-      range: "A:Z",
+      range: sheetRange,
       majorDimension: "ROWS",
     });
 
     const rows = resp.data.values || [];
+    console.log(`Found ${rows.length} rows in sheet`);
+    
     if (rows.length === 0) {
+      console.log("No data found in sheet");
       return new Response(JSON.stringify({ data: [] }), {
         status: 200,
         headers: { "Content-Type": "application/json", ...corsHeaders },
@@ -75,17 +84,32 @@ serve(async (req: Request) => {
     const headerRaw: string[] = rows[0].map((h: string) => h?.toString() ?? "");
     const header = headerRaw.map((h: string) => h.trim());
     const headerLower = header.map((h: string) => h.toLowerCase());
+    
+    console.log("Sheet headers found:", header);
+    console.log("Headers (lowercase):", headerLower);
 
     const emailIdx = headerLower.findIndex((h) => ["email", "e-mail", "mail"].includes(h));
+    console.log(`Email column index: ${emailIdx}`);
+    
     if (emailIdx === -1) {
+      console.log("ERROR: No email column found in headers:", headerLower);
       throw new Error("Sheet headers must include 'email'");
     }
 
     const filtered = [] as Record<string, string>[];
+    console.log("Searching through rows...");
+    
     for (let i = 1; i < rows.length; i++) {
       const row = rows[i] as string[];
-      const rowEmail = normalizeEmail(row[emailIdx] ?? "");
+      const rawRowEmail = row[emailIdx] ?? "";
+      const rowEmail = normalizeEmail(rawRowEmail);
+      
+      if (i <= 5) { // Log first 5 rows for debugging
+        console.log(`Row ${i}: raw email="${rawRowEmail}", normalized="${rowEmail}"`);
+      }
+      
       if (rowEmail && rowEmail === email) {
+        console.log(`MATCH FOUND at row ${i}: "${rowEmail}"`);
         const obj: Record<string, string> = {};
         for (let c = 0; c < header.length; c++) {
           const key = headerLower[c] || `col_${c}`;
@@ -95,6 +119,7 @@ serve(async (req: Request) => {
       }
     }
 
+    console.log(`Total matches found: ${filtered.length}`);
     return new Response(JSON.stringify({ data: filtered }), {
       status: 200,
       headers: { "Content-Type": "application/json", ...corsHeaders },
