@@ -71,12 +71,20 @@ export default function SimpleMapPicker({
       scriptElement.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
       
       scriptElement.onload = () => {
-        // Fix pour les icônes par défaut de Leaflet
+        // Fix complet pour les icônes par défaut de Leaflet
         if (window.L) {
+          // Supprimer l'icône par défaut cassée
+          delete window.L.Icon.Default.prototype._getIconUrl;
+          
+          // Redéfinir les icônes avec des URLs complètes
           window.L.Icon.Default.mergeOptions({
-            iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-            iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-            shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+            iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
+            iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
+            shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+            iconSize: [25, 41],
+            iconAnchor: [12, 41],
+            popupAnchor: [1, -34],
+            shadowSize: [41, 41]
           });
         }
         initializeMap();
