@@ -59,40 +59,52 @@ serve(async (req: Request) => {
 
     const sheets = google.sheets({ version: "v4", auth });
     
-    // Essayer plusieurs noms de feuilles possibles
-    const possibleSheets = ["BD COS", "BD_COS", "BDCOS", "Feuil1"];
-    let resp;
-    let sheetUsed = "";
+    // Essayer plusieurs feuilles et combiner les résultats
+    const targetSheets = ["BD COS", "BD FETE_ET_MANIFESTATION"];
+    const allRows: string[][] = [];
+    let headerRow: string[] = [];
+    let foundAnySheet = false;
     
     console.log(`Looking for email: ${email}`);
-    console.log("Trying different sheet names...");
+    console.log("Trying to read from multiple sheets...");
     
-    for (const sheetName of possibleSheets) {
+    for (const sheetName of targetSheets) {
       try {
-        // Étendre le range pour récupérer toutes les colonnes (jusqu'à ZZ)
         const sheetRange = `${sheetName}!A1:ZZ1000`;
         console.log(`Trying sheet: ${sheetRange}`);
         
-        resp = await sheets.spreadsheets.values.get({
+        const resp = await sheets.spreadsheets.values.get({
           spreadsheetId: SHEET_ID,
           range: sheetRange,
           majorDimension: "ROWS",
         });
         
-        sheetUsed = sheetName;
-        console.log(`SUCCESS: Found sheet "${sheetName}" with ${resp.data.values?.length || 0} rows`);
-        break;
+        const sheetRows = resp.data.values || [];
+        if (sheetRows.length > 0) {
+          console.log(`SUCCESS: Found sheet "${sheetName}" with ${sheetRows.length} rows`);
+          
+          if (!foundAnySheet) {
+            // Première feuille trouvée, utiliser son header
+            headerRow = sheetRows[0];
+            foundAnySheet = true;
+          }
+          
+          // Ajouter toutes les lignes de données (sauf l'header)
+          if (sheetRows.length > 1) {
+            allRows.push(...sheetRows.slice(1));
+          }
+        }
       } catch (sheetError: any) {
         console.log(`Failed to read sheet "${sheetName}": ${sheetError.message}`);
         continue;
       }
     }
     
-    if (!resp) {
-      throw new Error(`Could not find any readable sheet. Tried: ${possibleSheets.join(", ")}`);
+    if (!foundAnySheet) {
+      throw new Error(`Could not find any readable sheet. Tried: ${targetSheets.join(", ")}`);
     }
 
-    const rows = resp.data.values || [];
+    const rows = [headerRow, ...allRows];
     console.log(`Found ${rows.length} rows in sheet`);
     
     if (rows.length === 0) {
