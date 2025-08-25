@@ -204,36 +204,30 @@ const Catalogue = () => {
                 Une fois configuré, notre IA travaille <strong>en continu</strong> pour optimiser votre visibilité sans intervention de votre part.
               </p>
               
-              <div className="grid lg:grid-cols-1 gap-8 max-w-4xl mx-auto">
-                <div className="grid md:grid-cols-3 gap-8">
-                  <div className="text-center space-y-4">
-                    <div className="bg-green-100 p-6 rounded-2xl w-20 h-20 mx-auto flex items-center justify-center">
-                      <Clock className="w-10 h-10 text-green-600" />
+              <div className="space-y-12 max-w-6xl mx-auto">
+                <div className="grid md:grid-cols-3 gap-12 text-center">
+                  <div className="space-y-6">
+                    <div className="bg-green-100 p-8 rounded-3xl w-24 h-24 mx-auto flex items-center justify-center">
+                      <Clock className="w-12 h-12 text-green-600" />
                     </div>
-                    <div>
-                      <h4 className="text-2xl font-bold text-foreground mb-3">Économisez 15h/semaine</h4>
-                      <p className="text-lg text-muted-foreground leading-relaxed">Plus de gestion manuelle des réseaux sociaux</p>
-                    </div>
+                    <h4 className="text-3xl font-bold text-foreground">Économisez 15h/semaine</h4>
+                    <p className="text-xl text-muted-foreground">Plus de gestion manuelle des réseaux sociaux</p>
                   </div>
 
-                  <div className="text-center space-y-4">
-                    <div className="bg-blue-100 p-6 rounded-2xl w-20 h-20 mx-auto flex items-center justify-center">
-                      <Zap className="w-10 h-10 text-blue-600" />
+                  <div className="space-y-6">
+                    <div className="bg-blue-100 p-8 rounded-3xl w-24 h-24 mx-auto flex items-center justify-center">
+                      <Zap className="w-12 h-12 text-blue-600" />
                     </div>
-                    <div>
-                      <h4 className="text-2xl font-bold text-foreground mb-3">Gestion automatisée</h4>
-                      <p className="text-lg text-muted-foreground leading-relaxed">Contenus et avis traités par l'IA</p>
-                    </div>
+                    <h4 className="text-3xl font-bold text-foreground">Gestion automatisée</h4>
+                    <p className="text-xl text-muted-foreground">Contenus et avis traités par l'IA</p>
                   </div>
 
-                  <div className="text-center space-y-4">
-                    <div className="bg-purple-100 p-6 rounded-2xl w-20 h-20 mx-auto flex items-center justify-center">
-                      <Bot className="w-10 h-10 text-purple-600" />
+                  <div className="space-y-6">
+                    <div className="bg-purple-100 p-8 rounded-3xl w-24 h-24 mx-auto flex items-center justify-center">
+                      <Bot className="w-12 h-12 text-purple-600" />
                     </div>
-                    <div>
-                      <h4 className="text-2xl font-bold text-foreground mb-3">IA spécialisée tourisme</h4>
-                      <p className="text-lg text-muted-foreground leading-relaxed">Contenus adaptés au secteur</p>
-                    </div>
+                    <h4 className="text-3xl font-bold text-foreground">IA spécialisée tourisme</h4>
+                    <p className="text-xl text-muted-foreground">Contenus adaptés au secteur</p>
                   </div>
                 </div>
               </div>
