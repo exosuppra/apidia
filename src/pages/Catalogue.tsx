@@ -205,26 +205,32 @@ const Catalogue = () => {
               </p>
               
               <div className="grid md:grid-cols-3 gap-6 text-left">
-                <div className="flex items-start gap-3">
-                  <div className="w-2 h-2 bg-primary rounded-full mt-2 flex-shrink-0"></div>
+                <div className="flex items-start gap-4 p-4 bg-white/50 rounded-xl border border-border/50 shadow-sm hover:shadow-md transition-shadow">
+                  <div className="bg-green-100 p-3 rounded-lg flex-shrink-0">
+                    <Clock className="w-6 h-6 text-green-600" />
+                  </div>
                   <div>
-                    <h4 className="font-semibold mb-1">Économisez 15h/semaine</h4>
+                    <h4 className="font-semibold mb-2 text-foreground">Économisez 15h/semaine</h4>
                     <p className="text-sm text-muted-foreground">Plus de gestion manuelle des réseaux sociaux</p>
                   </div>
                 </div>
 
-                <div className="flex items-start gap-3">
-                  <div className="w-2 h-2 bg-primary rounded-full mt-2 flex-shrink-0"></div>
+                <div className="flex items-start gap-4 p-4 bg-white/50 rounded-xl border border-border/50 shadow-sm hover:shadow-md transition-shadow">
+                  <div className="bg-blue-100 p-3 rounded-lg flex-shrink-0">
+                    <Zap className="w-6 h-6 text-blue-600" />
+                  </div>
                   <div>
-                    <h4 className="font-semibold mb-1">Gestion automatisée</h4>
+                    <h4 className="font-semibold mb-2 text-foreground">Gestion automatisée</h4>
                     <p className="text-sm text-muted-foreground">Contenus et avis traités par l'IA</p>
                   </div>
                 </div>
 
-                <div className="flex items-start gap-3">
-                  <div className="w-2 h-2 bg-primary rounded-full mt-2 flex-shrink-0"></div>
+                <div className="flex items-start gap-4 p-4 bg-white/50 rounded-xl border border-border/50 shadow-sm hover:shadow-md transition-shadow">
+                  <div className="bg-purple-100 p-3 rounded-lg flex-shrink-0">
+                    <Bot className="w-6 h-6 text-purple-600" />
+                  </div>
                   <div>
-                    <h4 className="font-semibold mb-1">IA spécialisée tourisme</h4>
+                    <h4 className="font-semibold mb-2 text-foreground">IA spécialisée tourisme</h4>
                     <p className="text-sm text-muted-foreground">Contenus adaptés au secteur</p>
                   </div>
                 </div>
