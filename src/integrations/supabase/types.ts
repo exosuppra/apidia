@@ -121,6 +121,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      generate_openai_image: {
+        Args: { prompt: string }
+        Returns: Json
+      }
       verify_admin_password: {
         Args: { input_password: string; stored_hash: string }
         Returns: boolean
