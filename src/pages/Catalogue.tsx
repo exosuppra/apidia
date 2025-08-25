@@ -192,11 +192,9 @@ const Catalogue = () => {
             </div>
           </div>
           
-          {/* Hero Layout - Modern Tourism Focused */}
-          <div className="grid lg:grid-cols-2 gap-12 items-center mb-12">
-            {/* Left: Content */}
-            <div className="space-y-8">
-            <div className="space-y-6 text-center">
+          {/* Hero Layout - Text Only */}
+          <div className="text-center mb-12">
+            <div className="space-y-6">
               <h3 className="text-2xl font-bold leading-tight">
                 ApidIA gère de façon <span className="text-primary">quasi-autonome</span> la promotion de votre établissement
               </h3>
@@ -229,26 +227,6 @@ const Catalogue = () => {
                     <h4 className="text-3xl font-bold text-foreground">IA spécialisée tourisme</h4>
                     <p className="text-xl text-muted-foreground">Contenus adaptés au secteur</p>
                   </div>
-                </div>
-              </div>
-            </div>
-            </div>
-
-            {/* Right: Image */}
-            <div className="relative">
-              <div className="relative rounded-3xl overflow-hidden shadow-2xl">
-                <img 
-                  src={tourismOfficeImage} 
-                  alt="Bureau moderne d'office de tourisme avec outils digitaux et écrans d'analytics"
-                  className="w-full h-[400px] object-cover"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
-                <div className="absolute bottom-6 left-6 text-white">
-                   <div className="flex items-center gap-2 mb-2">
-                     <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
-                     <span className="text-sm font-medium">IA Active en continu</span>
-                   </div>
-                   <p className="text-sm opacity-90">Marketing intelligent en cours...</p>
                 </div>
               </div>
             </div>
