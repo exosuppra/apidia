@@ -179,17 +179,19 @@ const Catalogue = () => {
           <p className="text-xl text-muted-foreground mb-4">
             Vous êtes une entreprise locale du tourisme ou un partenaire de l'Office de Tourisme et vous souhaitez une aide pour développer votre business
           </p>
+          
+          <div className="flex justify-center mb-8">
+            <div className="inline-flex items-center gap-2 bg-primary/10 text-primary px-4 py-2 rounded-full text-sm font-medium">
+              <Sparkles className="w-4 h-4" />
+              Intelligence Artificielle
+            </div>
+          </div>
+          
           {/* Hero Layout - Modern Tourism Focused */}
           <div className="grid lg:grid-cols-2 gap-12 items-center mb-12">
             {/* Left: Content */}
             <div className="space-y-8">
               <div className="space-y-4 text-center">
-                <div className="flex justify-center">
-                  <div className="inline-flex items-center gap-2 bg-primary/10 text-primary px-4 py-2 rounded-full text-sm font-medium">
-                    <Sparkles className="w-4 h-4" />
-                    Intelligence Artificielle
-                  </div>
-                </div>
                 <h3 className="text-2xl font-bold leading-tight">
                   ApidIA gère de façon <span className="text-primary">quasi-autonome</span> la promotion de votre établissement
                 </h3>
