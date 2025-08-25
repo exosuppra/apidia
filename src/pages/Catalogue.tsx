@@ -38,19 +38,22 @@ const services = [
         icon: <Globe className="w-8 h-8" />,
         title: "Audit visibilité IA",
         description: "L'IA analyse votre présence digitale, détermine vos points faibles et propose des conseils adaptés",
-        cta: "Lancer l'audit IA"
+        cta: "Lancer l'audit IA",
+        price: "Gratuit"
       },
       {
         icon: <TrendingUp className="w-8 h-8" />,
         title: "Bilan de site web",
         description: "Analyse complète : qualité SEO, textes, temps de chargement des pages, différences avec la concurrence",
-        cta: "Obtenir mon bilan"
+        cta: "Obtenir mon bilan",
+        price: "49€"
       },
       {
         icon: <Smartphone className="w-8 h-8" />,
         title: "Génération de site internet",
         description: "Création de site web avec module de disponibilité intégré pour vos réservations",
-        cta: "Créer mon site"
+        cta: "Créer mon site",
+        price: "Sur devis"
       }
     ]
   },
@@ -62,13 +65,15 @@ const services = [
         icon: <Star className="w-8 h-8" />,
         title: "Gestion complète des avis",
         description: "Audit des avis, analyse des verbatims, calcul du NPS et réponses automatiques personnalisées",
-        cta: "Activer la gestion avis IA"
+        cta: "Activer la gestion avis IA",
+        price: "29€/mois"
       },
       {
         icon: <BarChart3 className="w-8 h-8" />,
         title: "Veille des avis Google",
         description: "Surveillance automatique de vos avis Google avec alertes et actions correctives suggérées",
-        cta: "Activer la veille"
+        cta: "Activer la veille",
+        price: "19€/mois"
       }
     ]
   },
@@ -80,7 +85,8 @@ const services = [
         icon: <GraduationCap className="w-8 h-8" />,
         title: "Formation marketing digital",
         description: "Modules interactifs pour apprendre à booster sa visibilité en ligne et maîtriser les outils digitaux du tourisme",
-        cta: "Commencer la formation"
+        cta: "Commencer la formation",
+        price: "99€"
       }
     ]
   },
@@ -92,13 +98,15 @@ const services = [
         icon: <Camera className="w-8 h-8" />,
         title: "Création automatisée de contenus visuels",
         description: "Génération d'affiches d'événements, visuels pour sites web et contenus marketing personnalisés",
-        cta: "Créer mes contenus visuels"
+        cta: "Créer mes contenus visuels",
+        price: "39€/mois"
       },
       {
         icon: <MessageCircle className="w-8 h-8" />,
         title: "Stratégie réseaux sociaux",
         description: "Plan de contenus adapté à votre audience touristique",
-        cta: "Définir ma stratégie"
+        cta: "Définir ma stratégie",
+        price: "149€"
       }
     ]
   },
@@ -110,13 +118,15 @@ const services = [
         icon: <Users className="w-8 h-8" />,
         title: "CRM simplifié",
         description: "Gestion de votre fichier clients avec outils de fidélisation",
-        cta: "Organiser mes clients"
+        cta: "Organiser mes clients",
+        price: "25€/mois"
       },
       {
         icon: <Mail className="w-8 h-8" />,
         title: "Campagnes emailing",
         description: "Newsletters et campagnes automatisées pour vos clients",
-        cta: "Lancer mes campagnes"
+        cta: "Lancer mes campagnes",
+        price: "15€/mois"
       }
     ]
   },
@@ -128,7 +138,8 @@ const services = [
         icon: <MapPin className="w-8 h-8" />,
         title: "Fiches APIDAE intelligentes",
         description: "Mise à jour automatique de vos fiches Apidae grâce à la recherche d'informations par l'IA",
-        cta: "En savoir +"
+        cta: "En savoir +",
+        price: "Gratuit"
       }
     ]
   }
@@ -507,14 +518,18 @@ const Catalogue = () => {
               
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {category.services.map((service, serviceIndex) => (
-                  <Card key={serviceIndex} className="group hover:shadow-lg transition-all duration-300 border-l-4 border-l-primary/20 hover:border-l-primary">
+                  <Card key={serviceIndex} className="group hover:shadow-lg transition-all duration-300 border-l-4 border-l-primary/20 hover:border-l-primary relative">
+                    {/* Bulle de prix */}
+                    <div className="absolute top-4 right-4 bg-primary text-primary-foreground text-xs font-semibold px-3 py-1 rounded-full z-10">
+                      {service.price}
+                    </div>
                     <CardHeader>
                       <div className="flex items-start gap-4">
                         <div className="p-3 rounded-lg bg-primary/10 text-primary group-hover:bg-primary group-hover:text-white transition-colors">
                           {service.icon}
                         </div>
                         <div>
-                          <CardTitle className="text-lg">{service.title}</CardTitle>
+                          <CardTitle className="text-lg pr-16">{service.title}</CardTitle>
                         </div>
                       </div>
                     </CardHeader>
