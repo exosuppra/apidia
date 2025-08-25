@@ -578,7 +578,7 @@ const Catalogue = () => {
             Votre partenaire pour le développement digital de votre activité touristique
           </p>
           <p className="text-xs text-muted-foreground/70">
-            En partenariat avec l'Office de Tourisme et des Congrès du Pays de Manosque
+            Développé par l'Office de Tourisme et des Congrès du Pays de Manosque
           </p>
         </div>
       </footer>
