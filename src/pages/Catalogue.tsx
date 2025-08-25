@@ -172,79 +172,83 @@ const Catalogue = () => {
       </header>
 
       {/* Hero Section */}
-      <section className="py-16 bg-gradient-to-br from-primary/5 via-background to-secondary/5">
-        <div className="container mx-auto px-4 text-center max-w-4xl">
-          <div className="flex items-center justify-center gap-3 mb-4">
-            <Bot className="w-10 h-10 text-primary" />
-            <Sparkles className="w-6 h-6 text-yellow-500" />
-          </div>
-          <h2 className="text-4xl md:text-5xl font-bold mb-6 text-foreground">
-            Catalogue de Services <span className="text-primary">IA</span>
-          </h2>
-          <p className="text-xl text-muted-foreground mb-8">
-            Vous êtes une entreprise locale du tourisme ou un partenaire de l'Office de Tourisme et vous souhaitez une aide pour développer votre business
-          </p>
-          
-          <div className="flex justify-center mb-8">
-            <div className="inline-flex items-center gap-2 bg-primary/10 text-primary px-4 py-2 rounded-full text-sm font-medium">
-              <Sparkles className="w-4 h-4" />
-              Intelligence Artificielle
+      <section className="py-20 bg-gradient-to-br from-primary/5 via-background to-secondary/5">
+        <div className="container mx-auto px-4 max-w-7xl">
+          {/* Header Content */}
+          <div className="text-center mb-16">
+            <div className="flex items-center justify-center gap-3 mb-6">
+              <Bot className="w-12 h-12 text-primary" />
+              <Sparkles className="w-8 h-8 text-yellow-500" />
             </div>
+            
+            <h2 className="text-4xl md:text-6xl font-bold mb-6 text-foreground">
+              Catalogue de Services <span className="text-primary">IA</span>
+            </h2>
+            
+            <div className="flex justify-center mb-8">
+              <div className="inline-flex items-center gap-2 bg-primary/10 text-primary px-6 py-3 rounded-full text-base font-medium">
+                <Sparkles className="w-5 h-5" />
+                Intelligence Artificielle
+              </div>
+            </div>
+            
+            <p className="text-xl md:text-2xl text-muted-foreground max-w-4xl mx-auto leading-relaxed">
+              Vous êtes une entreprise locale du tourisme ou un partenaire de l'Office de Tourisme et vous souhaitez une aide pour développer votre business
+            </p>
           </div>
-          
-          {/* Hero Layout - Text Only */}
-          <div className="text-center mb-12">
-            <div className="space-y-6">
-              <h3 className="text-2xl font-bold leading-tight">
+
+          {/* Main Value Proposition */}
+          <div className="bg-white/80 backdrop-blur-sm rounded-3xl p-8 md:p-12 border border-border shadow-lg mb-16">
+            <div className="text-center mb-12">
+              <h3 className="text-3xl md:text-4xl font-bold leading-tight mb-6">
                 ApidIA gère de façon <span className="text-primary">quasi-autonome</span> la promotion de votre établissement
               </h3>
-              <p className="text-xl text-muted-foreground leading-relaxed">
+              <p className="text-xl md:text-2xl text-muted-foreground leading-relaxed max-w-4xl mx-auto">
                 Une fois configuré, notre IA travaille <strong>en continu</strong> pour optimiser votre visibilité sans intervention de votre part.
               </p>
-              
-              <div className="space-y-8 max-w-5xl mx-auto">
-                <div className="grid md:grid-cols-3 gap-8 text-center">
-                  <div className="space-y-4">
-                    <div className="bg-green-100 p-6 rounded-2xl w-20 h-20 mx-auto flex items-center justify-center">
-                      <Clock className="w-8 h-8 text-green-600" />
-                    </div>
-                    <h4 className="text-2xl font-bold text-foreground">Économisez 15h/semaine</h4>
-                    <p className="text-lg text-muted-foreground">Plus de gestion manuelle des réseaux sociaux</p>
-                  </div>
-
-                  <div className="space-y-4">
-                    <div className="bg-blue-100 p-6 rounded-2xl w-20 h-20 mx-auto flex items-center justify-center">
-                      <Zap className="w-8 h-8 text-blue-600" />
-                    </div>
-                    <h4 className="text-2xl font-bold text-foreground">Gestion automatisée</h4>
-                    <p className="text-lg text-muted-foreground">Contenus et avis traités par l'IA</p>
-                  </div>
-
-                  <div className="space-y-4">
-                    <div className="bg-purple-100 p-6 rounded-2xl w-20 h-20 mx-auto flex items-center justify-center">
-                      <Bot className="w-8 h-8 text-purple-600" />
-                    </div>
-                    <h4 className="text-2xl font-bold text-foreground">IA spécialisée tourisme</h4>
-                    <p className="text-lg text-muted-foreground">Contenus adaptés au secteur</p>
-                  </div>
+            </div>
+            
+            {/* Benefits Grid */}
+            <div className="grid md:grid-cols-3 gap-8 mb-12">
+              <div className="text-center space-y-4">
+                <div className="bg-green-100 p-8 rounded-3xl w-24 h-24 mx-auto flex items-center justify-center">
+                  <Clock className="w-10 h-10 text-green-600" />
                 </div>
+                <h4 className="text-2xl md:text-3xl font-bold text-foreground">Économisez 15h/semaine</h4>
+                <p className="text-lg text-muted-foreground">Plus de gestion manuelle des réseaux sociaux</p>
+              </div>
+
+              <div className="text-center space-y-4">
+                <div className="bg-blue-100 p-8 rounded-3xl w-24 h-24 mx-auto flex items-center justify-center">
+                  <Zap className="w-10 h-10 text-blue-600" />
+                </div>
+                <h4 className="text-2xl md:text-3xl font-bold text-foreground">Gestion automatisée</h4>
+                <p className="text-lg text-muted-foreground">Contenus et avis traités par l'IA</p>
+              </div>
+
+              <div className="text-center space-y-4">
+                <div className="bg-purple-100 p-8 rounded-3xl w-24 h-24 mx-auto flex items-center justify-center">
+                  <Bot className="w-10 h-10 text-purple-600" />
+                </div>
+                <h4 className="text-2xl md:text-3xl font-bold text-foreground">IA spécialisée tourisme</h4>
+                <p className="text-lg text-muted-foreground">Contenus adaptés au secteur</p>
               </div>
             </div>
-          </div>
 
-          {/* Mission Section - Restored */}
-          <div className="bg-white/60 backdrop-blur-sm rounded-3xl p-8 border border-border shadow-sm mb-8">
-            <div className="flex items-start gap-6">
-              <div className="bg-primary/10 p-4 rounded-2xl flex-shrink-0">
-                <TrendingUp className="w-12 h-12 text-primary" />
-              </div>
-              <div>
-                <h3 className="text-2xl font-bold mb-4 text-foreground">Notre Mission</h3>
-                <p className="text-lg text-foreground leading-relaxed max-w-3xl">
-                  <strong>Déléguer à l'IA la mission de promotion des établissements sur le web</strong> pour permettre aux 
-                  Acteurs Touristiques Locaux de <strong>réinvestir ce temps dans d'autres tâches</strong> plus stratégiques 
-                  pour leur activité.
-                </p>
+            {/* Mission Section */}
+            <div className="bg-gradient-to-r from-primary/5 to-secondary/5 rounded-2xl p-8 border border-primary/10">
+              <div className="flex flex-col md:flex-row items-start gap-6">
+                <div className="bg-primary/10 p-6 rounded-2xl flex-shrink-0">
+                  <TrendingUp className="w-14 h-14 text-primary" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-2xl md:text-3xl font-bold mb-4 text-foreground">Notre Mission</h3>
+                  <p className="text-lg md:text-xl text-foreground leading-relaxed">
+                    <strong>Déléguer à l'IA la mission de promotion des établissements sur le web</strong> pour permettre aux 
+                    Acteurs Touristiques Locaux de <strong>réinvestir ce temps dans d'autres tâches</strong> plus stratégiques 
+                    pour leur activité.
+                  </p>
+                </div>
               </div>
             </div>
           </div>
