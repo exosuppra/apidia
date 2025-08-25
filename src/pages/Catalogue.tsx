@@ -275,7 +275,7 @@ const Catalogue = () => {
             <div className="text-center mb-8">
               <h3 className="text-2xl font-bold mb-4">Rejoignez les professionnels du tourisme qui nous font confiance</h3>
               <div className="flex justify-center items-center gap-8 opacity-60">
-                <span className="text-sm font-medium">Hôtels • Restaurants • Campings • Offices de Tourisme</span>
+                <span className="text-sm font-medium">Hôtels • Restaurants • Campings • Hébergements locatifs • Évènementiel • Prestataires d'activités</span>
               </div>
             </div>
             
