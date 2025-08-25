@@ -47,17 +47,28 @@ serve(async (req: Request) => {
 
     console.log(`Attempting admin login for email: ${email}`);
 
-    // Check if admin user exists - service role bypasses RLS automatically
+    // Check if admin user exists - using maybeSingle to avoid errors when no data found
     const { data: adminUser, error: dbError } = await supabase
       .from("admin_users")
       .select("id, email, password_hash")
       .eq("email", email.toLowerCase().trim())
-      .single();
+      .maybeSingle();
 
-    console.log("Admin user query result:", { adminUser: !!adminUser, error: dbError });
+    console.log("Admin user query result:", { 
+      adminUser: adminUser ? { id: adminUser.id, email: adminUser.email, hasHash: !!adminUser.password_hash } : null, 
+      error: dbError 
+    });
 
-    if (dbError || !adminUser) {
-      console.log("Admin user not found or DB error:", dbError);
+    if (dbError) {
+      console.error("Database error:", dbError);
+      return new Response(JSON.stringify({ error: "Erreur de base de données" }), {
+        status: 500,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
+    }
+
+    if (!adminUser) {
+      console.log("Admin user not found for email:", email);
       return new Response(JSON.stringify({ error: "Identifiants administrateur invalides" }), {
         status: 401,
         headers: { "Content-Type": "application/json", ...corsHeaders },
@@ -65,7 +76,9 @@ serve(async (req: Request) => {
     }
 
     // Verify password using PostgreSQL's crypt function
-    console.log("Attempting password verification...");
+    console.log("Attempting password verification for user:", adminUser.email);
+    console.log("Password hash format:", adminUser.password_hash.substring(0, 10) + "...");
+    
     const { data: passwordCheck, error: pwError } = await supabase
       .rpc("verify_admin_password", {
         input_password: password,
@@ -83,12 +96,14 @@ serve(async (req: Request) => {
     }
 
     if (!passwordCheck) {
-      console.log("Password verification failed");
+      console.log("Password verification failed for user:", adminUser.email);
       return new Response(JSON.stringify({ error: "Identifiants administrateur invalides" }), {
         status: 401,
         headers: { "Content-Type": "application/json", ...corsHeaders },
       });
     }
+
+    console.log("Password verification successful for user:", adminUser.email);
 
     // Create a session token for the admin (you can customize this)
     const sessionToken = crypto.randomUUID();
