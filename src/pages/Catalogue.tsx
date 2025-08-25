@@ -286,55 +286,112 @@ const Catalogue = () => {
               </div>
             </div>
 
-            {/* Typologies Grid */}
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
-              <div className="bg-white/50 backdrop-blur-sm rounded-lg p-4 text-center">
-                <div className="w-16 h-16 bg-blue-100 rounded-lg mx-auto mb-3 flex items-center justify-center">
-                  <span className="text-2xl">🏨</span>
+            {/* Typologies Carousel */}
+            <div className="relative overflow-hidden">
+              <div className="flex animate-scroll-infinite hover:animate-scroll-slow">
+                {/* First set */}
+                <div className="flex gap-4 min-w-fit">
+                  <div className="bg-white/50 backdrop-blur-sm rounded-lg p-4 text-center min-w-[120px]">
+                    <div className="w-16 h-16 bg-blue-100 rounded-lg mx-auto mb-3 flex items-center justify-center">
+                      <span className="text-2xl">🏨</span>
+                    </div>
+                    <span className="text-sm font-medium">Hôtels</span>
+                  </div>
+                  <div className="bg-white/50 backdrop-blur-sm rounded-lg p-4 text-center min-w-[120px]">
+                    <div className="w-16 h-16 bg-red-100 rounded-lg mx-auto mb-3 flex items-center justify-center">
+                      <span className="text-2xl">🍽️</span>
+                    </div>
+                    <span className="text-sm font-medium">Restaurants</span>
+                  </div>
+                  <div className="bg-white/50 backdrop-blur-sm rounded-lg p-4 text-center min-w-[120px]">
+                    <div className="w-16 h-16 bg-purple-100 rounded-lg mx-auto mb-3 flex items-center justify-center">
+                      <span className="text-2xl">🛍️</span>
+                    </div>
+                    <span className="text-sm font-medium">Commerces</span>
+                  </div>
+                  <div className="bg-white/50 backdrop-blur-sm rounded-lg p-4 text-center min-w-[120px]">
+                    <div className="w-16 h-16 bg-green-100 rounded-lg mx-auto mb-3 flex items-center justify-center">
+                      <span className="text-2xl">🏕️</span>
+                    </div>
+                    <span className="text-sm font-medium">Campings</span>
+                  </div>
+                  <div className="bg-white/50 backdrop-blur-sm rounded-lg p-4 text-center min-w-[120px]">
+                    <div className="w-16 h-16 bg-yellow-100 rounded-lg mx-auto mb-3 flex items-center justify-center">
+                      <span className="text-2xl">🏠</span>
+                    </div>
+                    <span className="text-sm font-medium">Hébergements locatifs</span>
+                  </div>
+                  <div className="bg-white/50 backdrop-blur-sm rounded-lg p-4 text-center min-w-[120px]">
+                    <div className="w-16 h-16 bg-pink-100 rounded-lg mx-auto mb-3 flex items-center justify-center">
+                      <span className="text-2xl">🎉</span>
+                    </div>
+                    <span className="text-sm font-medium">Évènementiel</span>
+                  </div>
+                  <div className="bg-white/50 backdrop-blur-sm rounded-lg p-4 text-center min-w-[120px]">
+                    <div className="w-16 h-16 bg-indigo-100 rounded-lg mx-auto mb-3 flex items-center justify-center">
+                      <span className="text-2xl">🎯</span>
+                    </div>
+                    <span className="text-sm font-medium">Prestataires d'activités</span>
+                  </div>
+                  <div className="bg-white/50 backdrop-blur-sm rounded-lg p-4 text-center min-w-[120px]">
+                    <div className="w-16 h-16 bg-orange-100 rounded-lg mx-auto mb-3 flex items-center justify-center">
+                      <span className="text-2xl">🌾</span>
+                    </div>
+                    <span className="text-sm font-medium">Producteurs</span>
+                  </div>
                 </div>
-                <span className="text-sm font-medium">Hôtels</span>
-              </div>
-              <div className="bg-white/50 backdrop-blur-sm rounded-lg p-4 text-center">
-                <div className="w-16 h-16 bg-red-100 rounded-lg mx-auto mb-3 flex items-center justify-center">
-                  <span className="text-2xl">🍽️</span>
+                
+                {/* Duplicate set for infinite scroll */}
+                <div className="flex gap-4 min-w-fit ml-4">
+                  <div className="bg-white/50 backdrop-blur-sm rounded-lg p-4 text-center min-w-[120px]">
+                    <div className="w-16 h-16 bg-blue-100 rounded-lg mx-auto mb-3 flex items-center justify-center">
+                      <span className="text-2xl">🏨</span>
+                    </div>
+                    <span className="text-sm font-medium">Hôtels</span>
+                  </div>
+                  <div className="bg-white/50 backdrop-blur-sm rounded-lg p-4 text-center min-w-[120px]">
+                    <div className="w-16 h-16 bg-red-100 rounded-lg mx-auto mb-3 flex items-center justify-center">
+                      <span className="text-2xl">🍽️</span>
+                    </div>
+                    <span className="text-sm font-medium">Restaurants</span>
+                  </div>
+                  <div className="bg-white/50 backdrop-blur-sm rounded-lg p-4 text-center min-w-[120px]">
+                    <div className="w-16 h-16 bg-purple-100 rounded-lg mx-auto mb-3 flex items-center justify-center">
+                      <span className="text-2xl">🛍️</span>
+                    </div>
+                    <span className="text-sm font-medium">Commerces</span>
+                  </div>
+                  <div className="bg-white/50 backdrop-blur-sm rounded-lg p-4 text-center min-w-[120px]">
+                    <div className="w-16 h-16 bg-green-100 rounded-lg mx-auto mb-3 flex items-center justify-center">
+                      <span className="text-2xl">🏕️</span>
+                    </div>
+                    <span className="text-sm font-medium">Campings</span>
+                  </div>
+                  <div className="bg-white/50 backdrop-blur-sm rounded-lg p-4 text-center min-w-[120px]">
+                    <div className="w-16 h-16 bg-yellow-100 rounded-lg mx-auto mb-3 flex items-center justify-center">
+                      <span className="text-2xl">🏠</span>
+                    </div>
+                    <span className="text-sm font-medium">Hébergements locatifs</span>
+                  </div>
+                  <div className="bg-white/50 backdrop-blur-sm rounded-lg p-4 text-center min-w-[120px]">
+                    <div className="w-16 h-16 bg-pink-100 rounded-lg mx-auto mb-3 flex items-center justify-center">
+                      <span className="text-2xl">🎉</span>
+                    </div>
+                    <span className="text-sm font-medium">Évènementiel</span>
+                  </div>
+                  <div className="bg-white/50 backdrop-blur-sm rounded-lg p-4 text-center min-w-[120px]">
+                    <div className="w-16 h-16 bg-indigo-100 rounded-lg mx-auto mb-3 flex items-center justify-center">
+                      <span className="text-2xl">🎯</span>
+                    </div>
+                    <span className="text-sm font-medium">Prestataires d'activités</span>
+                  </div>
+                  <div className="bg-white/50 backdrop-blur-sm rounded-lg p-4 text-center min-w-[120px]">
+                    <div className="w-16 h-16 bg-orange-100 rounded-lg mx-auto mb-3 flex items-center justify-center">
+                      <span className="text-2xl">🌾</span>
+                    </div>
+                    <span className="text-sm font-medium">Producteurs</span>
+                  </div>
                 </div>
-                <span className="text-sm font-medium">Restaurants</span>
-              </div>
-              <div className="bg-white/50 backdrop-blur-sm rounded-lg p-4 text-center">
-                <div className="w-16 h-16 bg-purple-100 rounded-lg mx-auto mb-3 flex items-center justify-center">
-                  <span className="text-2xl">🛍️</span>
-                </div>
-                <span className="text-sm font-medium">Commerces</span>
-              </div>
-              <div className="bg-white/50 backdrop-blur-sm rounded-lg p-4 text-center">
-                <div className="w-16 h-16 bg-green-100 rounded-lg mx-auto mb-3 flex items-center justify-center">
-                  <span className="text-2xl">🏕️</span>
-                </div>
-                <span className="text-sm font-medium">Campings</span>
-              </div>
-              <div className="bg-white/50 backdrop-blur-sm rounded-lg p-4 text-center">
-                <div className="w-16 h-16 bg-yellow-100 rounded-lg mx-auto mb-3 flex items-center justify-center">
-                  <span className="text-2xl">🏠</span>
-                </div>
-                <span className="text-sm font-medium">Hébergements locatifs</span>
-              </div>
-              <div className="bg-white/50 backdrop-blur-sm rounded-lg p-4 text-center">
-                <div className="w-16 h-16 bg-pink-100 rounded-lg mx-auto mb-3 flex items-center justify-center">
-                  <span className="text-2xl">🎉</span>
-                </div>
-                <span className="text-sm font-medium">Évènementiel</span>
-              </div>
-              <div className="bg-white/50 backdrop-blur-sm rounded-lg p-4 text-center">
-                <div className="w-16 h-16 bg-indigo-100 rounded-lg mx-auto mb-3 flex items-center justify-center">
-                  <span className="text-2xl">🎯</span>
-                </div>
-                <span className="text-sm font-medium">Prestataires d'activités</span>
-              </div>
-              <div className="bg-white/50 backdrop-blur-sm rounded-lg p-4 text-center">
-                <div className="w-16 h-16 bg-orange-100 rounded-lg mx-auto mb-3 flex items-center justify-center">
-                  <span className="text-2xl">🌾</span>
-                </div>
-                <span className="text-sm font-medium">Producteurs</span>
               </div>
             </div>
           </div>
