@@ -206,7 +206,7 @@ const Catalogue = () => {
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold mb-4 flex items-center justify-center gap-3">
               <Bot className="w-8 h-8 text-primary" />
-              Comment l'IA ApidIA révolutionne votre marketing
+              Comment ApidIA révolutionne votre marketing ?
             </h2>
           </div>
           
