@@ -255,9 +255,7 @@ const ApidaeDetails = () => {
                 <CardDescription>
                   • Offices de Tourisme<br/>
                   • Comités Départementaux du Tourisme<br/>
-                  • Comités Régionaux du Tourisme<br/>
-                  • Site France.fr<br/>
-                  • Portails municipaux
+                  • Comités Régionaux du Tourisme
                 </CardDescription>
               </CardContent>
             </Card>
@@ -302,15 +300,19 @@ const ApidaeDetails = () => {
           </div>
 
           <div className="mt-12 bg-gradient-to-r from-primary/10 to-secondary/10 rounded-2xl p-8 text-center">
-            <h3 className="text-2xl font-bold mb-4">Impact de la Diffusion APIDAE</h3>
+            <h3 className="text-2xl font-bold mb-4">Portée de la Diffusion APIDAE</h3>
+            <p className="text-base text-muted-foreground mb-6 max-w-3xl mx-auto">
+              APIDAE est le réseau de diffusion touristique français qui permet une visibilité maximale 
+              sur l'ensemble des canaux de communication du secteur.
+            </p>
             <div className="grid md:grid-cols-3 gap-6">
               <div className="space-y-2">
-                <div className="text-3xl font-bold text-primary">500+</div>
-                <div className="text-sm text-muted-foreground">Sites partenaires</div>
+                <div className="text-3xl font-bold text-primary">National</div>
+                <div className="text-sm text-muted-foreground">Réseau de diffusion</div>
               </div>
               <div className="space-y-2">
-                <div className="text-3xl font-bold text-primary">Millions</div>
-                <div className="text-sm text-muted-foreground">de visiteurs touchés</div>
+                <div className="text-3xl font-bold text-primary">Multi-canal</div>
+                <div className="text-sm text-muted-foreground">Web, mobile et print</div>
               </div>
               <div className="space-y-2">
                 <div className="text-3xl font-bold text-primary">24/7</div>
@@ -399,29 +401,32 @@ const ApidaeDetails = () => {
         </div>
       </section>
 
-      {/* CTA Section */}
-      <section className="py-16 bg-gradient-to-r from-primary to-secondary text-primary-foreground relative overflow-hidden">
-        <div className="absolute inset-0 bg-black/10"></div>
-        <div className="container mx-auto px-4 text-center relative z-10">
+      {/* Information Section */}
+      <section className="py-16 bg-gradient-to-r from-primary/10 to-secondary/10 relative overflow-hidden">
+        <div className="container mx-auto px-4 text-center">
           <div className="flex items-center justify-center gap-3 mb-6">
-            <MapPin className="w-12 h-12" />
-            <Bot className="w-10 h-10" />
+            <MapPin className="w-12 h-12 text-primary" />
+            <Bot className="w-10 h-10 text-secondary" />
           </div>
-          <h2 className="text-3xl font-bold mb-4">Prêt à Automatiser vos Fiches APIDAE ?</h2>
-          <p className="text-lg mb-8 opacity-90 max-w-3xl mx-auto">
-            Laissez ApidIA s'occuper de vos fiches APIDAE. Configuration en 2 minutes, 
-            puis l'IA gère tout automatiquement. Plus de saisie manuelle, plus de mise à jour oubliée.
+          <h2 className="text-3xl font-bold mb-4 text-foreground">Service ApidIA Déjà Disponible</h2>
+          <p className="text-lg mb-8 text-muted-foreground max-w-3xl mx-auto">
+            Ce système d'automatisation des fiches APIDAE est déjà en place et disponible gratuitement. 
+            L'IA recherche, analyse et propose automatiquement du contenu pour vos fiches.
           </p>
-          <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 mb-8 max-w-2xl mx-auto">
-            <p className="text-sm font-medium">
+          <div className="bg-white/60 backdrop-blur-sm border border-border rounded-2xl p-6 mb-8 max-w-2xl mx-auto">
+            <div className="flex items-center justify-center gap-2 mb-3">
+              <CheckCircle className="w-6 h-6 text-green-600" />
+              <span className="font-semibold text-lg text-foreground">Service Gratuit et Actif</span>
+            </div>
+            <p className="text-sm text-muted-foreground">
               🤖 Recherche automatique • ✉️ Proposition par email • ✅ Validation simple • 🚀 Diffusion immédiate
             </p>
           </div>
           <div className="flex justify-center gap-4">
-            <Button size="lg" variant="secondary" className="bg-white text-primary hover:bg-white/90 font-semibold" asChild>
-              <Link to="/auth/login">Commencer maintenant</Link>
+            <Button size="lg" className="font-semibold" asChild>
+              <Link to="/auth/login">Accéder au service</Link>
             </Button>
-            <Button size="lg" variant="outline" className="border-white text-white hover:bg-white/10" asChild>
+            <Button size="lg" variant="outline" asChild>
               <Link to="/catalogue">Voir tous les services</Link>
             </Button>
           </div>
