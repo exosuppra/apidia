@@ -200,36 +200,32 @@ const Catalogue = () => {
                 </p>
               </div>
 
-              <div className="space-y-6">
-                <div className="flex gap-4">
-                  <div className="bg-green-100 p-3 rounded-xl flex-shrink-0">
-                    <Target className="w-6 h-6 text-green-600" />
-                  </div>
-                  <div>
-                    <h4 className="font-semibold mb-1">Économisez 15h/semaine</h4>
-                    <p className="text-sm text-muted-foreground">Plus de gestion manuelle des réseaux sociaux, avis clients ou référencement</p>
-                  </div>
-                </div>
+              <div className="space-y-4">
+                <ul className="space-y-3 text-left">
+                  <li className="flex items-start gap-3">
+                    <div className="w-2 h-2 bg-primary rounded-full mt-2 flex-shrink-0"></div>
+                    <div>
+                      <h4 className="font-semibold mb-1">Économisez 15h/semaine</h4>
+                      <p className="text-sm text-muted-foreground">Plus de gestion manuelle des réseaux sociaux, avis clients ou référencement</p>
+                    </div>
+                  </li>
 
-                <div className="flex gap-4">
-                  <div className="bg-blue-100 p-3 rounded-xl flex-shrink-0">
-                    <Rocket className="w-6 h-6 text-blue-600" />
-                  </div>
-                  <div>
-                    <h4 className="font-semibold mb-1">+40% de visibilité</h4>
-                    <p className="text-sm text-muted-foreground">Optimisation SEO continue et présence renforcée sur tous les canaux</p>
-                  </div>
-                </div>
+                  <li className="flex items-start gap-3">
+                    <div className="w-2 h-2 bg-primary rounded-full mt-2 flex-shrink-0"></div>
+                    <div>
+                      <h4 className="font-semibold mb-1">+40% de visibilité</h4>
+                      <p className="text-sm text-muted-foreground">Optimisation SEO continue et présence renforcée sur tous les canaux</p>
+                    </div>
+                  </li>
 
-                <div className="flex gap-4">
-                  <div className="bg-purple-100 p-3 rounded-xl flex-shrink-0">
-                    <Lightbulb className="w-6 h-6 text-purple-600" />
-                  </div>
-                  <div>
-                    <h4 className="font-semibold mb-1">IA spécialisée tourisme</h4>
-                    <p className="text-sm text-muted-foreground">Contenus, stratégies et actions adaptés aux codes du secteur touristique</p>
-                  </div>
-                </div>
+                  <li className="flex items-start gap-3">
+                    <div className="w-2 h-2 bg-primary rounded-full mt-2 flex-shrink-0"></div>
+                    <div>
+                      <h4 className="font-semibold mb-1">IA spécialisée tourisme</h4>
+                      <p className="text-sm text-muted-foreground">Contenus, stratégies et actions adaptés aux codes du secteur touristique</p>
+                    </div>
+                  </li>
+                </ul>
               </div>
             </div>
 
