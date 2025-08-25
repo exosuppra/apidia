@@ -149,9 +149,38 @@ const Catalogue = () => {
   return (
     <div className="min-h-screen bg-background">
       <Seo 
-        title="Catalogue de Services ApidIA | Outils pour Professionnels du Tourisme" 
-        description="Découvrez nos services dédiés aux professionnels du tourisme : audit digital, gestion d'avis, formation, création de sites web et bien plus."
+        title="Catalogue de Services ApidIA | Solutions IA pour Professionnels du Tourisme"
+        description="Découvrez nos services IA dédiés aux professionnels du tourisme : audit digital gratuit, gestion automatique des avis, formation marketing, création de sites web et automatisation complète."
         canonical={`${window.location.origin}/catalogue`}
+        keywords="services IA tourisme, audit digital gratuit, gestion avis automatique, formation marketing tourisme, sites web tourisme, automatisation marketing, apidae, fiches touristiques"
+        ogImage="/lovable-uploads/d4594427-d5ec-4616-9298-7912d6c72b56.png"
+        ogUrl={`${window.location.origin}/catalogue`}
+        structuredData={{
+          "@context": "https://schema.org",
+          "@type": "ItemList",
+          "name": "Services ApidIA pour Professionnels du Tourisme",
+          "description": "Catalogue complet des services d'intelligence artificielle dédiés aux professionnels du tourisme",
+          "provider": {
+            "@type": "Organization",
+            "name": "ApidIA",
+            "url": window.location.origin
+          },
+          "itemListElement": services.map((category, categoryIndex) => 
+            category.services.map((service, serviceIndex) => ({
+              "@type": "Service",
+              "position": categoryIndex * 10 + serviceIndex + 1,
+              "name": service.title,
+              "description": service.description,
+              "category": category.category,
+              "offers": {
+                "@type": "Offer",
+                "price": service.price === "Gratuit" ? "0" : service.price.replace(/[€\/mois]/g, ""),
+                "priceCurrency": "EUR",
+                "availability": "https://schema.org/InStock"
+              }
+            }))
+          ).flat()
+        }}
       />
       
       {/* Header */}
@@ -160,7 +189,7 @@ const Catalogue = () => {
           <div className="flex items-center gap-3">
             <img 
               src="/lovable-uploads/d4594427-d5ec-4616-9298-7912d6c72b56.png" 
-              alt="ApidIA Logo" 
+              alt="Logo ApidIA - Solutions d'intelligence artificielle pour professionnels du tourisme" 
               className="w-10 h-10 object-contain"
             />
             <h1 className="text-xl font-bold text-primary">ApidIA</h1>
