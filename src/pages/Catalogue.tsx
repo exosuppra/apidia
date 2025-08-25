@@ -54,9 +54,9 @@ const services = [
     services: [
       {
         icon: <Star className="w-8 h-8" />,
-        title: "Réponses IA aux avis",
-        description: "L'IA surveille et répond automatiquement à tous vos avis avec votre ton personnalisé",
-        cta: "Activer l'assistant avis"
+        title: "Gestion complète des avis",
+        description: "Audit des avis, analyse des verbatims, calcul du NPS et réponses automatiques personnalisées",
+        cta: "Activer la gestion avis IA"
       },
       {
         icon: <BarChart3 className="w-8 h-8" />,
@@ -90,9 +90,9 @@ const services = [
     services: [
       {
         icon: <Camera className="w-8 h-8" />,
-        title: "Création d'affiches",
-        description: "Designs professionnels pour vos événements et promotions",
-        cta: "Créer mes affiches"
+        title: "Création automatisée de contenus visuels",
+        description: "Génération d'affiches d'événements, visuels pour sites web et contenus marketing personnalisés",
+        cta: "Créer mes contenus visuels"
       },
       {
         icon: <MessageCircle className="w-8 h-8" />,
@@ -126,9 +126,9 @@ const services = [
     services: [
       {
         icon: <MapPin className="w-8 h-8" />,
-        title: "Fiches APIDAE",
-        description: "Synchronisation et mise à jour de vos données touristiques",
-        cta: "Synchroniser mes fiches"
+        title: "Fiches APIDAE intelligentes",
+        description: "Mise à jour automatique de vos fiches Apidae grâce à la recherche d'informations par l'IA",
+        cta: "Activer la mise à jour IA"
       }
     ]
   }
@@ -218,17 +218,17 @@ const Catalogue = () => {
                 </div>
                 <div>
                   <h3 className="font-semibold mb-2">Génération automatique de contenus</h3>
-                  <p className="text-sm text-muted-foreground">L'IA crée vos descriptions, posts réseaux sociaux et newsletters en s'adaptant à votre style et votre clientèle.</p>
+                  <p className="text-sm text-muted-foreground">L'IA crée vos descriptions, posts réseaux sociaux, newsletters, affiches d'événements, sites internet et met à jour automatiquement vos fiches Apidae grâce à la recherche d'informations automatisée.</p>
                 </div>
               </div>
               
               <div className="flex items-start gap-4 p-4 bg-white/60 rounded-lg border">
                 <div className="bg-primary/10 p-2 rounded-lg">
-                  <Eye className="w-6 h-6 text-primary" />
+                  <BarChart3 className="w-6 h-6 text-primary" />
                 </div>
                 <div>
-                  <h3 className="font-semibold mb-2">Surveillance concurrentielle intelligente</h3>
-                  <p className="text-sm text-muted-foreground">Analyse automatique des stratégies de vos concurrents et suggestions d'optimisations personnalisées.</p>
+                  <h3 className="font-semibold mb-2">Bilan de visibilité en ligne & Bilan Social Média</h3>
+                  <p className="text-sm text-muted-foreground">Analyse complète de votre présence digitale et performance sur les réseaux sociaux avec recommandations personnalisées.</p>
                 </div>
               </div>
               
@@ -237,8 +237,18 @@ const Catalogue = () => {
                   <MessageCircle className="w-6 h-6 text-primary" />
                 </div>
                 <div>
-                  <h3 className="font-semibold mb-2">Proposition de réponse automatique aux avis</h3>
-                  <p className="text-sm text-muted-foreground">Réponses personnalisées et professionnelles à tous vos avis clients, générées par l'IA selon votre ton.</p>
+                  <h3 className="font-semibold mb-2">Gestion des avis</h3>
+                  <p className="text-sm text-muted-foreground">Audit complet des avis clients, analyse des verbatims, calcul du NPS et propositions de réponses automatiques personnalisées.</p>
+                </div>
+              </div>
+              
+              <div className="flex items-start gap-4 p-4 bg-white/60 rounded-lg border">
+                <div className="bg-primary/10 p-2 rounded-lg">
+                  <Users className="w-6 h-6 text-primary" />
+                </div>
+                <div>
+                  <h3 className="font-semibold mb-2">Gestion automatisée de la relation client</h3>
+                  <p className="text-sm text-muted-foreground">Alimentation automatique de votre GRC avec fichier client et campagnes de mailings ciblées selon les profils de vos clients.</p>
                 </div>
               </div>
             </div>
