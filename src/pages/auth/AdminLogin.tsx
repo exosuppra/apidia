@@ -72,8 +72,12 @@ export default function AdminLogin() {
       <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/5 flex items-center justify-center p-4">
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
-            <div className="mx-auto w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mb-4">
-              <Shield className="w-6 h-6 text-primary" />
+            <div className="mx-auto w-16 h-16 mb-4">
+              <img 
+                src="/lovable-uploads/d4594427-d5ec-4616-9298-7912d6c72b56.png" 
+                alt="ApidIA Logo" 
+                className="w-full h-full object-contain"
+              />
             </div>
             <CardTitle className="text-2xl">Administration</CardTitle>
             <CardDescription>

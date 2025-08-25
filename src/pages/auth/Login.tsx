@@ -113,7 +113,14 @@ const onSubmit = async (values: z.infer<typeof idLoginSchema>) => {
       />
       <main className="min-h-screen grid place-items-center bg-background px-4">
         <Card className="w-full max-w-md">
-          <CardHeader>
+          <CardHeader className="text-center">
+            <div className="mx-auto w-16 h-16 mb-4">
+              <img 
+                src="/lovable-uploads/d4594427-d5ec-4616-9298-7912d6c72b56.png" 
+                alt="ApidIA Logo" 
+                className="w-full h-full object-contain"
+              />
+            </div>
             <CardTitle>ApidIA – Connexion</CardTitle>
             <CardDescription>Saisissez votre ID et votre email</CardDescription>
           </CardHeader>
