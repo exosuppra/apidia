@@ -173,11 +173,19 @@ const Catalogue = () => {
           <p className="text-xl text-muted-foreground mb-4">
             Vous êtes une entreprise locale du tourisme ou un partenaire de l'Office de Tourisme et vous souhaitez une aide pour développer votre business
           </p>
-          <div className="bg-gradient-to-r from-primary/10 to-secondary/10 rounded-lg p-6 mb-8 border border-primary/20">
+          <div className="bg-gradient-to-r from-primary/10 to-secondary/10 rounded-lg p-6 mb-4 border border-primary/20">
             <h3 className="text-2xl font-bold mb-3 text-primary">🤖 Propulsé par l'Intelligence Artificielle</h3>
             <p className="text-lg text-muted-foreground">
               ApidIA gère de façon <strong>quasi-autonome</strong> la promotion de votre établissement sur le web. 
               Une fois configuré, notre IA travaille 24h/24 pour optimiser votre visibilité sans intervention de votre part.
+            </p>
+          </div>
+          <div className="bg-gradient-to-r from-secondary/10 to-primary/5 rounded-lg p-6 mb-8 border border-secondary/20">
+            <h3 className="text-xl font-bold mb-3 text-secondary">🎯 Notre Objectif</h3>
+            <p className="text-lg text-muted-foreground">
+              <strong>Déléguer à l'IA la mission de promotion des établissements sur le web</strong> pour permettre aux 
+              Acteurs Touristiques Locaux de <strong>réinvestir ce temps dans d'autres tâches</strong> plus stratégiques 
+              pour leur activité.
             </p>
           </div>
           <div className="grid md:grid-cols-3 gap-6 text-left">
@@ -261,7 +269,7 @@ const Catalogue = () => {
                   <div className="space-y-3 text-left">
                     <div className="flex items-center gap-3">
                       <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                      <span className="text-sm">Optimisation SEO en temps réel</span>
+                      <span className="text-sm">Bilan SEO en temps réel</span>
                     </div>
                     <div className="flex items-center gap-3">
                       <div className="w-2 h-2 bg-green-500 rounded-full"></div>
@@ -279,7 +287,7 @@ const Catalogue = () => {
                   <div className="pt-4">
                     <div className="bg-primary/10 rounded-lg p-3">
                       <p className="text-sm font-medium text-primary">
-                        💡 Une fois configuré, ApidIA fonctionne de manière autonome
+                        💡 Une fois configuré, ApidIA fonctionne de manière quasi-autonome
                       </p>
                     </div>
                   </div>
