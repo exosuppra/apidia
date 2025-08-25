@@ -204,34 +204,36 @@ const Catalogue = () => {
                 Une fois configuré, notre IA travaille <strong>en continu</strong> pour optimiser votre visibilité sans intervention de votre part.
               </p>
               
-              <div className="grid lg:grid-cols-3 gap-8 text-left max-w-5xl mx-auto">
-                <div className="flex flex-col items-center text-center lg:flex-row lg:items-start lg:text-left gap-4 p-6 bg-white/60 rounded-2xl border border-border/50 shadow-sm hover:shadow-lg transition-all duration-300">
-                  <div className="bg-green-100 p-4 rounded-xl flex-shrink-0">
-                    <Clock className="w-8 h-8 text-green-600" />
+              <div className="grid lg:grid-cols-1 gap-8 max-w-4xl mx-auto">
+                <div className="grid md:grid-cols-3 gap-8">
+                  <div className="text-center space-y-4">
+                    <div className="bg-green-100 p-6 rounded-2xl w-20 h-20 mx-auto flex items-center justify-center">
+                      <Clock className="w-10 h-10 text-green-600" />
+                    </div>
+                    <div>
+                      <h4 className="text-2xl font-bold text-foreground mb-3">Économisez 15h/semaine</h4>
+                      <p className="text-lg text-muted-foreground leading-relaxed">Plus de gestion manuelle des réseaux sociaux</p>
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    <h4 className="text-xl font-bold text-foreground">Économisez 15h/semaine</h4>
-                    <p className="text-base text-muted-foreground leading-relaxed">Plus de gestion manuelle des réseaux sociaux</p>
-                  </div>
-                </div>
 
-                <div className="flex flex-col items-center text-center lg:flex-row lg:items-start lg:text-left gap-4 p-6 bg-white/60 rounded-2xl border border-border/50 shadow-sm hover:shadow-lg transition-all duration-300">
-                  <div className="bg-blue-100 p-4 rounded-xl flex-shrink-0">
-                    <Zap className="w-8 h-8 text-blue-600" />
+                  <div className="text-center space-y-4">
+                    <div className="bg-blue-100 p-6 rounded-2xl w-20 h-20 mx-auto flex items-center justify-center">
+                      <Zap className="w-10 h-10 text-blue-600" />
+                    </div>
+                    <div>
+                      <h4 className="text-2xl font-bold text-foreground mb-3">Gestion automatisée</h4>
+                      <p className="text-lg text-muted-foreground leading-relaxed">Contenus et avis traités par l'IA</p>
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    <h4 className="text-xl font-bold text-foreground">Gestion automatisée</h4>
-                    <p className="text-base text-muted-foreground leading-relaxed">Contenus et avis traités par l'IA</p>
-                  </div>
-                </div>
 
-                <div className="flex flex-col items-center text-center lg:flex-row lg:items-start lg:text-left gap-4 p-6 bg-white/60 rounded-2xl border border-border/50 shadow-sm hover:shadow-lg transition-all duration-300">
-                  <div className="bg-purple-100 p-4 rounded-xl flex-shrink-0">
-                    <Bot className="w-8 h-8 text-purple-600" />
-                  </div>
-                  <div className="space-y-2">
-                    <h4 className="text-xl font-bold text-foreground">IA spécialisée tourisme</h4>
-                    <p className="text-base text-muted-foreground leading-relaxed">Contenus adaptés au secteur</p>
+                  <div className="text-center space-y-4">
+                    <div className="bg-purple-100 p-6 rounded-2xl w-20 h-20 mx-auto flex items-center justify-center">
+                      <Bot className="w-10 h-10 text-purple-600" />
+                    </div>
+                    <div>
+                      <h4 className="text-2xl font-bold text-foreground mb-3">IA spécialisée tourisme</h4>
+                      <p className="text-lg text-muted-foreground leading-relaxed">Contenus adaptés au secteur</p>
+                    </div>
                   </div>
                 </div>
               </div>
