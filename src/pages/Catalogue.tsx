@@ -127,8 +127,8 @@ const services = [
       {
         icon: <MapPin className="w-8 h-8" />,
         title: "Fiches APIDAE intelligentes",
-        description: "Mise à jour automatique de vos fiches Apidae grâce à la recherche d'informations par l'IA",
-        cta: "Activer la mise à jour IA"
+        description: "ApidIA recherche automatiquement les informations sur internet pour remplir vos fiches. Vous recevez un mail avec une proposition que vous pouvez modifier sur la plateforme Apidae. APIDAE (base de données touristique nationale) diffuse ensuite vos informations sur les sites institutionnels, touristiques et supports print (programmes mensuels, panneaux Akilux...).",
+        cta: "En savoir +"
       }
     ]
   }
