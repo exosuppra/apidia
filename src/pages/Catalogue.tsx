@@ -581,21 +581,42 @@ const Catalogue = () => {
 
       {/* Footer */}
       <footer className="py-8 border-t bg-muted/30">
-        <div className="container mx-auto px-4 text-center">
-          <div className="flex items-center justify-center gap-3 mb-4">
-            <img 
-              src="/lovable-uploads/d4594427-d5ec-4616-9298-7912d6c72b56.png" 
-              alt="ApidIA Logo" 
-              className="w-8 h-8 object-contain"
-            />
-            <span className="font-semibold">ApidIA</span>
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-6">
+            <div className="flex items-center justify-center gap-3 mb-4">
+              <img 
+                src="/lovable-uploads/d4594427-d5ec-4616-9298-7912d6c72b56.png" 
+                alt="ApidIA Logo" 
+                className="w-8 h-8 object-contain"
+              />
+              <span className="font-semibold">ApidIA</span>
+            </div>
+            <p className="text-sm text-muted-foreground mb-4">
+              Votre partenaire pour le développement digital de votre activité touristique
+            </p>
+            
+            {/* Contact Information */}
+            <div className="flex flex-col md:flex-row items-center justify-center gap-6 mb-4">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Mail className="w-4 h-4" />
+                <a href="mailto:contact@apidia.fr" className="hover:text-primary transition-colors">
+                  contact@apidia.fr
+                </a>
+              </div>
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+                </svg>
+                <a href="tel:+33492720892" className="hover:text-primary transition-colors">
+                  04 92 72 08 92
+                </a>
+              </div>
+            </div>
+            
+            <p className="text-xs text-muted-foreground/70">
+              Développé par l'Office de Tourisme et des Congrès du Pays de Manosque
+            </p>
           </div>
-          <p className="text-sm text-muted-foreground mb-2">
-            Votre partenaire pour le développement digital de votre activité touristique
-          </p>
-          <p className="text-xs text-muted-foreground/70">
-            Développé par l'Office de Tourisme et des Congrès du Pays de Manosque
-          </p>
         </div>
       </footer>
     </div>
