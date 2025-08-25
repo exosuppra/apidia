@@ -275,7 +275,7 @@ const Catalogue = () => {
             <div className="text-center mb-8">
               <h3 className="text-2xl font-bold mb-4">Rejoignez les professionnels du tourisme qui nous font confiance</h3>
               <div className="flex justify-center items-center gap-8 opacity-60">
-                <span className="text-sm font-medium">Hôtels • Restaurants • Commerces • Campings • Hébergements locatifs • Évènementiel • Prestataires d'activités</span>
+                <span className="text-sm font-medium">Hôtels • Restaurants • Commerces • Campings • Hébergements locatifs • Évènementiel • Prestataires d'activités • Producteurs</span>
               </div>
             </div>
             
@@ -287,7 +287,7 @@ const Catalogue = () => {
             </div>
 
             {/* Typologies Grid */}
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
               <div className="bg-white/50 backdrop-blur-sm rounded-lg p-4 text-center">
                 <div className="w-16 h-16 bg-blue-100 rounded-lg mx-auto mb-3 flex items-center justify-center">
                   <span className="text-2xl">🏨</span>
@@ -329,6 +329,12 @@ const Catalogue = () => {
                   <span className="text-2xl">🎯</span>
                 </div>
                 <span className="text-sm font-medium">Prestataires d'activités</span>
+              </div>
+              <div className="bg-white/50 backdrop-blur-sm rounded-lg p-4 text-center">
+                <div className="w-16 h-16 bg-orange-100 rounded-lg mx-auto mb-3 flex items-center justify-center">
+                  <span className="text-2xl">🌾</span>
+                </div>
+                <span className="text-sm font-medium">Producteurs</span>
               </div>
             </div>
           </div>
