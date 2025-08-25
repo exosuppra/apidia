@@ -15,7 +15,12 @@ import {
   Mail,
   BarChart3,
   Smartphone,
-  MapPin
+  MapPin,
+  Bot,
+  Zap,
+  Clock,
+  Sparkles,
+  ArrowRight
 } from "lucide-react";
 
 const services = [
@@ -25,21 +30,21 @@ const services = [
     services: [
       {
         icon: <Globe className="w-8 h-8" />,
-        title: "Audit visibilité en ligne",
-        description: "Analysez votre présence digitale et identifiez les axes d'amélioration",
-        cta: "Demander mon audit"
+        title: "Audit visibilité IA",
+        description: "L'IA analyse votre présence digitale et optimise automatiquement vos points faibles",
+        cta: "Lancer l'audit IA"
       },
       {
         icon: <TrendingUp className="w-8 h-8" />,
-        title: "Optimisation SEO",
-        description: "Améliorez votre référencement pour être mieux trouvé sur Google",
-        cta: "Optimiser mon SEO"
+        title: "SEO Automatisé",
+        description: "L'IA optimise votre référencement 24h/24 sans intervention manuelle",
+        cta: "Activer le SEO IA"
       },
       {
         icon: <Smartphone className="w-8 h-8" />,
-        title: "Création site web",
-        description: "Site web professionnel adapté à votre activité touristique",
-        cta: "Créer mon site"
+        title: "Site Web Auto-Géré",
+        description: "Site web qui se met à jour automatiquement avec l'IA (contenus, prix, disponibilités)",
+        cta: "Créer mon site IA"
       }
     ]
   },
@@ -49,15 +54,15 @@ const services = [
     services: [
       {
         icon: <Star className="w-8 h-8" />,
-        title: "Gestion des avis clients",
-        description: "Surveillez et répondez à vos avis sur toutes les plateformes",
-        cta: "Gérer mes avis"
+        title: "Réponses IA aux avis",
+        description: "L'IA surveille et répond automatiquement à tous vos avis avec votre ton personnalisé",
+        cta: "Activer l'assistant avis"
       },
       {
         icon: <BarChart3 className="w-8 h-8" />,
-        title: "Analyse de réputation",
-        description: "Rapport détaillé de votre e-réputation avec recommandations",
-        cta: "Analyser ma réputation"
+        title: "Veille réputation IA",
+        description: "Surveillance continue et alertes automatiques avec actions correctives suggérées",
+        cta: "Lancer la veille IA"
       }
     ]
   },
@@ -158,27 +163,118 @@ const Catalogue = () => {
       {/* Hero Section */}
       <section className="py-16 bg-gradient-to-br from-primary/5 via-background to-secondary/5">
         <div className="container mx-auto px-4 text-center max-w-4xl">
+          <div className="flex items-center justify-center gap-3 mb-4">
+            <Bot className="w-10 h-10 text-primary" />
+            <Sparkles className="w-6 h-6 text-yellow-500" />
+          </div>
           <h2 className="text-4xl md:text-5xl font-bold mb-6 text-foreground">
-            Catalogue de Services
+            Catalogue de Services <span className="text-primary">IA</span>
           </h2>
-          <p className="text-xl text-muted-foreground mb-8">
+          <p className="text-xl text-muted-foreground mb-4">
             Vous êtes une entreprise locale du tourisme ou un partenaire de l'Office de Tourisme et vous souhaitez une aide pour développer votre business
           </p>
+          <div className="bg-gradient-to-r from-primary/10 to-secondary/10 rounded-lg p-6 mb-8 border border-primary/20">
+            <h3 className="text-2xl font-bold mb-3 text-primary">🤖 Propulsé par l'Intelligence Artificielle</h3>
+            <p className="text-lg text-muted-foreground">
+              ApidIA gère de façon <strong>quasi-autonome</strong> la promotion de votre établissement sur le web. 
+              Une fois configuré, notre IA travaille 24h/24 pour optimiser votre visibilité sans intervention de votre part.
+            </p>
+          </div>
           <div className="grid md:grid-cols-3 gap-6 text-left">
             <div className="bg-white/50 backdrop-blur-sm rounded-lg p-6 border">
+              <Clock className="w-12 h-12 text-primary mb-4" />
+              <h3 className="font-semibold mb-2">99% Automatisé</h3>
+              <p className="text-sm text-muted-foreground">L'IA gère vos contenus, optimisations et campagnes automatiquement</p>
+            </div>
+            <div className="bg-white/50 backdrop-blur-sm rounded-lg p-6 border">
+              <Zap className="w-12 h-12 text-primary mb-4" />
+              <h3 className="font-semibold mb-2">Réactif 24h/24</h3>
+              <p className="text-sm text-muted-foreground">Réponses aux avis, mises à jour SEO et veille concurrentielle en continu</p>
+            </div>
+            <div className="bg-white/50 backdrop-blur-sm rounded-lg p-6 border">
               <TrendingUp className="w-12 h-12 text-primary mb-4" />
-              <h3 className="font-semibold mb-2">Gain de temps</h3>
-              <p className="text-sm text-muted-foreground">Outils centralisés pour optimiser votre gestion quotidienne</p>
+              <h3 className="font-semibold mb-2">Résultats Mesurables</h3>
+              <p className="text-sm text-muted-foreground">Tableaux de bord intelligents avec recommandations automatiques</p>
             </div>
-            <div className="bg-white/50 backdrop-blur-sm rounded-lg p-6 border">
-              <GraduationCap className="w-12 h-12 text-primary mb-4" />
-              <h3 className="font-semibold mb-2">Montée en compétences</h3>
-              <p className="text-sm text-muted-foreground">Formations et conseils personnalisés pour votre activité</p>
+          </div>
+        </div>
+      </section>
+
+      {/* AI Features Section */}
+      <section className="py-16 bg-gradient-to-r from-primary/5 to-secondary/5">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold mb-4 flex items-center justify-center gap-3">
+              <Bot className="w-8 h-8 text-primary" />
+              Comment l'IA ApidIA révolutionne votre marketing
+            </h2>
+          </div>
+          
+          <div className="grid lg:grid-cols-2 gap-8 items-center">
+            <div className="space-y-6">
+              <div className="flex items-start gap-4 p-4 bg-white/60 rounded-lg border">
+                <div className="bg-primary/10 p-2 rounded-lg">
+                  <Sparkles className="w-6 h-6 text-primary" />
+                </div>
+                <div>
+                  <h3 className="font-semibold mb-2">Génération automatique de contenus</h3>
+                  <p className="text-sm text-muted-foreground">L'IA crée vos descriptions, posts réseaux sociaux et newsletters en s'adaptant à votre style et votre clientèle.</p>
+                </div>
+              </div>
+              
+              <div className="flex items-start gap-4 p-4 bg-white/60 rounded-lg border">
+                <div className="bg-primary/10 p-2 rounded-lg">
+                  <Eye className="w-6 h-6 text-primary" />
+                </div>
+                <div>
+                  <h3 className="font-semibold mb-2">Surveillance concurrentielle intelligente</h3>
+                  <p className="text-sm text-muted-foreground">Analyse automatique des stratégies de vos concurrents et suggestions d'optimisations personnalisées.</p>
+                </div>
+              </div>
+              
+              <div className="flex items-start gap-4 p-4 bg-white/60 rounded-lg border">
+                <div className="bg-primary/10 p-2 rounded-lg">
+                  <MessageCircle className="w-6 h-6 text-primary" />
+                </div>
+                <div>
+                  <h3 className="font-semibold mb-2">Gestion automatique des avis</h3>
+                  <p className="text-sm text-muted-foreground">Réponses personnalisées et professionnelles à tous vos avis clients, générées par l'IA selon votre ton.</p>
+                </div>
+              </div>
             </div>
-            <div className="bg-white/50 backdrop-blur-sm rounded-lg p-6 border">
-              <Eye className="w-12 h-12 text-primary mb-4" />
-              <h3 className="font-semibold mb-2">Meilleure visibilité</h3>
-              <p className="text-sm text-muted-foreground">Augmentez votre présence en ligne et attirez plus de clients</p>
+            
+            <div className="relative">
+              <div className="bg-gradient-to-br from-primary/20 to-secondary/20 rounded-2xl p-8 border border-primary/30">
+                <div className="text-center space-y-4">
+                  <Bot className="w-16 h-16 text-primary mx-auto" />
+                  <h3 className="text-2xl font-bold">Votre Assistant IA Personnel</h3>
+                  <div className="space-y-3 text-left">
+                    <div className="flex items-center gap-3">
+                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                      <span className="text-sm">Optimisation SEO en temps réel</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                      <span className="text-sm">Campagnes publicitaires automatisées</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                      <span className="text-sm">Analyse prédictive de la demande</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                      <span className="text-sm">Personnalisation des offres clients</span>
+                    </div>
+                  </div>
+                  <div className="pt-4">
+                    <div className="bg-primary/10 rounded-lg p-3">
+                      <p className="text-sm font-medium text-primary">
+                        💡 Une fois configuré, ApidIA fonctionne de manière autonome
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -232,18 +328,27 @@ const Catalogue = () => {
       </section>
 
       {/* CTA Section */}
-      <section className="py-16 bg-primary text-primary-foreground">
-        <div className="container mx-auto px-4 text-center">
-          <h2 className="text-3xl font-bold mb-4">Prêt à développer votre activité ?</h2>
-          <p className="text-lg mb-8 opacity-90 max-w-2xl mx-auto">
-            Commencez par un diagnostic gratuit de votre présence en ligne et découvrez comment nous pouvons vous aider à attirer plus de clients.
+      <section className="py-16 bg-gradient-to-r from-primary to-secondary text-primary-foreground relative overflow-hidden">
+        <div className="absolute inset-0 bg-black/10"></div>
+        <div className="container mx-auto px-4 text-center relative z-10">
+          <div className="flex items-center justify-center gap-3 mb-4">
+            <Bot className="w-12 h-12" />
+            <ArrowRight className="w-6 h-6" />
+            <Sparkles className="w-8 h-8" />
+          </div>
+          <h2 className="text-3xl font-bold mb-4">Prêt à laisser l'IA gérer votre marketing ?</h2>
+          <p className="text-lg mb-6 opacity-90 max-w-3xl mx-auto">
+            Commencez par un diagnostic IA gratuit. En 5 minutes, notre intelligence artificielle analyse votre présence digitale et configure vos outils automatiques.
           </p>
+          <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 mb-8 max-w-2xl mx-auto">
+            <p className="text-sm font-medium mb-2">⚡ Configuration en 5 minutes • 🤖 Gestion 100% autonome • 📈 Résultats dès la première semaine</p>
+          </div>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button size="lg" variant="secondary" asChild>
-              <Link to="/auth/login">Commencer mon diagnostic</Link>
+            <Button size="lg" variant="secondary" className="bg-white text-primary hover:bg-white/90" asChild>
+              <Link to="/auth/login">🚀 Activer mon IA marketing</Link>
             </Button>
             <Button size="lg" variant="outline" className="border-white text-white hover:bg-white hover:text-primary">
-              Demander une démo
+              Voir une démo en live
             </Button>
           </div>
         </div>
