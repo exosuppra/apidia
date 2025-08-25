@@ -184,9 +184,11 @@ const Catalogue = () => {
             {/* Left: Content */}
             <div className="space-y-8">
               <div className="space-y-4 text-center">
-                <div className="inline-flex items-center gap-2 bg-primary/10 text-primary px-4 py-2 rounded-full text-sm font-medium">
-                  <Sparkles className="w-4 h-4" />
-                  Intelligence Artificielle
+                <div className="flex justify-center">
+                  <div className="inline-flex items-center gap-2 bg-primary/10 text-primary px-4 py-2 rounded-full text-sm font-medium">
+                    <Sparkles className="w-4 h-4" />
+                    Intelligence Artificielle
+                  </div>
                 </div>
                 <h3 className="text-2xl font-bold leading-tight">
                   ApidIA gère de façon <span className="text-primary">quasi-autonome</span> la promotion de votre établissement
