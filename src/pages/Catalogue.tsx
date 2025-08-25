@@ -173,20 +173,19 @@ const Catalogue = () => {
           <p className="text-xl text-muted-foreground mb-4">
             Vous êtes une entreprise locale du tourisme ou un partenaire de l'Office de Tourisme et vous souhaitez une aide pour développer votre business
           </p>
-          <div className="bg-gradient-to-r from-primary/10 to-secondary/10 rounded-lg p-6 mb-4 border border-primary/20">
-            <h3 className="text-2xl font-bold mb-3 text-primary">🤖 Propulsé par l'Intelligence Artificielle</h3>
-            <p className="text-lg text-muted-foreground">
-              ApidIA gère de façon <strong>quasi-autonome</strong> la promotion de votre établissement sur le web. 
-              Une fois configuré, notre IA travaille 24h/24 pour optimiser votre visibilité sans intervention de votre part.
-            </p>
-          </div>
-          <div className="bg-gradient-to-r from-secondary/10 to-primary/5 rounded-lg p-6 mb-8 border border-secondary/20">
-            <h3 className="text-xl font-bold mb-3 text-secondary">🎯 Notre Objectif</h3>
-            <p className="text-lg text-muted-foreground">
-              <strong>Déléguer à l'IA la mission de promotion des établissements sur le web</strong> pour permettre aux 
-              Acteurs Touristiques Locaux de <strong>réinvestir ce temps dans d'autres tâches</strong> plus stratégiques 
-              pour leur activité.
-            </p>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-6 mb-8">
+            <div className="flex items-center gap-3 bg-primary/10 px-6 py-3 rounded-full border border-primary/20">
+              <Bot className="w-6 h-6 text-primary" />
+              <span className="font-semibold text-primary">IA Quasi-Autonome</span>
+            </div>
+            <div className="flex items-center gap-3 bg-secondary/10 px-6 py-3 rounded-full border border-secondary/20">
+              <Clock className="w-6 h-6 text-secondary" />
+              <span className="font-semibold text-secondary">24h/24 Actif</span>
+            </div>
+            <div className="flex items-center gap-3 bg-green-500/10 px-6 py-3 rounded-full border border-green-500/20">
+              <Zap className="w-6 h-6 text-green-600" />
+              <span className="font-semibold text-green-600">Plus de Temps Libre</span>
+            </div>
           </div>
           <div className="grid md:grid-cols-3 gap-6 text-left">
             <div className="bg-white/50 backdrop-blur-sm rounded-lg p-6 border">
