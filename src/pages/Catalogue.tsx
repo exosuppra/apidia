@@ -547,10 +547,10 @@ const Catalogue = () => {
           </div>
           <h2 className="text-3xl font-bold mb-4">Prêt à laisser l'IA gérer votre marketing ?</h2>
           <p className="text-lg mb-6 opacity-90 max-w-3xl mx-auto">
-            Commencez par un diagnostic IA gratuit. En 5 minutes, notre intelligence artificielle analyse votre présence digitale et configure vos outils automatiques.
+            Commencez par un diagnostic IA gratuit. En 5 minutes, notre intelligence artificielle analyse votre présence digitale et sera force de propositions pour améliorer votre business en ligne.
           </p>
           <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 mb-8 max-w-2xl mx-auto">
-            <p className="text-sm font-medium mb-2">⚡ Configuration en 5 minutes • 🤖 Gestion 100% autonome • 📈 Résultats dès la première semaine</p>
+            <p className="text-sm font-medium mb-2">⚡ Configuration en 5 minutes • 🤖 Gestion quasi-autonome</p>
           </div>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button size="lg" variant="secondary" className="bg-white text-primary hover:bg-white/90" asChild>
@@ -574,8 +574,11 @@ const Catalogue = () => {
             />
             <span className="font-semibold">ApidIA</span>
           </div>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-muted-foreground mb-2">
             Votre partenaire pour le développement digital de votre activité touristique
+          </p>
+          <p className="text-xs text-muted-foreground/70">
+            En partenariat avec l'Office de Tourisme et des Congrès du Pays de Manosque
           </p>
         </div>
       </footer>
