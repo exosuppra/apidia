@@ -557,7 +557,7 @@ const Catalogue = () => {
               <Link to="/auth/login">🚀 Activer mon IA marketing</Link>
             </Button>
             <Button size="lg" variant="outline" className="border-white text-white hover:bg-white hover:text-primary">
-              Voir une démo en live
+              Se connecter
             </Button>
           </div>
         </div>
