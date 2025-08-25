@@ -125,6 +125,10 @@ export type Database = {
         Args: { prompt: string }
         Returns: Json
       }
+      is_admin: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
       verify_admin_password: {
         Args: { input_password: string; stored_hash: string }
         Returns: boolean
