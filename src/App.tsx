@@ -15,6 +15,7 @@ import AdminLogin from "./pages/auth/AdminLogin";
 import AdminDashboard from "./pages/admin/Dashboard";
 import AllFiches from "./pages/admin/AllFiches";
 import Fiches from "./pages/dashboard/Fiches";
+import Catalogue from "./pages/Catalogue";
 
 const queryClient = new QueryClient();
 
@@ -27,6 +28,7 @@ const App = () => (
         <AuthProvider>
           <Routes>
             <Route path="/" element={<Index />} />
+            <Route path="/catalogue" element={<Catalogue />} />
             <Route path="/auth/login" element={<Login />} />
             <Route path="/auth/set-code" element={<SetCode />} />
             <Route path="/admin/login" element={<AdminLogin />} />

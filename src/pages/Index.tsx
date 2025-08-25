@@ -21,6 +21,9 @@ const Index = () => {
         <h1 className="text-4xl font-bold">Bienvenue sur ApidIA</h1>
         <p className="text-lg text-muted-foreground">Commencez par vous connecter pour accéder à votre espace.</p>
         <div className="flex items-center justify-center gap-3">
+          <Button asChild variant="outline">
+            <Link to="/catalogue">Découvrir nos services</Link>
+          </Button>
           <Button asChild>
             <Link to="/auth/login">Se connecter</Link>
           </Button>
