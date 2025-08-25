@@ -118,8 +118,9 @@ const services = [
         icon: <Users className="w-8 h-8" />,
         title: "CRM simplifié",
         description: "Gestion de votre fichier clients avec outils de fidélisation",
-        cta: "Organiser mes clients",
-        price: "25€/mois"
+        cta: "Découvrir le CRM IA",
+        price: "25€/mois",
+        link: "/crm-simplifie"
       },
       {
         icon: <Mail className="w-8 h-8" />,
@@ -554,6 +555,10 @@ const Catalogue = () => {
                         <Button className="w-full" variant="outline" asChild>
                           <Link to="/apidae-details">{service.cta}</Link>
                         </Button>
+                      ) : service.link ? (
+                        <Button className="w-full" variant="outline" asChild>
+                          <Link to={service.link}>{service.cta}</Link>
+                        </Button>  
                       ) : (
                         <Button className="w-full" variant="outline">
                           {service.cta}

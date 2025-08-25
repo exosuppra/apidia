@@ -17,6 +17,7 @@ import AllFiches from "./pages/admin/AllFiches";
 import Fiches from "./pages/dashboard/Fiches";
 import Catalogue from "./pages/Catalogue";
 import ApidaeDetails from "./pages/ApidaeDetails";
+import CrmSimplifie from "./pages/CrmSimplifie";
 
 const queryClient = new QueryClient();
 
@@ -31,6 +32,7 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/catalogue" element={<Catalogue />} />
             <Route path="/apidae-details" element={<ApidaeDetails />} />
+            <Route path="/crm-simplifie" element={<CrmSimplifie />} />
             <Route path="/auth/login" element={<Login />} />
             <Route path="/auth/set-code" element={<SetCode />} />
             <Route path="/admin/login" element={<AdminLogin />} />
