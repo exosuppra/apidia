@@ -21,7 +21,12 @@ import {
   Zap,
   Clock,
   Sparkles,
-  ArrowRight
+  ArrowRight,
+  Target,
+  Shield,
+  Lightbulb,
+  Rocket,
+  CheckCircle
 } from "lucide-react";
 
 const services = [
@@ -38,7 +43,7 @@ const services = [
       {
         icon: <TrendingUp className="w-8 h-8" />,
         title: "SEO Automatisé",
-        description: "L'IA optimise votre référencement 24h/24 sans intervention manuelle",
+        description: "L'IA optimise votre référencement en continu sans intervention manuelle",
         cta: "Activer le SEO IA"
       },
       {
@@ -187,14 +192,14 @@ const Catalogue = () => {
                   ApidIA gère de façon <span className="text-primary">quasi-autonome</span> la promotion de votre établissement
                 </h3>
                 <p className="text-xl text-muted-foreground leading-relaxed">
-                  Une fois configuré, notre IA travaille <strong>24h/24</strong> pour optimiser votre visibilité sans intervention de votre part.
+                  Une fois configuré, notre IA travaille <strong>en continu</strong> pour optimiser votre visibilité sans intervention de votre part.
                 </p>
               </div>
 
               <div className="space-y-6">
                 <div className="flex gap-4">
                   <div className="bg-green-100 p-3 rounded-xl flex-shrink-0">
-                    <Clock className="w-6 h-6 text-green-600" />
+                    <Target className="w-6 h-6 text-green-600" />
                   </div>
                   <div>
                     <h4 className="font-semibold mb-1">Économisez 15h/semaine</h4>
@@ -204,7 +209,7 @@ const Catalogue = () => {
 
                 <div className="flex gap-4">
                   <div className="bg-blue-100 p-3 rounded-xl flex-shrink-0">
-                    <TrendingUp className="w-6 h-6 text-blue-600" />
+                    <Rocket className="w-6 h-6 text-blue-600" />
                   </div>
                   <div>
                     <h4 className="font-semibold mb-1">+40% de visibilité</h4>
@@ -214,7 +219,7 @@ const Catalogue = () => {
 
                 <div className="flex gap-4">
                   <div className="bg-purple-100 p-3 rounded-xl flex-shrink-0">
-                    <Bot className="w-6 h-6 text-purple-600" />
+                    <Lightbulb className="w-6 h-6 text-purple-600" />
                   </div>
                   <div>
                     <h4 className="font-semibold mb-1">IA spécialisée tourisme</h4>
@@ -234,11 +239,11 @@ const Catalogue = () => {
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
                 <div className="absolute bottom-6 left-6 text-white">
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
-                    <span className="text-sm font-medium">IA Active 24h/24</span>
-                  </div>
-                  <p className="text-sm opacity-90">Marketing automatisé en cours...</p>
+                   <div className="flex items-center gap-2 mb-2">
+                     <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+                     <span className="text-sm font-medium">IA Active en continu</span>
+                   </div>
+                   <p className="text-sm opacity-90">Marketing intelligent en cours...</p>
                 </div>
               </div>
             </div>
@@ -260,27 +265,12 @@ const Catalogue = () => {
               </div>
             </div>
           </div>
+        </div>
+      </section>
 
-          {/* Features Grid - Restored */}
-          <div className="grid md:grid-cols-3 gap-6 mb-8">
-            <div className="bg-white/50 backdrop-blur-sm rounded-lg p-6 border">
-              <Clock className="w-12 h-12 text-primary mb-4" />
-              <h3 className="font-semibold mb-2">99% Automatisé</h3>
-              <p className="text-sm text-muted-foreground">L'IA gère vos contenus, optimisations et campagnes automatiquement</p>
-            </div>
-            <div className="bg-white/50 backdrop-blur-sm rounded-lg p-6 border">
-              <Zap className="w-12 h-12 text-primary mb-4" />
-              <h3 className="font-semibold mb-2">Réactif 24h/24</h3>
-              <p className="text-sm text-muted-foreground">Réponses aux avis, mises à jour SEO et veille concurrentielle en continu</p>
-            </div>
-            <div className="bg-white/50 backdrop-blur-sm rounded-lg p-6 border">
-              <TrendingUp className="w-12 h-12 text-primary mb-4" />
-              <h3 className="font-semibold mb-2">Résultats Mesurables</h3>
-              <p className="text-sm text-muted-foreground">Tableaux de bord intelligents avec recommandations automatiques</p>
-            </div>
-          </div>
-
-          {/* Social Proof Section */}
+      {/* Social Proof Section */}
+      <section className="py-12 bg-gradient-to-r from-secondary/5 to-primary/5">
+        <div className="container mx-auto px-4">
           <div className="bg-gradient-to-r from-secondary/5 to-primary/5 rounded-3xl p-8 border border-border/50">
             <div className="text-center mb-8">
               <h3 className="text-2xl font-bold mb-4">Rejoignez les professionnels du tourisme qui nous font confiance</h3>
@@ -295,8 +285,8 @@ const Catalogue = () => {
                 <div className="text-sm text-muted-foreground">Établissements accompagnés</div>
               </div>
               <div className="bg-white/70 backdrop-blur-sm rounded-xl p-6 text-center">
-                <div className="text-3xl font-bold text-primary mb-2">24h/24</div>
-                <div className="text-sm text-muted-foreground">Marketing actif sans interruption</div>
+                <div className="text-3xl font-bold text-primary mb-2">En continu</div>
+                <div className="text-sm text-muted-foreground">Marketing intelligent sans interruption</div>
               </div>
               <div className="bg-white/70 backdrop-blur-sm rounded-xl p-6 text-center">
                 <div className="text-3xl font-bold text-primary mb-2">+40%</div>
@@ -306,87 +296,94 @@ const Catalogue = () => {
           </div>
         </div>
       </section>
-
-      {/* AI Features Section */}
       <section className="py-16 bg-gradient-to-r from-primary/5 to-secondary/5">
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold mb-4 flex items-center justify-center gap-3">
-              <Bot className="w-8 h-8 text-primary" />
+              <Shield className="w-8 h-8 text-primary" />
               Comment ApidIA révolutionne votre marketing ?
             </h2>
+            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+              Découvrez les fonctionnalités clés qui font d'ApidIA votre partenaire marketing intelligent
+            </p>
           </div>
           
-          <div className="grid lg:grid-cols-2 gap-8 items-center">
+          <div className="grid lg:grid-cols-2 gap-12 items-start">
+            {/* Left: Detailed Features */}
             <div className="space-y-6">
-              <div className="flex items-start gap-4 p-4 bg-white/60 rounded-lg border">
-                <div className="bg-primary/10 p-2 rounded-lg">
-                  <Sparkles className="w-6 h-6 text-primary" />
+              <div className="flex items-start gap-4 p-6 bg-white/60 rounded-xl border shadow-sm">
+                <div className="bg-green-100 p-3 rounded-lg flex-shrink-0">
+                  <Sparkles className="w-6 h-6 text-green-600" />
                 </div>
                 <div>
-                  <h3 className="font-semibold mb-2">Génération automatique de contenus</h3>
-                  <p className="text-sm text-muted-foreground">L'IA crée vos descriptions, posts réseaux sociaux, newsletters, affiches d'événements, sites internet et met à jour automatiquement vos fiches Apidae grâce à la recherche d'informations automatisée.</p>
+                  <h3 className="font-semibold mb-2">Génération intelligente de contenus</h3>
+                  <p className="text-sm text-muted-foreground">L'IA crée vos descriptions, posts réseaux sociaux, newsletters, affiches d'événements, et met à jour automatiquement vos fiches Apidae.</p>
                 </div>
               </div>
               
-              <div className="flex items-start gap-4 p-4 bg-white/60 rounded-lg border">
-                <div className="bg-primary/10 p-2 rounded-lg">
-                  <BarChart3 className="w-6 h-6 text-primary" />
+              <div className="flex items-start gap-4 p-6 bg-white/60 rounded-xl border shadow-sm">
+                <div className="bg-blue-100 p-3 rounded-lg flex-shrink-0">
+                  <BarChart3 className="w-6 h-6 text-blue-600" />
                 </div>
                 <div>
-                  <h3 className="font-semibold mb-2">Bilan de visibilité en ligne & Bilan Social Média</h3>
-                  <p className="text-sm text-muted-foreground">Analyse complète de votre présence digitale et performance sur les réseaux sociaux avec recommandations personnalisées.</p>
+                  <h3 className="font-semibold mb-2">Analyse complète & Optimisation SEO</h3>
+                  <p className="text-sm text-muted-foreground">Bilan complet de votre visibilité en ligne, performance réseaux sociaux et optimisation continue du référencement.</p>
                 </div>
               </div>
               
-              <div className="flex items-start gap-4 p-4 bg-white/60 rounded-lg border">
-                <div className="bg-primary/10 p-2 rounded-lg">
-                  <MessageCircle className="w-6 h-6 text-primary" />
+              <div className="flex items-start gap-4 p-6 bg-white/60 rounded-xl border shadow-sm">
+                <div className="bg-yellow-100 p-3 rounded-lg flex-shrink-0">
+                  <Star className="w-6 h-6 text-yellow-600" />
                 </div>
                 <div>
-                  <h3 className="font-semibold mb-2">Gestion des avis</h3>
-                  <p className="text-sm text-muted-foreground">Audit complet des avis clients, analyse des verbatims, calcul du NPS et propositions de réponses automatiques personnalisées.</p>
+                  <h3 className="font-semibold mb-2">Gestion proactive des avis</h3>
+                  <p className="text-sm text-muted-foreground">Audit des avis clients, analyse des verbatims, calcul du NPS et réponses automatiques personnalisées.</p>
                 </div>
               </div>
               
-              <div className="flex items-start gap-4 p-4 bg-white/60 rounded-lg border">
-                <div className="bg-primary/10 p-2 rounded-lg">
-                  <Users className="w-6 h-6 text-primary" />
+              <div className="flex items-start gap-4 p-6 bg-white/60 rounded-xl border shadow-sm">
+                <div className="bg-purple-100 p-3 rounded-lg flex-shrink-0">
+                  <Users className="w-6 h-6 text-purple-600" />
                 </div>
                 <div>
-                  <h3 className="font-semibold mb-2">Gestion automatisée de la relation client</h3>
-                  <p className="text-sm text-muted-foreground">Alimentation automatique de votre GRC avec fichier client et campagnes de mailings ciblées selon les profils de vos clients.</p>
+                  <h3 className="font-semibold mb-2">CRM automatisé & Campagnes ciblées</h3>
+                  <p className="text-sm text-muted-foreground">Gestion intelligente de votre fichier client avec campagnes de mailings personnalisées selon les profils.</p>
                 </div>
               </div>
             </div>
             
-            <div className="relative">
+            {/* Right: Key Benefits */}
+            <div className="space-y-6">
               <div className="bg-gradient-to-br from-primary/20 to-secondary/20 rounded-2xl p-8 border border-primary/30">
-                <div className="text-center space-y-4">
-                  <Bot className="w-16 h-16 text-primary mx-auto" />
-                  <h3 className="text-2xl font-bold">Votre Assistant IA Personnel</h3>
-                  <div className="space-y-3 text-left">
-                    <div className="flex items-center gap-3">
-                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                      <span className="text-sm">Bilan SEO en temps réel</span>
+                <div className="text-center space-y-6">
+                  <div className="flex items-center justify-center gap-3">
+                    <CheckCircle className="w-12 h-12 text-primary" />
+                    <h3 className="text-2xl font-bold">Avantages Clés</h3>
+                  </div>
+                  
+                  <div className="space-y-4 text-left">
+                    <div className="flex items-center gap-3 p-3 bg-white/50 rounded-lg">
+                      <Clock className="w-5 h-5 text-primary flex-shrink-0" />
+                      <span className="text-sm font-medium">99% Automatisé - L'IA gère tout</span>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                      <span className="text-sm">Campagnes publicitaires automatisées</span>
+                    <div className="flex items-center gap-3 p-3 bg-white/50 rounded-lg">
+                      <Zap className="w-5 h-5 text-primary flex-shrink-0" />
+                      <span className="text-sm font-medium">Réactif en continu sans interruption</span>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                      <span className="text-sm">Analyse prédictive de la demande</span>
+                    <div className="flex items-center gap-3 p-3 bg-white/50 rounded-lg">
+                      <TrendingUp className="w-5 h-5 text-primary flex-shrink-0" />
+                      <span className="text-sm font-medium">Résultats mesurables dès J+7</span>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                      <span className="text-sm">Personnalisation des offres clients</span>
+                    <div className="flex items-center gap-3 p-3 bg-white/50 rounded-lg">
+                      <Target className="w-5 h-5 text-primary flex-shrink-0" />
+                      <span className="text-sm font-medium">Spécialisé secteur touristique</span>
                     </div>
                   </div>
+                  
                   <div className="pt-4">
-                    <div className="bg-primary/10 rounded-lg p-3">
+                    <div className="bg-primary/10 rounded-lg p-4">
                       <p className="text-sm font-medium text-primary">
-                        💡 Une fois configuré, ApidIA fonctionne de manière quasi-autonome
+                        💡 Configuration en 5 minutes, puis fonctionne de manière quasi-autonome
                       </p>
                     </div>
                   </div>
