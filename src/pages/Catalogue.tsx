@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import Seo from "@/components/Seo";
-import aiAutomationImage from "@/assets/ai-automation-tourism.jpg";
+import tourismWorkspaceImage from "@/assets/tourism-professional-workspace.jpg";
 import { 
   Eye, 
   Star, 
@@ -174,64 +174,112 @@ const Catalogue = () => {
           <p className="text-xl text-muted-foreground mb-4">
             Vous êtes une entreprise locale du tourisme ou un partenaire de l'Office de Tourisme et vous souhaitez une aide pour développer votre business
           </p>
-          {/* Key Features Section - Apple Style */}
-          <div className="grid md:grid-cols-2 gap-8 items-center mb-8">
-            <div className="space-y-6">
-              <div className="flex items-center gap-4">
-                <div className="bg-primary/10 p-4 rounded-2xl">
-                  <Bot className="w-12 h-12 text-primary" />
-                </div>
-                <div>
-                  <h3 className="text-2xl font-bold mb-2">Intelligence Artificielle</h3>
-                  <p className="text-muted-foreground">Quasi-autonome • 24h/24</p>
+          {/* Hero Layout - Modern Tourism Focused */}
+          <div className="grid lg:grid-cols-5 gap-12 items-center mb-12">
+            {/* Left: Hero Image */}
+            <div className="lg:col-span-3 order-2 lg:order-1">
+              <div className="relative rounded-3xl overflow-hidden shadow-2xl">
+                <img 
+                  src={tourismWorkspaceImage} 
+                  alt="Professionnel du tourisme utilisant des outils digitaux IA dans un environnement touristique moderne"
+                  className="w-full h-[400px] object-cover"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent"></div>
+                <div className="absolute bottom-6 left-6 text-white">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+                    <span className="text-sm font-medium">IA Active 24h/24</span>
+                  </div>
+                  <p className="text-sm opacity-90">Marketing automatisé en cours...</p>
                 </div>
               </div>
-              <p className="text-lg text-muted-foreground leading-relaxed">
-                ApidIA gère de façon <strong>quasi-autonome</strong> la promotion de votre établissement sur le web. 
-                Une fois configuré, notre IA travaille 24h/24 pour optimiser votre visibilité sans intervention de votre part.
-              </p>
             </div>
-            
-            <div className="rounded-3xl overflow-hidden border border-primary/10">
-              <img 
-                src={aiAutomationImage} 
-                alt="Intelligence artificielle gérant automatiquement la promotion digitale d'établissements touristiques"
-                className="w-full h-full object-cover"
-              />
+
+            {/* Right: Key Benefits */}
+            <div className="lg:col-span-2 order-1 lg:order-2 space-y-8">
+              <div className="space-y-4">
+                <div className="inline-flex items-center gap-2 bg-primary/10 text-primary px-4 py-2 rounded-full text-sm font-medium">
+                  <Sparkles className="w-4 h-4" />
+                  Intelligence Artificielle
+                </div>
+                <h3 className="text-3xl font-bold leading-tight">
+                  Votre marketing touristique 
+                  <span className="text-primary"> en pilote automatique</span>
+                </h3>
+              </div>
+
+              <div className="space-y-6">
+                <div className="flex gap-4">
+                  <div className="bg-green-100 p-3 rounded-xl flex-shrink-0">
+                    <Clock className="w-6 h-6 text-green-600" />
+                  </div>
+                  <div>
+                    <h4 className="font-semibold mb-1">Économisez 15h/semaine</h4>
+                    <p className="text-sm text-muted-foreground">Plus de gestion manuelle des réseaux sociaux, avis clients ou référencement</p>
+                  </div>
+                </div>
+
+                <div className="flex gap-4">
+                  <div className="bg-blue-100 p-3 rounded-xl flex-shrink-0">
+                    <TrendingUp className="w-6 h-6 text-blue-600" />
+                  </div>
+                  <div>
+                    <h4 className="font-semibold mb-1">+40% de visibilité</h4>
+                    <p className="text-sm text-muted-foreground">Optimisation SEO continue et présence renforcée sur tous les canaux</p>
+                  </div>
+                </div>
+
+                <div className="flex gap-4">
+                  <div className="bg-purple-100 p-3 rounded-xl flex-shrink-0">
+                    <Bot className="w-6 h-6 text-purple-600" />
+                  </div>
+                  <div>
+                    <h4 className="font-semibold mb-1">IA spécialisée tourisme</h4>
+                    <p className="text-sm text-muted-foreground">Contenus, stratégies et actions adaptés aux codes du secteur touristique</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-gradient-to-r from-primary/10 to-secondary/10 rounded-2xl p-6 border border-primary/20">
+                <div className="flex items-start gap-3 mb-3">
+                  <div className="bg-primary/20 p-2 rounded-lg">
+                    <Zap className="w-5 h-5 text-primary" />
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-primary mb-1">Configuration Express</h4>
+                    <p className="text-sm text-muted-foreground">5 minutes suffisent pour démarrer votre marketing automatisé</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 text-xs text-primary">
+                  <div className="w-2 h-2 bg-primary rounded-full"></div>
+                  <span>Résultats visibles dès la première semaine</span>
+                </div>
+              </div>
             </div>
           </div>
 
-          {/* Objective Section */}
-          <div className="bg-white/60 backdrop-blur-sm rounded-3xl p-8 border border-border shadow-sm">
-            <div className="flex items-start gap-6">
-              <div className="bg-primary/10 p-4 rounded-2xl flex-shrink-0">
-                <TrendingUp className="w-12 h-12 text-primary" />
-              </div>
-              <div>
-                <h3 className="text-2xl font-bold mb-4 text-foreground">Notre Mission</h3>
-                <p className="text-lg text-foreground leading-relaxed max-w-3xl">
-                  <strong>Déléguer à l'IA la mission de promotion des établissements sur le web</strong> pour permettre aux 
-                  Acteurs Touristiques Locaux de <strong>réinvestir ce temps dans d'autres tâches</strong> plus stratégiques 
-                  pour leur activité.
-                </p>
+          {/* Social Proof Section */}
+          <div className="bg-gradient-to-r from-secondary/5 to-primary/5 rounded-3xl p-8 border border-border/50">
+            <div className="text-center mb-8">
+              <h3 className="text-2xl font-bold mb-4">Rejoignez les professionnels du tourisme qui nous font confiance</h3>
+              <div className="flex justify-center items-center gap-8 opacity-60">
+                <span className="text-sm font-medium">Hôtels • Restaurants • Campings • Offices de Tourisme</span>
               </div>
             </div>
-          </div>
-          <div className="grid md:grid-cols-3 gap-6 text-left">
-            <div className="bg-white/50 backdrop-blur-sm rounded-lg p-6 border">
-              <Clock className="w-12 h-12 text-primary mb-4" />
-              <h3 className="font-semibold mb-2">99% Automatisé</h3>
-              <p className="text-sm text-muted-foreground">L'IA gère vos contenus, optimisations et campagnes automatiquement</p>
-            </div>
-            <div className="bg-white/50 backdrop-blur-sm rounded-lg p-6 border">
-              <Zap className="w-12 h-12 text-primary mb-4" />
-              <h3 className="font-semibold mb-2">Réactif 24h/24</h3>
-              <p className="text-sm text-muted-foreground">Réponses aux avis, mises à jour SEO et veille concurrentielle en continu</p>
-            </div>
-            <div className="bg-white/50 backdrop-blur-sm rounded-lg p-6 border">
-              <TrendingUp className="w-12 h-12 text-primary mb-4" />
-              <h3 className="font-semibold mb-2">Résultats Mesurables</h3>
-              <p className="text-sm text-muted-foreground">Tableaux de bord intelligents avec recommandations automatiques</p>
+            
+            <div className="grid md:grid-cols-3 gap-6">
+              <div className="bg-white/70 backdrop-blur-sm rounded-xl p-6 text-center">
+                <div className="text-3xl font-bold text-primary mb-2">500+</div>
+                <div className="text-sm text-muted-foreground">Établissements accompagnés</div>
+              </div>
+              <div className="bg-white/70 backdrop-blur-sm rounded-xl p-6 text-center">
+                <div className="text-3xl font-bold text-primary mb-2">24h/24</div>
+                <div className="text-sm text-muted-foreground">Marketing actif sans interruption</div>
+              </div>
+              <div className="bg-white/70 backdrop-blur-sm rounded-xl p-6 text-center">
+                <div className="text-3xl font-bold text-primary mb-2">+40%</div>
+                <div className="text-sm text-muted-foreground">Amélioration moyenne de visibilité</div>
+              </div>
             </div>
           </div>
         </div>
