@@ -37,20 +37,20 @@ const services = [
       {
         icon: <Globe className="w-8 h-8" />,
         title: "Audit visibilité IA",
-        description: "L'IA analyse votre présence digitale et optimise automatiquement vos points faibles",
+        description: "L'IA analyse votre présence digitale, détermine vos points faibles et propose des conseils adaptés",
         cta: "Lancer l'audit IA"
       },
       {
         icon: <TrendingUp className="w-8 h-8" />,
-        title: "SEO Automatisé",
-        description: "L'IA optimise votre référencement en continu sans intervention manuelle",
-        cta: "Activer le SEO IA"
+        title: "Bilan de site web",
+        description: "Analyse complète : qualité SEO, textes, temps de chargement des pages, différences avec la concurrence",
+        cta: "Obtenir mon bilan"
       },
       {
         icon: <Smartphone className="w-8 h-8" />,
-        title: "Site Web Auto-Géré",
-        description: "Site web qui se met à jour automatiquement avec l'IA (contenus, prix, disponibilités)",
-        cta: "Créer mon site IA"
+        title: "Génération de site internet",
+        description: "Création de site web avec module de disponibilité intégré pour vos réservations",
+        cta: "Créer mon site"
       }
     ]
   },
@@ -66,9 +66,9 @@ const services = [
       },
       {
         icon: <BarChart3 className="w-8 h-8" />,
-        title: "Veille réputation IA",
-        description: "Surveillance continue et alertes automatiques avec actions correctives suggérées",
-        cta: "Lancer la veille IA"
+        title: "Veille des avis Google",
+        description: "Surveillance automatique de vos avis Google avec alertes et actions correctives suggérées",
+        cta: "Activer la veille"
       }
     ]
   },
@@ -79,14 +79,8 @@ const services = [
       {
         icon: <GraduationCap className="w-8 h-8" />,
         title: "Formation marketing digital",
-        description: "Modules courts pour maîtriser les outils digitaux du tourisme",
+        description: "Modules interactifs pour apprendre à booster sa visibilité en ligne et maîtriser les outils digitaux du tourisme",
         cta: "Commencer la formation"
-      },
-      {
-        icon: <Eye className="w-8 h-8" />,
-        title: "Webinaires spécialisés",
-        description: "Sessions live avec des experts du tourisme digital",
-        cta: "Voir les webinaires"
       }
     ]
   },
