@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import Seo from "@/components/Seo";
-import tourismProfessionalImage from "@/assets/tourism-professional-workspace.jpg";
+import tourismOfficeImage from "@/assets/tourism-office-clean.jpg";
 import { 
   QrCode, 
   Users, 
@@ -164,7 +164,7 @@ const benefits = [
   {
     icon: <Shield className="w-6 h-6" />,
     title: "Conformité RGPD garantie",
-    description: "Collecte et stockage des données en parfaite conformité avec la réglementation"
+    description: "Collecte et stockage des données en parfaite conformité avec la réglementation. Case à cocher obligatoire pour le consentement des clients."
   },
   {
     icon: <Clock className="w-6 h-6" />,
@@ -244,8 +244,8 @@ export default function CrmSimplifie() {
             
             <div className="relative">
               <img 
-                src={tourismProfessionalImage} 
-                alt="Professionnel du tourisme utilisant ApidIA CRM" 
+                src={tourismOfficeImage} 
+                alt="Bureau professionnel de tourisme avec interface CRM ApidIA" 
                 className="rounded-lg shadow-lg w-full object-cover aspect-[4/3]"
               />
               <div className="absolute -bottom-4 -left-4 bg-card border rounded-lg p-3 shadow-lg">
