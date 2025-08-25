@@ -216,8 +216,8 @@ const Catalogue = () => {
                 <div className="flex items-start gap-3">
                   <div className="w-2 h-2 bg-primary rounded-full mt-2 flex-shrink-0"></div>
                   <div>
-                    <h4 className="font-semibold mb-1">+40% de visibilité</h4>
-                    <p className="text-sm text-muted-foreground">Optimisation SEO continue</p>
+                    <h4 className="font-semibold mb-1">Gestion automatisée</h4>
+                    <p className="text-sm text-muted-foreground">Contenus et avis traités par l'IA</p>
                   </div>
                 </div>
 
