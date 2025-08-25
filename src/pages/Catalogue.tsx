@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import Seo from "@/components/Seo";
+import aiAutomationImage from "@/assets/ai-automation-tourism.jpg";
 import { 
   Eye, 
   Star, 
@@ -191,41 +192,24 @@ const Catalogue = () => {
               </p>
             </div>
             
-            <div className="bg-gradient-to-br from-primary/5 to-secondary/10 rounded-3xl p-8 border border-primary/10">
-              <div className="text-center space-y-4">
-                <Sparkles className="w-16 h-16 text-primary mx-auto" />
-                <h3 className="text-xl font-bold">Automatisation Complète</h3>
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                    <span>SEO automatique</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                    <span>Réponse aux avis</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                    <span>Contenu social</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                    <span>Mise à jour web</span>
-                  </div>
-                </div>
-              </div>
+            <div className="rounded-3xl overflow-hidden border border-primary/10">
+              <img 
+                src={aiAutomationImage} 
+                alt="Intelligence artificielle gérant automatiquement la promotion digitale d'établissements touristiques"
+                className="w-full h-full object-cover"
+              />
             </div>
           </div>
 
           {/* Objective Section */}
-          <div className="bg-gradient-to-r from-secondary/5 to-primary/5 rounded-3xl p-8 border border-secondary/10">
+          <div className="bg-white/60 backdrop-blur-sm rounded-3xl p-8 border border-border shadow-sm">
             <div className="flex items-start gap-6">
-              <div className="bg-secondary/10 p-4 rounded-2xl">
-                <TrendingUp className="w-12 h-12 text-secondary" />
+              <div className="bg-primary/10 p-4 rounded-2xl flex-shrink-0">
+                <TrendingUp className="w-12 h-12 text-primary" />
               </div>
               <div>
-                <h3 className="text-2xl font-bold mb-4 text-secondary">Notre Mission</h3>
-                <p className="text-lg text-muted-foreground leading-relaxed max-w-3xl">
+                <h3 className="text-2xl font-bold mb-4 text-foreground">Notre Mission</h3>
+                <p className="text-lg text-foreground leading-relaxed max-w-3xl">
                   <strong>Déléguer à l'IA la mission de promotion des établissements sur le web</strong> pour permettre aux 
                   Acteurs Touristiques Locaux de <strong>réinvestir ce temps dans d'autres tâches</strong> plus stratégiques 
                   pour leur activité.
