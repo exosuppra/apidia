@@ -185,42 +185,40 @@ const Catalogue = () => {
           <div className="grid lg:grid-cols-2 gap-12 items-center mb-12">
             {/* Left: Content */}
             <div className="space-y-8">
-              <div className="space-y-4 text-center">
-                <h3 className="text-2xl font-bold leading-tight">
-                  ApidIA gère de façon <span className="text-primary">quasi-autonome</span> la promotion de votre établissement
-                </h3>
-                <p className="text-xl text-muted-foreground leading-relaxed">
-                  Une fois configuré, notre IA travaille <strong>en continu</strong> pour optimiser votre visibilité sans intervention de votre part.
-                </p>
+            <div className="space-y-6 text-center">
+              <h3 className="text-2xl font-bold leading-tight">
+                ApidIA gère de façon <span className="text-primary">quasi-autonome</span> la promotion de votre établissement
+              </h3>
+              <p className="text-xl text-muted-foreground leading-relaxed">
+                Une fois configuré, notre IA travaille <strong>en continu</strong> pour optimiser votre visibilité sans intervention de votre part.
+              </p>
+              
+              <div className="grid md:grid-cols-3 gap-6 text-left">
+                <div className="flex items-start gap-3">
+                  <div className="w-2 h-2 bg-primary rounded-full mt-2 flex-shrink-0"></div>
+                  <div>
+                    <h4 className="font-semibold mb-1">Économisez 15h/semaine</h4>
+                    <p className="text-sm text-muted-foreground">Plus de gestion manuelle des réseaux sociaux</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3">
+                  <div className="w-2 h-2 bg-primary rounded-full mt-2 flex-shrink-0"></div>
+                  <div>
+                    <h4 className="font-semibold mb-1">+40% de visibilité</h4>
+                    <p className="text-sm text-muted-foreground">Optimisation SEO continue</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3">
+                  <div className="w-2 h-2 bg-primary rounded-full mt-2 flex-shrink-0"></div>
+                  <div>
+                    <h4 className="font-semibold mb-1">IA spécialisée tourisme</h4>
+                    <p className="text-sm text-muted-foreground">Contenus adaptés au secteur</p>
+                  </div>
+                </div>
               </div>
-
-              <div className="space-y-4">
-                <ul className="space-y-3 text-left">
-                  <li className="flex items-start gap-3">
-                    <div className="w-2 h-2 bg-primary rounded-full mt-2 flex-shrink-0"></div>
-                    <div>
-                      <h4 className="font-semibold mb-1">Économisez 15h/semaine</h4>
-                      <p className="text-sm text-muted-foreground">Plus de gestion manuelle des réseaux sociaux, avis clients ou référencement</p>
-                    </div>
-                  </li>
-
-                  <li className="flex items-start gap-3">
-                    <div className="w-2 h-2 bg-primary rounded-full mt-2 flex-shrink-0"></div>
-                    <div>
-                      <h4 className="font-semibold mb-1">+40% de visibilité</h4>
-                      <p className="text-sm text-muted-foreground">Optimisation SEO continue et présence renforcée sur tous les canaux</p>
-                    </div>
-                  </li>
-
-                  <li className="flex items-start gap-3">
-                    <div className="w-2 h-2 bg-primary rounded-full mt-2 flex-shrink-0"></div>
-                    <div>
-                      <h4 className="font-semibold mb-1">IA spécialisée tourisme</h4>
-                      <p className="text-sm text-muted-foreground">Contenus, stratégies et actions adaptés aux codes du secteur touristique</p>
-                    </div>
-                  </li>
-                </ul>
-              </div>
+            </div>
             </div>
 
             {/* Right: Image */}
@@ -478,7 +476,7 @@ const Catalogue = () => {
                   <div className="pt-4">
                     <div className="bg-primary/10 rounded-lg p-4">
                       <p className="text-sm font-medium text-primary">
-                        💡 Configuration en 5 minutes, puis fonctionne de manière quasi-autonome
+                        💡 Configuration en 5 minutes, puis l'IA gère tout automatiquement
                       </p>
                     </div>
                   </div>
@@ -550,14 +548,11 @@ const Catalogue = () => {
             Commencez par un diagnostic IA gratuit. En 5 minutes, notre intelligence artificielle analyse votre présence digitale et sera force de propositions pour améliorer votre business en ligne.
           </p>
           <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 mb-8 max-w-2xl mx-auto">
-            <p className="text-sm font-medium mb-2">⚡ Configuration en 5 minutes • ⏰ 15h/semaine économisées • 🤖 Gestion quasi-autonome</p>
+            <p className="text-sm font-medium">⚡ Configuration en 5 minutes • 🤖 Gestion automatisée • 📈 Résultats mesurables</p>
           </div>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button size="lg" variant="secondary" className="bg-white text-primary hover:bg-white/90" asChild>
-              <Link to="/auth/login">🚀 Activer mon IA marketing</Link>
-            </Button>
-            <Button size="lg" variant="outline" className="border-white text-white hover:bg-white hover:text-primary">
-              Se connecter
+          <div className="flex justify-center">
+            <Button size="lg" variant="secondary" className="bg-white text-primary hover:bg-white/90 font-semibold" asChild>
+              <Link to="/auth/login">🚀 Commencer maintenant</Link>
             </Button>
           </div>
         </div>
