@@ -173,18 +173,64 @@ const Catalogue = () => {
           <p className="text-xl text-muted-foreground mb-4">
             Vous êtes une entreprise locale du tourisme ou un partenaire de l'Office de Tourisme et vous souhaitez une aide pour développer votre business
           </p>
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-6 mb-8">
-            <div className="flex items-center gap-3 bg-primary/10 px-6 py-3 rounded-full border border-primary/20">
-              <Bot className="w-6 h-6 text-primary" />
-              <span className="font-semibold text-primary">IA Quasi-Autonome</span>
+          {/* Key Features Section - Apple Style */}
+          <div className="grid md:grid-cols-2 gap-8 items-center mb-8">
+            <div className="space-y-6">
+              <div className="flex items-center gap-4">
+                <div className="bg-primary/10 p-4 rounded-2xl">
+                  <Bot className="w-12 h-12 text-primary" />
+                </div>
+                <div>
+                  <h3 className="text-2xl font-bold mb-2">Intelligence Artificielle</h3>
+                  <p className="text-muted-foreground">Quasi-autonome • 24h/24</p>
+                </div>
+              </div>
+              <p className="text-lg text-muted-foreground leading-relaxed">
+                ApidIA gère de façon <strong>quasi-autonome</strong> la promotion de votre établissement sur le web. 
+                Une fois configuré, notre IA travaille 24h/24 pour optimiser votre visibilité sans intervention de votre part.
+              </p>
             </div>
-            <div className="flex items-center gap-3 bg-secondary/10 px-6 py-3 rounded-full border border-secondary/20">
-              <Clock className="w-6 h-6 text-secondary" />
-              <span className="font-semibold text-secondary">24h/24 Actif</span>
+            
+            <div className="bg-gradient-to-br from-primary/5 to-secondary/10 rounded-3xl p-8 border border-primary/10">
+              <div className="text-center space-y-4">
+                <Sparkles className="w-16 h-16 text-primary mx-auto" />
+                <h3 className="text-xl font-bold">Automatisation Complète</h3>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    <span>SEO automatique</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    <span>Réponse aux avis</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    <span>Contenu social</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    <span>Mise à jour web</span>
+                  </div>
+                </div>
+              </div>
             </div>
-            <div className="flex items-center gap-3 bg-green-500/10 px-6 py-3 rounded-full border border-green-500/20">
-              <Zap className="w-6 h-6 text-green-600" />
-              <span className="font-semibold text-green-600">Plus de Temps Libre</span>
+          </div>
+
+          {/* Objective Section */}
+          <div className="bg-gradient-to-r from-secondary/5 to-primary/5 rounded-3xl p-8 border border-secondary/10">
+            <div className="flex items-start gap-6">
+              <div className="bg-secondary/10 p-4 rounded-2xl">
+                <TrendingUp className="w-12 h-12 text-secondary" />
+              </div>
+              <div>
+                <h3 className="text-2xl font-bold mb-4 text-secondary">Notre Mission</h3>
+                <p className="text-lg text-muted-foreground leading-relaxed max-w-3xl">
+                  <strong>Déléguer à l'IA la mission de promotion des établissements sur le web</strong> pour permettre aux 
+                  Acteurs Touristiques Locaux de <strong>réinvestir ce temps dans d'autres tâches</strong> plus stratégiques 
+                  pour leur activité.
+                </p>
+              </div>
             </div>
           </div>
           <div className="grid md:grid-cols-3 gap-6 text-left">
