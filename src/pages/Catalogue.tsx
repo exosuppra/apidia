@@ -237,7 +237,7 @@ const Catalogue = () => {
                   <MessageCircle className="w-6 h-6 text-primary" />
                 </div>
                 <div>
-                  <h3 className="font-semibold mb-2">Gestion automatique des avis</h3>
+                  <h3 className="font-semibold mb-2">Proposition de réponse automatique aux avis</h3>
                   <p className="text-sm text-muted-foreground">Réponses personnalisées et professionnelles à tous vos avis clients, générées par l'IA selon votre ton.</p>
                 </div>
               </div>
