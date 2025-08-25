@@ -176,7 +176,7 @@ const Catalogue = () => {
           <h2 className="text-4xl md:text-5xl font-bold mb-6 text-foreground">
             Catalogue de Services <span className="text-primary">IA</span>
           </h2>
-          <p className="text-xl text-muted-foreground mb-4">
+          <p className="text-xl text-muted-foreground mb-8">
             Vous êtes une entreprise locale du tourisme ou un partenaire de l'Office de Tourisme et vous souhaitez une aide pour développer votre business
           </p>
           
