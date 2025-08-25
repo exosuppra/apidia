@@ -550,7 +550,7 @@ const Catalogue = () => {
             Commencez par un diagnostic IA gratuit. En 5 minutes, notre intelligence artificielle analyse votre présence digitale et sera force de propositions pour améliorer votre business en ligne.
           </p>
           <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 mb-8 max-w-2xl mx-auto">
-            <p className="text-sm font-medium mb-2">⚡ Configuration en 5 minutes • 🤖 Gestion quasi-autonome</p>
+            <p className="text-sm font-medium mb-2">⚡ Configuration en 5 minutes • ⏰ 15h/semaine économisées</p>
           </div>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button size="lg" variant="secondary" className="bg-white text-primary hover:bg-white/90" asChild>
