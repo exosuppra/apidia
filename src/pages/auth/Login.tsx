@@ -89,7 +89,30 @@ const onSubmit = async (values: z.infer<typeof idLoginSchema>) => {
     if (result.error) throw result.error;
     toast({ title: "Vérifiez votre email", description: "Un lien vous a été envoyé pour créer votre code." });
   } catch (err: any) {
-    toast({ title: "Connexion refusée", description: err?.message || "Une erreur est survenue.", variant: "destructive" });
+    console.error('Login error:', err);
+    
+    // Message d'erreur user-friendly pour tous les cas d'échec d'authentification
+    let userMessage = "Une erreur est survenue.";
+    
+    if (mode === "standard") {
+      // Pour la connexion standard, toujours dire que les identifiants sont incorrects
+      userMessage = "Identifiant, email ou code incorrect.";
+    } else {
+      // Pour la première connexion, message selon le type d'erreur
+      if (err?.message?.includes("non trouvés") || err?.message?.includes("non autorisés") || err?.message?.includes("Identifiants invalides")) {
+        userMessage = "Identifiant ou email incorrect.";
+      } else if (err?.message?.includes("Timeout")) {
+        userMessage = "La requête a pris trop de temps. Veuillez réessayer.";
+      } else {
+        userMessage = "Erreur lors de l'envoi du lien. Veuillez réessayer.";
+      }
+    }
+    
+    toast({ 
+      title: "Connexion refusée", 
+      description: userMessage, 
+      variant: "destructive" 
+    });
   } finally {
     setLoading(false);
   }
