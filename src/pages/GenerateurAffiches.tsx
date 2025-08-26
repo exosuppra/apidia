@@ -98,11 +98,11 @@ export default function GenerateurAffiches() {
     customText?: string
   ): Promise<string> => {
     return new Promise((resolve, reject) => {
-      // Définir les dimensions selon le format
+      // Définir les dimensions selon le format (plus grandes pour meilleure qualité)
       const formatDimensions = {
-        a4: { width: 595, height: 842 },
-        a3: { width: 842, height: 595 }, 
-        square: { width: 800, height: 800 },
+        a4: { width: 1200, height: 1697 },
+        a3: { width: 1697, height: 1200 }, 
+        square: { width: 1600, height: 1600 },
         web: { width: 1080, height: 1350 }
       };
 
@@ -125,7 +125,7 @@ export default function GenerateurAffiches() {
       
       img.onload = () => {
         try {
-          // Dessiner l'image de fond avec effet de zoom/crop centré
+          // Dessiner l'image de fond avec crop intelligent
           const imgAspect = img.width / img.height;
           const canvasAspect = width / height;
           
@@ -143,66 +143,97 @@ export default function GenerateurAffiches() {
           
           ctx.drawImage(img, offsetX, offsetY, drawWidth, drawHeight);
 
-          // Configuration du style selon le choix
+          // Configuration des styles améliorés
           const styleConfig = {
             moderne: {
-              gradientOverlay: ['rgba(59, 130, 246, 0.85)', 'rgba(0, 0, 0, 0.7)'],
-              titleFont: `900 ${Math.floor(width * 0.08)}px 'Arial Black', sans-serif`,
-              subtitleFont: `600 ${Math.floor(width * 0.035)}px 'Arial', sans-serif`,
-              detailFont: `400 ${Math.floor(width * 0.028)}px 'Arial', sans-serif`,
+              primaryGradient: { 
+                start: 'rgba(15, 23, 42, 0.95)', 
+                end: 'rgba(30, 64, 175, 0.85)' 
+              },
+              accentGradient: {
+                start: 'rgba(59, 130, 246, 1)',
+                end: 'rgba(147, 197, 253, 1)'
+              },
+              titleFont: `900 ${Math.floor(width * 0.065)}px 'Arial Black', sans-serif`,
+              subtitleFont: `600 ${Math.floor(width * 0.03)}px 'Arial', sans-serif`,
+              detailFont: `400 ${Math.floor(width * 0.025)}px 'Arial', sans-serif`,
               textColor: '#ffffff',
-              accentColor: '#60a5fa',
-              shadowColor: 'rgba(0, 0, 0, 0.8)'
+              shadowIntensity: 0.9
             },
             vintage: {
-              gradientOverlay: ['rgba(212, 165, 116, 0.8)', 'rgba(101, 67, 33, 0.9)'],
-              titleFont: `700 ${Math.floor(width * 0.07)}px 'Georgia', serif`,
-              subtitleFont: `600 ${Math.floor(width * 0.032)}px 'Georgia', serif`,
-              detailFont: `400 ${Math.floor(width * 0.026)}px 'Georgia', serif`,
-              textColor: '#fff8e7',
-              accentColor: '#f4d03f',
-              shadowColor: 'rgba(101, 67, 33, 0.9)'
+              primaryGradient: { 
+                start: 'rgba(92, 51, 23, 0.9)', 
+                end: 'rgba(180, 83, 9, 0.8)' 
+              },
+              accentGradient: {
+                start: 'rgba(251, 191, 36, 1)',
+                end: 'rgba(254, 240, 138, 1)'
+              },
+              titleFont: `700 ${Math.floor(width * 0.055)}px 'Georgia', serif`,
+              subtitleFont: `500 ${Math.floor(width * 0.028)}px 'Georgia', serif`,
+              detailFont: `400 ${Math.floor(width * 0.023)}px 'Georgia', serif`,
+              textColor: '#fef7cd',
+              shadowIntensity: 0.8
             },
             festif: {
-              gradientOverlay: ['rgba(255, 107, 53, 0.85)', 'rgba(236, 72, 153, 0.8)'],
-              titleFont: `900 ${Math.floor(width * 0.09)}px 'Impact', sans-serif`,
-              subtitleFont: `700 ${Math.floor(width * 0.04)}px 'Arial Black', sans-serif`,
-              detailFont: `600 ${Math.floor(width * 0.03)}px 'Arial', sans-serif`,
+              primaryGradient: { 
+                start: 'rgba(190, 24, 93, 0.9)', 
+                end: 'rgba(245, 101, 101, 0.85)' 
+              },
+              accentGradient: {
+                start: 'rgba(251, 191, 36, 1)',
+                end: 'rgba(252, 211, 77, 1)'
+              },
+              titleFont: `900 ${Math.floor(width * 0.07)}px 'Impact', sans-serif`,
+              subtitleFont: `700 ${Math.floor(width * 0.032)}px 'Arial Black', sans-serif`,
+              detailFont: `600 ${Math.floor(width * 0.027)}px 'Arial', sans-serif`,
               textColor: '#ffffff',
-              accentColor: '#fbbf24',
-              shadowColor: 'rgba(220, 38, 127, 0.8)'
+              shadowIntensity: 1.0
             },
             elegant: {
-              gradientOverlay: ['rgba(139, 115, 85, 0.75)', 'rgba(0, 0, 0, 0.85)'],
-              titleFont: `300 ${Math.floor(width * 0.065)}px 'Playfair Display', serif`,
-              subtitleFont: `400 ${Math.floor(width * 0.03)}px 'Crimson Text', serif`,
-              detailFont: `300 ${Math.floor(width * 0.025)}px 'Crimson Text', serif`,
+              primaryGradient: { 
+                start: 'rgba(17, 24, 39, 0.92)', 
+                end: 'rgba(75, 85, 99, 0.85)' 
+              },
+              accentGradient: {
+                start: 'rgba(212, 175, 55, 1)',
+                end: 'rgba(245, 208, 254, 0.8)'
+              },
+              titleFont: `300 ${Math.floor(width * 0.055)}px 'serif'`,
+              subtitleFont: `400 ${Math.floor(width * 0.025)}px 'serif'`,
+              detailFont: `300 ${Math.floor(width * 0.022)}px 'serif'`,
               textColor: '#f8fafc',
-              accentColor: '#d4af37',
-              shadowColor: 'rgba(0, 0, 0, 0.9)'
+              shadowIntensity: 0.7
             }
           };
 
           const currentStyle = styleConfig[style as keyof typeof styleConfig] || styleConfig.moderne;
 
-          // Créer un gradient overlay moderne
-          const gradient = ctx.createLinearGradient(0, 0, 0, height);
-          gradient.addColorStop(0, currentStyle.gradientOverlay[0]);
-          gradient.addColorStop(1, currentStyle.gradientOverlay[1]);
+          // Overlay gradient sophistiqué
+          const overlayGradient = ctx.createLinearGradient(0, 0, 0, height);
+          overlayGradient.addColorStop(0, currentStyle.primaryGradient.start);
+          overlayGradient.addColorStop(1, currentStyle.primaryGradient.end);
           
-          ctx.fillStyle = gradient;
+          ctx.fillStyle = overlayGradient;
           ctx.fillRect(0, 0, width, height);
 
-          // Fonction pour dessiner du texte avec ombre élégante
-          const drawStyledText = (text: string, x: number, y: number, font: string, align: CanvasTextAlign = 'center') => {
+          // Fonction pour dessiner du texte avec effets avancés
+          const drawAdvancedText = (
+            text: string, 
+            x: number, 
+            y: number, 
+            font: string, 
+            align: CanvasTextAlign = 'center',
+            isTitle: boolean = false
+          ) => {
             ctx.font = font;
             ctx.textAlign = align;
             
-            // Ombre portée élégante
-            ctx.shadowColor = currentStyle.shadowColor;
-            ctx.shadowBlur = Math.floor(width * 0.01);
-            ctx.shadowOffsetX = Math.floor(width * 0.003);
-            ctx.shadowOffsetY = Math.floor(width * 0.003);
+            // Ombre portée douce et élégante
+            ctx.shadowColor = `rgba(0, 0, 0, ${currentStyle.shadowIntensity})`;
+            ctx.shadowBlur = isTitle ? width * 0.015 : width * 0.008;
+            ctx.shadowOffsetX = width * 0.002;
+            ctx.shadowOffsetY = width * 0.002;
             
             // Texte principal
             ctx.fillStyle = currentStyle.textColor;
@@ -215,90 +246,131 @@ export default function GenerateurAffiches() {
             ctx.shadowOffsetY = 0;
           };
 
-          // Zone de contenu avec marge élégante
-          const contentMargin = width * 0.08;
+          // Zone de contenu principal
+          const margin = width * 0.08;
           const centerX = width / 2;
-          
-          // Position de départ pour le contenu principal (plus bas)
-          let currentY = height * 0.4;
+          let currentY = height * 0.25;
 
-          // Créer un encadré semi-transparent pour le contenu
-          const boxY = currentY - height * 0.05;
-          const boxHeight = height * 0.5;
+          // Badge élégant pour le type d'événement
+          const badgeHeight = height * 0.045;
+          const badgeY = height * 0.15;
+          const badgePadding = width * 0.04;
           
-          ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
-          ctx.fillRect(contentMargin, boxY, width - (contentMargin * 2), boxHeight);
-          
-          // Bordure accent élégante
-          ctx.strokeStyle = currentStyle.accentColor;
-          ctx.lineWidth = Math.floor(width * 0.008);
-          ctx.strokeRect(contentMargin, boxY, width - (contentMargin * 2), boxHeight);
-
-          // Badge du type d'événement (en haut)
-          const badgeY = height * 0.12;
-          const badgeWidth = width * 0.4;
-          const badgeHeight = height * 0.06;
+          // Mesurer la largeur du texte du badge
+          ctx.font = currentStyle.subtitleFont;
+          const badgeTextMetrics = ctx.measureText(fiche.type.toUpperCase());
+          const badgeWidth = badgeTextMetrics.width + badgePadding * 2;
           const badgeX = centerX - badgeWidth / 2;
           
-          ctx.fillStyle = currentStyle.accentColor;
-          ctx.fillRect(badgeX, badgeY, badgeWidth, badgeHeight);
+          // Gradient pour le badge
+          const badgeGradient = ctx.createLinearGradient(badgeX, badgeY, badgeX + badgeWidth, badgeY + badgeHeight);
+          badgeGradient.addColorStop(0, currentStyle.accentGradient.start);
+          badgeGradient.addColorStop(1, currentStyle.accentGradient.end);
           
+          // Dessiner le badge avec coins arrondis
+          ctx.fillStyle = badgeGradient;
+          ctx.beginPath();
+          ctx.roundRect(badgeX, badgeY, badgeWidth, badgeHeight, badgeHeight / 4);
+          ctx.fill();
+          
+          // Texte du badge
           ctx.font = currentStyle.subtitleFont;
           ctx.textAlign = 'center';
-          ctx.fillStyle = '#000000';
+          ctx.fillStyle = style === 'vintage' ? '#000000' : '#000000';
           ctx.fillText(fiche.type.toUpperCase(), centerX, badgeY + badgeHeight * 0.65);
 
-          // Titre principal (centré dans l'encadré)
-          currentY += height * 0.08;
-          const titleLines = wrapText(ctx, fiche.title.toUpperCase(), width - (contentMargin * 4), currentStyle.titleFont);
+          // Titre principal avec découpe intelligente
+          const maxTitleWidth = width - margin * 2;
+          const titleLines = wrapText(ctx, fiche.title.toUpperCase(), maxTitleWidth, currentStyle.titleFont);
+          
+          // Espacement intelligent entre les lignes du titre
+          const titleLineHeight = height * 0.08;
+          const totalTitleHeight = titleLines.length * titleLineHeight;
+          currentY = height * 0.35;
           
           titleLines.forEach((line, index) => {
-            drawStyledText(line, centerX, currentY + (index * height * 0.09), currentStyle.titleFont);
+            drawAdvancedText(line, centerX, currentY + (index * titleLineHeight), currentStyle.titleFont, 'center', true);
           });
           
-          currentY += titleLines.length * height * 0.09 + height * 0.06;
+          currentY += totalTitleHeight + height * 0.06;
 
-          // Séparateur décoratif
-          ctx.strokeStyle = currentStyle.accentColor;
-          ctx.lineWidth = Math.floor(width * 0.004);
+          // Ligne décorative élégante
+          const lineY = currentY;
+          const lineLength = width * 0.3;
+          const lineGradient = ctx.createLinearGradient(centerX - lineLength/2, lineY, centerX + lineLength/2, lineY);
+          lineGradient.addColorStop(0, 'transparent');
+          lineGradient.addColorStop(0.5, currentStyle.accentGradient.start);
+          lineGradient.addColorStop(1, 'transparent');
+          
+          ctx.strokeStyle = lineGradient;
+          ctx.lineWidth = height * 0.003;
           ctx.beginPath();
-          ctx.moveTo(centerX - width * 0.15, currentY);
-          ctx.lineTo(centerX + width * 0.15, currentY);
+          ctx.moveTo(centerX - lineLength/2, lineY);
+          ctx.lineTo(centerX + lineLength/2, lineY);
           ctx.stroke();
           
-          currentY += height * 0.05;
+          currentY += height * 0.06;
 
-          // Dates avec style amélioré
-          const dateStart = new Date(fiche.dateDebut).toLocaleDateString('fr-FR', { 
+          // Informations de date avec formatage élégant
+          const dateStart = new Date(fiche.dateDebut);
+          const dateEnd = new Date(fiche.dateFin);
+          
+          let dateText = dateStart.toLocaleDateString('fr-FR', { 
             weekday: 'long',
             day: 'numeric', 
             month: 'long', 
             year: 'numeric' 
           });
-          const dateEnd = fiche.dateDebut !== fiche.dateFin 
-            ? ` au ${new Date(fiche.dateFin).toLocaleDateString('fr-FR', { 
-                weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' 
-              })}`
-            : '';
           
-          const dateText = `${dateStart}${dateEnd}`;
-          drawStyledText(dateText, centerX, currentY, currentStyle.subtitleFont);
-          currentY += height * 0.06;
+          if (fiche.dateDebut !== fiche.dateFin) {
+            const endDateText = dateEnd.toLocaleDateString('fr-FR', { 
+              weekday: 'long', 
+              day: 'numeric', 
+              month: 'long', 
+              year: dateEnd.getFullYear() !== dateStart.getFullYear() ? 'numeric' : undefined
+            });
+            dateText += ` - ${endDateText}`;
+          }
+          
+          drawAdvancedText(dateText, centerX, currentY, currentStyle.subtitleFont);
+          currentY += height * 0.05;
 
-          // Lieu avec icône stylisée
-          drawStyledText(fiche.lieu, centerX, currentY, currentStyle.detailFont);
-          currentY += height * 0.08;
+          // Lieu avec style raffiné
+          const locationLines = wrapText(ctx, fiche.lieu, width - margin * 3, currentStyle.detailFont);
+          locationLines.forEach((line, index) => {
+            drawAdvancedText(line, centerX, currentY + (index * height * 0.04), currentStyle.detailFont);
+          });
+          currentY += locationLines.length * height * 0.04 + height * 0.04;
 
-          // Texte personnalisé si présent
+          // Texte personnalisé avec mise en forme
           if (customText && customText.trim()) {
-            const customLines = wrapText(ctx, customText.trim(), width - (contentMargin * 4), currentStyle.detailFont);
+            currentY += height * 0.03;
+            const customLines = wrapText(ctx, customText.trim(), width - margin * 3, currentStyle.detailFont);
             
             customLines.forEach((line, index) => {
-              drawStyledText(line, centerX, currentY + (index * height * 0.05), currentStyle.detailFont);
+              drawAdvancedText(line, centerX, currentY + (index * height * 0.035), currentStyle.detailFont);
             });
           }
 
-          // Convertir le canvas en image haute qualité
+          // Élément décoratif en bas (optionnel selon l'espace)
+          if (currentY < height * 0.85) {
+            const decorY = height * 0.9;
+            ctx.strokeStyle = currentStyle.accentGradient.start;
+            ctx.lineWidth = height * 0.002;
+            ctx.globalAlpha = 0.6;
+            
+            // Motif géométrique simple
+            for (let i = 0; i < 3; i++) {
+              const circleRadius = height * 0.015 * (1 + i * 0.5);
+              ctx.beginPath();
+              ctx.arc(centerX, decorY, circleRadius, 0, Math.PI * 2);
+              ctx.stroke();
+            }
+            
+            ctx.globalAlpha = 1;
+          }
+
+          // Convertir en image haute qualité
           const dataUrl = canvas.toDataURL('image/png', 0.95);
           resolve(dataUrl);
           
@@ -315,23 +387,29 @@ export default function GenerateurAffiches() {
     });
   };
 
-  // Fonction utilitaire pour découper le texte en lignes
+  // Fonction améliorée pour découper le texte
   const wrapText = (ctx: CanvasRenderingContext2D, text: string, maxWidth: number, font: string): string[] => {
     ctx.font = font;
     const words = text.split(' ');
     const lines: string[] = [];
+    
+    if (words.length === 0) return lines;
+    
     let currentLine = words[0];
 
     for (let i = 1; i < words.length; i++) {
       const word = words[i];
-      const width = ctx.measureText(currentLine + " " + word).width;
-      if (width < maxWidth) {
-        currentLine += " " + word;
-      } else {
+      const testLine = currentLine + " " + word;
+      const metrics = ctx.measureText(testLine);
+      
+      if (metrics.width > maxWidth) {
         lines.push(currentLine);
         currentLine = word;
+      } else {
+        currentLine = testLine;
       }
     }
+    
     lines.push(currentLine);
     return lines;
   };
