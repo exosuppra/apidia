@@ -96,7 +96,9 @@ export default function BusinessDashboard() {
   const handleGoogleLogin = async () => {
     try {
       setGoogleLoading(true);
-      const { error } = await supabase.auth.signInWithOAuth({
+      
+      // Ouvrir la popup Google OAuth sans déconnecter l'utilisateur ApidIA
+      const { error } = await supabase.auth.linkIdentity({
         provider: 'google',
         options: {
           redirectTo: `${window.location.origin}/avis`,
@@ -114,11 +116,17 @@ export default function BusinessDashboard() {
           description: error.message,
           variant: "destructive",
         });
+      } else {
+        toast({
+          title: "Connexion Google",
+          description: "Connexion Google My Business en cours...",
+        });
       }
     } catch (error) {
+      console.error('Google link error:', error);
       toast({
         title: "Erreur",
-        description: "Impossible de se connecter avec Google",
+        description: "Impossible de connecter Google My Business",
         variant: "destructive",
       });
     } finally {
@@ -162,15 +170,15 @@ export default function BusinessDashboard() {
                 <Building2 className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
                 <h3 className="text-lg font-medium mb-2">Aucun établissement trouvé</h3>
                 <p className="text-muted-foreground mb-4">
-                  Pour accéder à vos établissements Google My Business, vous devez vous déconnecter puis vous reconnecter avec Google OAuth.
+                  Connectez votre compte Google My Business pour accéder à vos établissements tout en restant connecté à ApidIA.
                 </p>
                 <div className="space-y-2">
-                  <p className="text-sm text-orange-600 bg-orange-50 p-2 rounded">
-                    ⚠️ Vous êtes connecté via email/password. Déconnectez-vous et reconnectez-vous avec Google pour accéder à vos établissements.
+                  <p className="text-sm text-blue-600 bg-blue-50 p-2 rounded">
+                    💼 Connectez votre compte Google My Business pour accéder à vos établissements.
                   </p>
                   <div className="flex gap-3 justify-center">
                     <Button onClick={handleGoogleLogin} disabled={googleLoading}>
-                      {googleLoading ? "Connexion..." : "Se connecter avec Google"}
+                      {googleLoading ? "Connexion..." : "Connecter Google My Business"}
                     </Button>
                     <Button variant="outline" onClick={loadBusinesses}>Actualiser</Button>
                   </div>
