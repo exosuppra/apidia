@@ -113,9 +113,21 @@ export default function GenerateurAffiches() {
   };
 
   const handleDownload = () => {
-    if (generatedImage) {
-      // Simulation du téléchargement
-      toast.success("Téléchargement de l'affiche en cours...");
+    if (generatedImage && selectedFiche) {
+      try {
+        // Créer un élément a temporaire pour le téléchargement
+        const link = document.createElement('a');
+        link.href = generatedImage;
+        link.download = `affiche-${selectedFiche.title.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase()}.png`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        toast.success("Affiche téléchargée avec succès !");
+      } catch (error) {
+        console.error("Erreur lors du téléchargement:", error);
+        toast.error("Erreur lors du téléchargement de l'affiche");
+      }
     }
   };
 
