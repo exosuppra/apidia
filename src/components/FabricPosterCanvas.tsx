@@ -181,42 +181,57 @@ export const FabricPosterCanvas = ({ posterData, selectedStyle, customText, onGe
 
   // Initialize Fabric Canvas
   useEffect(() => {
-    if (!canvasRef.current) return;
+    if (!canvasRef.current || fabricCanvas) return;
 
-    // Small delay to ensure DOM is ready
+    console.log('Initializing Fabric Canvas...');
+    
+    const canvas = new FabricCanvas(canvasRef.current, {
+      width: 800,
+      height: (800 * currentFormat.height) / currentFormat.width,
+      backgroundColor: "#f8fafc",
+      preserveObjectStacking: true,
+    });
+
+    setFabricCanvas(canvas);
+    
+    // Save initial state after canvas is fully ready
     const timer = setTimeout(() => {
-      const canvas = new FabricCanvas(canvasRef.current!, {
-        width: 800,
-        height: (800 * currentFormat.height) / currentFormat.width,
-        backgroundColor: "#f8fafc",
-        preserveObjectStacking: true,
-      });
-
-      setFabricCanvas(canvas);
-      
-      // Save initial state after canvas is fully ready
-      setTimeout(() => {
+      if (canvas) {
         saveToHistory(canvas);
-      }, 100);
-    }, 100);
+      }
+    }, 200);
 
     return () => {
       clearTimeout(timer);
+    };
+  }, [currentFormat.width, currentFormat.height]);
+
+  // Cleanup canvas on unmount
+  useEffect(() => {
+    return () => {
       if (fabricCanvas) {
+        console.log('Disposing Fabric Canvas...');
         fabricCanvas.dispose();
+        setFabricCanvas(null);
       }
     };
-  }, [currentFormat]);
+  }, []);
 
   // Save canvas state to history
   const saveToHistory = useCallback((canvas: FabricCanvas) => {
-    const state = JSON.stringify(canvas.toJSON());
-    setHistory(prev => {
-      const newHistory = prev.slice(0, historyIndex + 1);
-      newHistory.push(state);
-      return newHistory.slice(-20); // Keep last 20 states
-    });
-    setHistoryIndex(prev => Math.min(prev + 1, 19));
+    if (!canvas || !canvas.toJSON) return;
+    
+    try {
+      const state = JSON.stringify(canvas.toJSON());
+      setHistory(prev => {
+        const newHistory = prev.slice(0, historyIndex + 1);
+        newHistory.push(state);
+        return newHistory.slice(-20); // Keep last 20 states
+      });
+      setHistoryIndex(prev => Math.min(prev + 1, 19));
+    } catch (error) {
+      console.warn('Failed to save history:', error);
+    }
   }, [historyIndex]);
 
   // Undo/Redo functionality
