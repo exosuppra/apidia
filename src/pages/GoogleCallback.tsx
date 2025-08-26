@@ -6,7 +6,6 @@ export default function GoogleCallback() {
 
   useEffect(() => {
     const error = searchParams.get('error');
-    const code = searchParams.get('code');
     
     if (error) {
       // Envoyer l'erreur au parent
@@ -20,30 +19,45 @@ export default function GoogleCallback() {
       return;
     }
 
-    if (code) {
-      // Pour récupérer le token, on devrait normalement faire un appel à l'API Google
-      // Mais ici on va essayer une approche différente via Supabase
-      const fragment = window.location.hash.substring(1);
-      const params = new URLSearchParams(fragment);
-      const accessToken = params.get('access_token');
-      const refreshToken = params.get('refresh_token');
-      
-      if (accessToken) {
-        // Envoyer le token au parent
-        if (window.opener) {
-          window.opener.postMessage({
-            type: 'GOOGLE_AUTH_SUCCESS',
-            token: accessToken,
-            refreshToken: refreshToken
-          }, window.location.origin);
-        }
-        window.close();
-        return;
+    // Vérifier d'abord le hash fragment pour les tokens Supabase
+    const fragment = window.location.hash.substring(1);
+    const params = new URLSearchParams(fragment);
+    const accessToken = params.get('access_token');
+    const refreshToken = params.get('refresh_token');
+    
+    if (accessToken) {
+      console.log('✅ Token Google trouvé, fermeture de la popup');
+      // Envoyer le token au parent
+      if (window.opener) {
+        window.opener.postMessage({
+          type: 'GOOGLE_AUTH_SUCCESS',
+          token: accessToken,
+          refreshToken: refreshToken
+        }, window.location.origin);
       }
+      // Fermer immédiatement la popup
+      setTimeout(() => window.close(), 100);
+      return;
     }
 
-    // Si aucun code ni token, attendre un peu puis fermer
+    // Vérifier aussi les query params au cas où
+    const code = searchParams.get('code');
+    if (code) {
+      console.log('✅ Code OAuth trouvé, fermeture de la popup');
+      if (window.opener) {
+        window.opener.postMessage({
+          type: 'GOOGLE_AUTH_SUCCESS',
+          token: code,
+          refreshToken: null
+        }, window.location.origin);
+      }
+      setTimeout(() => window.close(), 100);
+      return;
+    }
+
+    // Si aucun token, attendre un peu puis fermer
     setTimeout(() => {
+      console.log('❌ Aucun token trouvé, fermeture de la popup');
       if (window.opener) {
         window.opener.postMessage({
           type: 'GOOGLE_AUTH_ERROR',
