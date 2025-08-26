@@ -15,6 +15,8 @@ serve(async (req) => {
 
   try {
     const authHeader = req.headers.get('authorization');
+    console.log('🔍 Authorization header:', authHeader ? 'PRÉSENT' : 'ABSENT');
+    
     if (!authHeader) {
       throw new Error('No authorization header');
     }
@@ -25,13 +27,28 @@ serve(async (req) => {
       { global: { headers: { Authorization: authHeader } } }
     );
 
+    console.log('🔍 Supabase client créé, tentative de récupération de l\'utilisateur...');
+
     // Get the current user to verify authentication
     const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
+    
+    console.log('🔍 Résultat getUser:', {
+      user: user?.id || 'AUCUN',
+      error: userError?.message || 'AUCUNE'
+    });
+    
     if (userError || !user) {
+      console.error('❌ Erreur d\'authentification:', userError);
       throw new Error('User not authenticated');
     }
 
     const { googleToken, refreshToken } = await req.json();
+    
+    console.log('🔍 Données reçues:', {
+      hasGoogleToken: !!googleToken,
+      hasRefreshToken: !!refreshToken,
+      tokenLength: googleToken?.length || 0
+    });
     
     if (!googleToken) {
       throw new Error('Google token is required');
