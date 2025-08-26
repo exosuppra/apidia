@@ -98,7 +98,7 @@ export default function GenerateurAffiches() {
     customText?: string
   ): Promise<string> => {
     return new Promise((resolve, reject) => {
-      // Définir les dimensions selon le format (plus grandes pour meilleure qualité)
+      // Dimensions haute qualité
       const formatDimensions = {
         a4: { width: 1200, height: 1697 },
         a3: { width: 1697, height: 1200 }, 
@@ -108,7 +108,6 @@ export default function GenerateurAffiches() {
 
       const { width, height } = formatDimensions[format as keyof typeof formatDimensions] || formatDimensions.a4;
 
-      // Créer le canvas
       const canvas = document.createElement('canvas');
       canvas.width = width;
       canvas.height = height;
@@ -119,7 +118,6 @@ export default function GenerateurAffiches() {
         return;
       }
 
-      // Charger l'image de fond
       const img = new Image();
       img.crossOrigin = 'anonymous';
       
@@ -143,82 +141,124 @@ export default function GenerateurAffiches() {
           
           ctx.drawImage(img, offsetX, offsetY, drawWidth, drawHeight);
 
-          // Configuration des styles améliorés
+          // Analyser la luminosité moyenne de l'image pour adapter l'overlay
+          const imageData = ctx.getImageData(0, 0, width, height);
+          let totalBrightness = 0;
+          let pixelCount = 0;
+          
+          // Échantillonner tous les 10 pixels pour performance
+          for (let i = 0; i < imageData.data.length; i += 40) {
+            const r = imageData.data[i];
+            const g = imageData.data[i + 1];
+            const b = imageData.data[i + 2];
+            totalBrightness += (r + g + b) / 3;
+            pixelCount++;
+          }
+          
+          const avgBrightness = totalBrightness / pixelCount;
+          const isLowQualityOrBadFormat = img.width < 800 || img.height < 600;
+          
+          // Configuration des styles selon la qualité d'image
           const styleConfig = {
             moderne: {
-              primaryGradient: { 
-                start: 'rgba(15, 23, 42, 0.95)', 
-                end: 'rgba(30, 64, 175, 0.85)' 
+              highQuality: {
+                overlay: avgBrightness > 150 ? 'rgba(15, 23, 42, 0.75)' : 'rgba(255, 255, 255, 0.15)',
+                textShadow: avgBrightness > 150 ? 'rgba(0, 0, 0, 0.9)' : 'rgba(0, 0, 0, 0.7)',
+                accentColor: '#3b82f6',
+                secondaryColor: '#1e40af'
               },
-              accentGradient: {
-                start: 'rgba(59, 130, 246, 1)',
-                end: 'rgba(147, 197, 253, 1)'
+              lowQuality: {
+                overlay: ['rgba(15, 23, 42, 0.95)', 'rgba(30, 64, 175, 0.85)'],
+                textShadow: 'rgba(0, 0, 0, 0.9)',
+                accentColor: '#60a5fa',
+                secondaryColor: '#3b82f6'
               },
               titleFont: `900 ${Math.floor(width * 0.065)}px 'Arial Black', sans-serif`,
               subtitleFont: `600 ${Math.floor(width * 0.03)}px 'Arial', sans-serif`,
               detailFont: `400 ${Math.floor(width * 0.025)}px 'Arial', sans-serif`,
-              textColor: '#ffffff',
-              shadowIntensity: 0.9
+              textColor: '#ffffff'
             },
             vintage: {
-              primaryGradient: { 
-                start: 'rgba(92, 51, 23, 0.9)', 
-                end: 'rgba(180, 83, 9, 0.8)' 
+              highQuality: {
+                overlay: avgBrightness > 140 ? 'rgba(92, 51, 23, 0.7)' : 'rgba(251, 191, 36, 0.2)',
+                textShadow: avgBrightness > 140 ? 'rgba(0, 0, 0, 0.8)' : 'rgba(92, 51, 23, 0.8)',
+                accentColor: '#d97706',
+                secondaryColor: '#92400e'
               },
-              accentGradient: {
-                start: 'rgba(251, 191, 36, 1)',
-                end: 'rgba(254, 240, 138, 1)'
+              lowQuality: {
+                overlay: ['rgba(92, 51, 23, 0.9)', 'rgba(180, 83, 9, 0.8)'],
+                textShadow: 'rgba(0, 0, 0, 0.8)',
+                accentColor: '#fbbf24',
+                secondaryColor: '#d97706'
               },
               titleFont: `700 ${Math.floor(width * 0.055)}px 'Georgia', serif`,
               subtitleFont: `500 ${Math.floor(width * 0.028)}px 'Georgia', serif`,
               detailFont: `400 ${Math.floor(width * 0.023)}px 'Georgia', serif`,
-              textColor: '#fef7cd',
-              shadowIntensity: 0.8
+              textColor: '#fef7cd'
             },
             festif: {
-              primaryGradient: { 
-                start: 'rgba(190, 24, 93, 0.9)', 
-                end: 'rgba(245, 101, 101, 0.85)' 
+              highQuality: {
+                overlay: avgBrightness > 160 ? 'rgba(190, 24, 93, 0.8)' : 'rgba(251, 191, 36, 0.25)',
+                textShadow: avgBrightness > 160 ? 'rgba(0, 0, 0, 0.9)' : 'rgba(190, 24, 93, 0.8)',
+                accentColor: '#ec4899',
+                secondaryColor: '#be185d'
               },
-              accentGradient: {
-                start: 'rgba(251, 191, 36, 1)',
-                end: 'rgba(252, 211, 77, 1)'
+              lowQuality: {
+                overlay: ['rgba(190, 24, 93, 0.9)', 'rgba(245, 101, 101, 0.85)'],
+                textShadow: 'rgba(0, 0, 0, 0.9)',
+                accentColor: '#fbbf24',
+                secondaryColor: '#ec4899'
               },
               titleFont: `900 ${Math.floor(width * 0.07)}px 'Impact', sans-serif`,
               subtitleFont: `700 ${Math.floor(width * 0.032)}px 'Arial Black', sans-serif`,
               detailFont: `600 ${Math.floor(width * 0.027)}px 'Arial', sans-serif`,
-              textColor: '#ffffff',
-              shadowIntensity: 1.0
+              textColor: '#ffffff'
             },
             elegant: {
-              primaryGradient: { 
-                start: 'rgba(17, 24, 39, 0.92)', 
-                end: 'rgba(75, 85, 99, 0.85)' 
+              highQuality: {
+                overlay: avgBrightness > 130 ? 'rgba(17, 24, 39, 0.8)' : 'rgba(212, 175, 55, 0.15)',
+                textShadow: avgBrightness > 130 ? 'rgba(0, 0, 0, 0.8)' : 'rgba(17, 24, 39, 0.9)',
+                accentColor: '#d4af37',
+                secondaryColor: '#9ca3af'
               },
-              accentGradient: {
-                start: 'rgba(212, 175, 55, 1)',
-                end: 'rgba(245, 208, 254, 0.8)'
+              lowQuality: {
+                overlay: ['rgba(17, 24, 39, 0.92)', 'rgba(75, 85, 99, 0.85)'],
+                textShadow: 'rgba(0, 0, 0, 0.8)',
+                accentColor: '#fbbf24',
+                secondaryColor: '#d4af37'
               },
               titleFont: `300 ${Math.floor(width * 0.055)}px 'serif'`,
               subtitleFont: `400 ${Math.floor(width * 0.025)}px 'serif'`,
               detailFont: `300 ${Math.floor(width * 0.022)}px 'serif'`,
-              textColor: '#f8fafc',
-              shadowIntensity: 0.7
+              textColor: '#f8fafc'
             }
           };
 
-          const currentStyle = styleConfig[style as keyof typeof styleConfig] || styleConfig.moderne;
+          const currentStyleConfig = styleConfig[style as keyof typeof styleConfig] || styleConfig.moderne;
+          const qualityConfig = isLowQualityOrBadFormat ? 
+            currentStyleConfig.lowQuality : 
+            currentStyleConfig.highQuality;
 
-          // Overlay gradient sophistiqué
-          const overlayGradient = ctx.createLinearGradient(0, 0, 0, height);
-          overlayGradient.addColorStop(0, currentStyle.primaryGradient.start);
-          overlayGradient.addColorStop(1, currentStyle.primaryGradient.end);
-          
-          ctx.fillStyle = overlayGradient;
-          ctx.fillRect(0, 0, width, height);
+          // Appliquer l'overlay adaptatif
+          if (Array.isArray(qualityConfig.overlay)) {
+            // Gradient pour images basse qualité
+            const gradient = ctx.createLinearGradient(0, 0, 0, height);
+            gradient.addColorStop(0, qualityConfig.overlay[0]);
+            gradient.addColorStop(1, qualityConfig.overlay[1]);
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, width, height);
+          } else {
+            // Overlay uniforme pour images haute qualité
+            ctx.fillStyle = qualityConfig.overlay;
+            ctx.fillRect(0, 0, width, height);
+          }
 
-          // Fonction pour dessiner du texte avec effets avancés
-          const drawAdvancedText = (
+          // Zone de texte avec design adaptatif
+          const margin = width * 0.08;
+          const centerX = width / 2;
+
+          // Fonction de dessin de texte sophistiquée
+          const drawProfessionalText = (
             text: string, 
             x: number, 
             y: number, 
@@ -229,89 +269,106 @@ export default function GenerateurAffiches() {
             ctx.font = font;
             ctx.textAlign = align;
             
-            // Ombre portée douce et élégante
-            ctx.shadowColor = `rgba(0, 0, 0, ${currentStyle.shadowIntensity})`;
-            ctx.shadowBlur = isTitle ? width * 0.015 : width * 0.008;
-            ctx.shadowOffsetX = width * 0.002;
-            ctx.shadowOffsetY = width * 0.002;
+            // Ombre multiple pour effet professionnel
+            if (isTitle) {
+              // Ombre diffuse
+              ctx.shadowColor = qualityConfig.textShadow;
+              ctx.shadowBlur = width * 0.02;
+              ctx.shadowOffsetX = 0;
+              ctx.shadowOffsetY = width * 0.004;
+              
+              ctx.fillStyle = currentStyleConfig.textColor;
+              ctx.fillText(text, x, y);
+              
+              // Ombre nette
+              ctx.shadowBlur = 0;
+              ctx.shadowOffsetX = width * 0.002;
+              ctx.shadowOffsetY = width * 0.002;
+              ctx.fillText(text, x, y);
+            } else {
+              ctx.shadowColor = qualityConfig.textShadow;
+              ctx.shadowBlur = width * 0.008;
+              ctx.shadowOffsetX = width * 0.001;
+              ctx.shadowOffsetY = width * 0.001;
+              
+              ctx.fillStyle = currentStyleConfig.textColor;
+              ctx.fillText(text, x, y);
+            }
             
-            // Texte principal
-            ctx.fillStyle = currentStyle.textColor;
-            ctx.fillText(text, x, y);
-            
-            // Reset shadow
+            // Reset
             ctx.shadowColor = 'transparent';
             ctx.shadowBlur = 0;
             ctx.shadowOffsetX = 0;
             ctx.shadowOffsetY = 0;
           };
 
-          // Zone de contenu principal
-          const margin = width * 0.08;
-          const centerX = width / 2;
-          let currentY = height * 0.25;
+          // Composition graphique professionnelle
+          let currentY = height * 0.2;
 
-          // Badge élégant pour le type d'événement
-          const badgeHeight = height * 0.045;
-          const badgeY = height * 0.15;
-          const badgePadding = width * 0.04;
-          
-          // Mesurer la largeur du texte du badge
-          ctx.font = currentStyle.subtitleFont;
-          const badgeTextMetrics = ctx.measureText(fiche.type.toUpperCase());
-          const badgeWidth = badgeTextMetrics.width + badgePadding * 2;
+          // Badge type avec design élégant
+          const badgeText = fiche.type.toUpperCase();
+          ctx.font = currentStyleConfig.subtitleFont;
+          const badgeMetrics = ctx.measureText(badgeText);
+          const badgePadding = width * 0.03;
+          const badgeWidth = badgeMetrics.width + badgePadding * 2;
+          const badgeHeight = height * 0.04;
           const badgeX = centerX - badgeWidth / 2;
           
-          // Gradient pour le badge
-          const badgeGradient = ctx.createLinearGradient(badgeX, badgeY, badgeX + badgeWidth, badgeY + badgeHeight);
-          badgeGradient.addColorStop(0, currentStyle.accentGradient.start);
-          badgeGradient.addColorStop(1, currentStyle.accentGradient.end);
+          // Badge avec coins arrondis et gradient
+          const badgeGradient = ctx.createLinearGradient(badgeX, currentY, badgeX + badgeWidth, currentY + badgeHeight);
+          badgeGradient.addColorStop(0, qualityConfig.accentColor);
+          badgeGradient.addColorStop(1, qualityConfig.secondaryColor);
           
-          // Dessiner le badge avec coins arrondis
           ctx.fillStyle = badgeGradient;
           ctx.beginPath();
-          ctx.roundRect(badgeX, badgeY, badgeWidth, badgeHeight, badgeHeight / 4);
+          ctx.roundRect(badgeX, currentY, badgeWidth, badgeHeight, badgeHeight / 3);
           ctx.fill();
           
-          // Texte du badge
-          ctx.font = currentStyle.subtitleFont;
+          // Texte badge
+          ctx.font = currentStyleConfig.subtitleFont;
+          ctx.fillStyle = '#ffffff';
           ctx.textAlign = 'center';
-          ctx.fillStyle = style === 'vintage' ? '#000000' : '#000000';
-          ctx.fillText(fiche.type.toUpperCase(), centerX, badgeY + badgeHeight * 0.65);
-
-          // Titre principal avec découpe intelligente
-          const maxTitleWidth = width - margin * 2;
-          const titleLines = wrapText(ctx, fiche.title.toUpperCase(), maxTitleWidth, currentStyle.titleFont);
+          ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+          ctx.shadowBlur = width * 0.002;
+          ctx.fillText(badgeText, centerX, currentY + badgeHeight * 0.65);
+          ctx.shadowColor = 'transparent';
+          ctx.shadowBlur = 0;
           
-          // Espacement intelligent entre les lignes du titre
-          const titleLineHeight = height * 0.08;
-          const totalTitleHeight = titleLines.length * titleLineHeight;
-          currentY = height * 0.35;
+          currentY += badgeHeight + height * 0.08;
+
+          // Titre avec découpe intelligente
+          const maxTitleWidth = width - margin * 2;
+          const titleLines = wrapText(ctx, fiche.title.toUpperCase(), maxTitleWidth, currentStyleConfig.titleFont);
           
           titleLines.forEach((line, index) => {
-            drawAdvancedText(line, centerX, currentY + (index * titleLineHeight), currentStyle.titleFont, 'center', true);
+            drawProfessionalText(line, centerX, currentY + (index * height * 0.08), currentStyleConfig.titleFont, 'center', true);
           });
           
-          currentY += totalTitleHeight + height * 0.06;
+          currentY += titleLines.length * height * 0.08 + height * 0.06;
 
-          // Ligne décorative élégante
-          const lineY = currentY;
-          const lineLength = width * 0.3;
-          const lineGradient = ctx.createLinearGradient(centerX - lineLength/2, lineY, centerX + lineLength/2, lineY);
-          lineGradient.addColorStop(0, 'transparent');
-          lineGradient.addColorStop(0.5, currentStyle.accentGradient.start);
-          lineGradient.addColorStop(1, 'transparent');
-          
-          ctx.strokeStyle = lineGradient;
+          // Élément graphique séparateur
+          const lineLength = width * 0.25;
+          ctx.strokeStyle = qualityConfig.accentColor;
           ctx.lineWidth = height * 0.003;
+          ctx.globalAlpha = 0.8;
+          
           ctx.beginPath();
-          ctx.moveTo(centerX - lineLength/2, lineY);
-          ctx.lineTo(centerX + lineLength/2, lineY);
+          ctx.moveTo(centerX - lineLength/2, currentY);
+          ctx.lineTo(centerX + lineLength/2, currentY);
           ctx.stroke();
           
+          // Petits éléments décoratifs
+          for (let i = 0; i < 3; i++) {
+            ctx.beginPath();
+            ctx.arc(centerX - lineLength/2 + (i * lineLength/2), currentY, height * 0.002, 0, Math.PI * 2);
+            ctx.fillStyle = qualityConfig.accentColor;
+            ctx.fill();
+          }
+          
+          ctx.globalAlpha = 1;
           currentY += height * 0.06;
 
-          // Informations de date avec formatage élégant
+          // Informations avec hiérarchie visuelle
           const dateStart = new Date(fiche.dateDebut);
           const dateEnd = new Date(fiche.dateFin);
           
@@ -323,55 +380,36 @@ export default function GenerateurAffiches() {
           });
           
           if (fiche.dateDebut !== fiche.dateFin) {
-            const endDateText = dateEnd.toLocaleDateString('fr-FR', { 
+            const endText = dateEnd.toLocaleDateString('fr-FR', { 
               weekday: 'long', 
               day: 'numeric', 
               month: 'long', 
               year: dateEnd.getFullYear() !== dateStart.getFullYear() ? 'numeric' : undefined
             });
-            dateText += ` - ${endDateText}`;
+            dateText += ` - ${endText}`;
           }
           
-          drawAdvancedText(dateText, centerX, currentY, currentStyle.subtitleFont);
+          drawProfessionalText(dateText, centerX, currentY, currentStyleConfig.subtitleFont);
           currentY += height * 0.05;
 
-          // Lieu avec style raffiné
-          const locationLines = wrapText(ctx, fiche.lieu, width - margin * 3, currentStyle.detailFont);
+          // Lieu
+          const locationLines = wrapText(ctx, fiche.lieu, width - margin * 2, currentStyleConfig.detailFont);
           locationLines.forEach((line, index) => {
-            drawAdvancedText(line, centerX, currentY + (index * height * 0.04), currentStyle.detailFont);
+            drawProfessionalText(line, centerX, currentY + (index * height * 0.04), currentStyleConfig.detailFont);
           });
           currentY += locationLines.length * height * 0.04 + height * 0.04;
 
-          // Texte personnalisé avec mise en forme
+          // Texte personnalisé
           if (customText && customText.trim()) {
             currentY += height * 0.03;
-            const customLines = wrapText(ctx, customText.trim(), width - margin * 3, currentStyle.detailFont);
+            const customLines = wrapText(ctx, customText.trim(), width - margin * 2, currentStyleConfig.detailFont);
             
             customLines.forEach((line, index) => {
-              drawAdvancedText(line, centerX, currentY + (index * height * 0.035), currentStyle.detailFont);
+              drawProfessionalText(line, centerX, currentY + (index * height * 0.035), currentStyleConfig.detailFont);
             });
           }
 
-          // Élément décoratif en bas (optionnel selon l'espace)
-          if (currentY < height * 0.85) {
-            const decorY = height * 0.9;
-            ctx.strokeStyle = currentStyle.accentGradient.start;
-            ctx.lineWidth = height * 0.002;
-            ctx.globalAlpha = 0.6;
-            
-            // Motif géométrique simple
-            for (let i = 0; i < 3; i++) {
-              const circleRadius = height * 0.015 * (1 + i * 0.5);
-              ctx.beginPath();
-              ctx.arc(centerX, decorY, circleRadius, 0, Math.PI * 2);
-              ctx.stroke();
-            }
-            
-            ctx.globalAlpha = 1;
-          }
-
-          // Convertir en image haute qualité
-          const dataUrl = canvas.toDataURL('image/png', 0.95);
+          const dataUrl = canvas.toDataURL('image/png', 0.98);
           resolve(dataUrl);
           
         } catch (error) {
