@@ -231,11 +231,11 @@ export default function CrmSimplifie() {
               <div className="absolute -bottom-4 -left-4 bg-card border rounded-lg p-3 shadow-lg">
                 <div className="flex items-center gap-2">
                   <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
-                    <QrCode className="w-4 h-4 text-primary" />
+                    <CheckCircle className="w-4 h-4 text-green-600" />
                   </div>
                   <div className="text-xs">
-                    <div className="font-medium">QR Code actif</div>
-                    <div className="text-muted-foreground">127 scans aujourd'hui</div>
+                    <div className="font-medium">RGPD Compliant</div>
+                    <div className="text-muted-foreground">Données sécurisées</div>
                   </div>
                 </div>
               </div>
