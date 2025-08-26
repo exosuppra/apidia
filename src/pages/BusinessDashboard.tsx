@@ -96,6 +96,12 @@ export default function BusinessDashboard() {
   const handleGoogleLogin = async () => {
     try {
       setGoogleLoading(true);
+      
+      console.log('Starting Google OAuth with:', {
+        origin: window.location.origin,
+        redirectTo: `${window.location.origin}/avis`
+      });
+      
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
@@ -109,6 +115,7 @@ export default function BusinessDashboard() {
       });
 
       if (error) {
+        console.error('Google OAuth error:', error);
         toast({
           title: "Erreur",
           description: error.message,
@@ -116,6 +123,7 @@ export default function BusinessDashboard() {
         });
       }
     } catch (error) {
+      console.error('Google OAuth catch error:', error);
       toast({
         title: "Erreur",
         description: "Impossible de se connecter avec Google",
