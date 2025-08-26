@@ -65,8 +65,8 @@ const crmFeatures = [
     ]
   },
   {
-    category: "Marketing automation",
-    color: "bg-accent/10 text-accent-foreground",
+    category: "Marketing automation - Option Premium",
+    color: "bg-gradient-to-r from-amber-500/10 to-orange-500/10 text-amber-700 dark:text-amber-300 border border-amber-200/20",
     services: [
       {
         icon: <Mail className="w-8 h-8" />,
