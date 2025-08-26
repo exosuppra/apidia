@@ -1,14 +1,28 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Star, MessageSquare } from "lucide-react";
+import { Star, MessageSquare, ExternalLink } from "lucide-react";
 
 export default function GoogleMyBusinessReviews() {
   const [isConnected, setIsConnected] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [businesses, setBusinesses] = useState([]);
+  const [reviews, setReviews] = useState([]);
   const { toast } = useToast();
+
+  useEffect(() => {
+    checkGoogleConnection();
+  }, []);
+
+  const checkGoogleConnection = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user?.app_metadata?.provider === 'google') {
+      setIsConnected(true);
+      loadBusinesses();
+    }
+  };
 
   const handleGoogleConnect = async () => {
     setLoading(true);
@@ -18,7 +32,11 @@ export default function GoogleMyBusinessReviews() {
         provider: 'google',
         options: {
           scopes: 'https://www.googleapis.com/auth/business.manage',
-          redirectTo: `${window.location.origin}/dashboard`
+          redirectTo: `${window.location.origin}/dashboard`,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          }
         }
       });
 
@@ -38,6 +56,24 @@ export default function GoogleMyBusinessReviews() {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadBusinesses = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke('google-business-reviews', {
+        body: { action: 'getBusinesses' }
+      });
+
+      if (error) throw error;
+      setBusinesses(data.businesses || []);
+    } catch (error: any) {
+      console.error('Error loading businesses:', error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de charger vos fiches Google My Business",
+        variant: "destructive"
+      });
     }
   };
 
@@ -75,26 +111,34 @@ export default function GoogleMyBusinessReviews() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Star className="h-5 w-5" />
-              Avis Google My Business
+              Vos fiches Google My Business
             </CardTitle>
             <CardDescription>
               Gérez vos avis avec des réponses générées par IA
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="text-center py-8">
-              <MessageSquare className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-              <h3 className="text-lg font-medium mb-2">Fonctionnalité en cours de développement</h3>
-              <p className="text-muted-foreground mb-4">
-                L'interface de gestion des avis sera bientôt disponible. Vous pourrez :
-              </p>
-              <ul className="text-sm text-muted-foreground space-y-1 max-w-md mx-auto">
-                <li>• Voir tous vos avis non répondus</li>
-                <li>• Générer des réponses avec l'IA</li>
-                <li>• Personnaliser et valider les réponses</li>
-                <li>• Publier directement sur Google My Business</li>
-              </ul>
-            </div>
+            {businesses.length === 0 ? (
+              <div className="text-center py-8">
+                <MessageSquare className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                <h3 className="text-lg font-medium mb-2">Chargement de vos fiches...</h3>
+                <p className="text-muted-foreground">
+                  Nous récupérons vos fiches Google My Business
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <h3 className="font-medium">Vos établissements :</h3>
+                {businesses.map((business: any, index) => (
+                  <div key={index} className="p-3 border rounded-lg">
+                    <h4 className="font-medium">{business.accountName}</h4>
+                    <p className="text-sm text-muted-foreground">
+                      Type: {business.type}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
