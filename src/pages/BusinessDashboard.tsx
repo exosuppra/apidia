@@ -46,6 +46,8 @@ export default function BusinessDashboard() {
     try {
       setLoading(true);
       
+      console.log('🔍 === DÉBUT CHARGEMENT ÉTABLISSEMENTS ===');
+      
       // Vérifier la session actuelle
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       console.log('🔍 Session actuelle:', { 
@@ -55,23 +57,34 @@ export default function BusinessDashboard() {
       });
       
       if (!session) {
+        console.log('❌ Pas de session active');
         throw new Error('Pas de session active');
       }
       
+      console.log('📡 Appel get-businesses en cours...');
       const { data, error } = await supabase.functions.invoke('get-businesses');
       
+      console.log('📥 Réponse get-businesses:', { 
+        data: data, 
+        error: error,
+        hasBusinesses: data?.businesses ? data.businesses.length : 0
+      });
+      
       if (error) {
+        console.log('❌ Erreur Supabase:', error);
         throw error;
       }
       
       // Vérifier si l'API a retourné une erreur même avec un status 200
       if (data && data.error) {
+        console.log('❌ Erreur de l\'API:', data.error);
         throw new Error(data.error);
       }
       
+      console.log('✅ Établissements chargés:', data.businesses?.length || 0);
       setBusinesses(data.businesses || []);
     } catch (error) {
-      console.error('Error loading businesses:', error);
+      console.error('❌ ERREUR COMPLÈTE:', error);
       toast({
         title: "Erreur",
         description: "Impossible de charger vos établissements",
@@ -79,6 +92,7 @@ export default function BusinessDashboard() {
       });
     } finally {
       setLoading(false);
+      console.log('🔍 === FIN CHARGEMENT ÉTABLISSEMENTS ===');
     }
   };
 
