@@ -162,40 +162,29 @@ export default function BusinessDashboard() {
         return;
       }
       
-      console.log('❌ Pas de token dans la base, essai de récupération depuis la session...');
+      console.log('❌ Pas de token dans la base, connexion Google via Supabase...');
       
-      // Essayer de récupérer le token depuis la session actuelle et le stocker
-      const { data: storeResult, error: storeError } = await supabase.functions.invoke('store-google-session');
+      // Utiliser l'authentification Google de Supabase
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          scopes: 'https://www.googleapis.com/auth/business.manage',
+          redirectTo: `${window.location.origin}/avis`,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent'
+          }
+        }
+      });
       
-      if (!storeError && storeResult?.success) {
-        console.log('✅ Token récupéré et stocké depuis la session');
+      if (error) {
+        console.error('Erreur OAuth Google:', error);
         toast({
-          title: "Succès",
-          description: "Token Google récupéré avec succès !",
+          title: "Erreur",
+          description: "Impossible de se connecter à Google",
+          variant: "destructive",
         });
-        loadBusinesses();
-        return;
       }
-      
-      console.log('❌ Pas de token dans la session, redirection vers Google OAuth...');
-      
-      // Redirection directe vers Google OAuth au lieu d'une popup
-      const currentUrl = window.location.origin;
-      const clientId = '108211698022111711631';
-      const redirectUri = encodeURIComponent(`${currentUrl}/google-callback`);
-      const scope = encodeURIComponent('https://www.googleapis.com/auth/business.manage');
-      
-      const googleAuthUrl = `https://accounts.google.com/oauth/v2/auth?` +
-        `client_id=${clientId}&` +
-        `redirect_uri=${redirectUri}&` +
-        `response_type=code&` +
-        `scope=${scope}&` +
-        `access_type=offline&` +
-        `prompt=consent&` +
-        `state=${user.id}`;
-      
-      console.log('🔗 Redirection vers:', googleAuthUrl);
-      window.location.href = googleAuthUrl;
       
     } catch (error) {
       console.error('❌ Erreur connexion Google:', error);
