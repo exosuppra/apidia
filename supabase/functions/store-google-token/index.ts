@@ -88,7 +88,7 @@ serve(async (req) => {
     
     console.log('🔍 Attempting database operation...');
     
-    // Try to insert/update
+    // Now we can use upsert since we have the unique constraint
     const { error: dbError } = await serviceClient
       .from('user_google_tokens')
       .upsert({
@@ -96,8 +96,9 @@ serve(async (req) => {
         access_token: body.googleToken,
         refresh_token: body.refreshToken || null,
         expires_at: expiresAt.toISOString(),
-        created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
+      }, {
+        onConflict: 'user_id'
       });
     
     if (dbError) {
