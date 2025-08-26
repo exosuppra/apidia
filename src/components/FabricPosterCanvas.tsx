@@ -183,20 +183,28 @@ export const FabricPosterCanvas = ({ posterData, selectedStyle, customText, onGe
   useEffect(() => {
     if (!canvasRef.current) return;
 
-    const canvas = new FabricCanvas(canvasRef.current, {
-      width: 800,
-      height: (800 * currentFormat.height) / currentFormat.width,
-      backgroundColor: "#f8fafc",
-      preserveObjectStacking: true,
-    });
+    // Small delay to ensure DOM is ready
+    const timer = setTimeout(() => {
+      const canvas = new FabricCanvas(canvasRef.current!, {
+        width: 800,
+        height: (800 * currentFormat.height) / currentFormat.width,
+        backgroundColor: "#f8fafc",
+        preserveObjectStacking: true,
+      });
 
-    setFabricCanvas(canvas);
-
-    // Save initial state
-    saveToHistory(canvas);
+      setFabricCanvas(canvas);
+      
+      // Save initial state after canvas is fully ready
+      setTimeout(() => {
+        saveToHistory(canvas);
+      }, 100);
+    }, 100);
 
     return () => {
-      canvas.dispose();
+      clearTimeout(timer);
+      if (fabricCanvas) {
+        fabricCanvas.dispose();
+      }
     };
   }, [currentFormat]);
 
@@ -215,33 +223,45 @@ export const FabricPosterCanvas = ({ posterData, selectedStyle, customText, onGe
   const undo = useCallback(() => {
     if (historyIndex > 0 && fabricCanvas) {
       const prevState = history[historyIndex - 1];
-      fabricCanvas.loadFromJSON(prevState, () => {
-        fabricCanvas.renderAll();
-        setHistoryIndex(prev => prev - 1);
-      });
+      try {
+        fabricCanvas.loadFromJSON(prevState, () => {
+          fabricCanvas.renderAll();
+          setHistoryIndex(prev => prev - 1);
+        });
+      } catch (error) {
+        console.warn('Undo failed:', error);
+      }
     }
   }, [fabricCanvas, history, historyIndex]);
 
   const redo = useCallback(() => {
     if (historyIndex < history.length - 1 && fabricCanvas) {
       const nextState = history[historyIndex + 1];
-      fabricCanvas.loadFromJSON(nextState, () => {
-        fabricCanvas.renderAll();
-        setHistoryIndex(prev => prev + 1);
-      });
+      try {
+        fabricCanvas.loadFromJSON(nextState, () => {
+          fabricCanvas.renderAll();
+          setHistoryIndex(prev => prev + 1);
+        });
+      } catch (error) {
+        console.warn('Redo failed:', error);
+      }
     }
   }, [fabricCanvas, history, historyIndex]);
 
   // Generate professional poster
   const generatePoster = useCallback(async () => {
-    if (!fabricCanvas || !posterData) return;
+    if (!fabricCanvas || !posterData) {
+      toast.error("Canvas non initialisé. Veuillez patienter...");
+      return;
+    }
 
     setIsGenerating(true);
     toast("Génération de l'affiche professionnelle...");
 
     try {
-      // Clear canvas
-      fabricCanvas.clear();
+      // Clear canvas safely
+      fabricCanvas.getObjects().forEach(obj => fabricCanvas.remove(obj));
+      fabricCanvas.renderAll();
       
       const template = getTemplateByStyle(selectedStyle, posterData.type);
       const canvasWidth = fabricCanvas.width!;
@@ -250,9 +270,7 @@ export const FabricPosterCanvas = ({ posterData, selectedStyle, customText, onGe
       // 1. Load and add background image
       if (posterData.image) {
         try {
-          const img = await FabricImage.fromURL(posterData.image, {
-            crossOrigin: 'anonymous'
-          });
+          const img = await FabricImage.fromURL(posterData.image);
           
           // Scale image to fill canvas
           const scaleX = canvasWidth / img.width!;
