@@ -30,10 +30,16 @@ export default function GoogleCallback() {
         console.log('🔍 Récupération de la session Supabase...');
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         
-        console.log('Session:', {
+        console.log('📋 Détails de la session complète:', {
           hasSession: !!session,
           hasUser: !!session?.user,
           provider: session?.user?.app_metadata?.provider,
+          hasProviderToken: !!session?.provider_token,
+          hasProviderRefreshToken: !!session?.provider_refresh_token,
+          providerTokenStart: session?.provider_token?.substring(0, 20),
+          sessionKeys: session ? Object.keys(session) : [],
+          userMetadata: session?.user?.user_metadata,
+          appMetadata: session?.user?.app_metadata,
           error: sessionError
         });
 
@@ -45,34 +51,43 @@ export default function GoogleCallback() {
           throw new Error('Aucune session trouvée');
         }
 
-        // Récupérer le provider_token qui contient le vrai token Google My Business
-        console.log('🔍 Récupération du provider token...');
-        const { data: providerData, error: providerError } = await supabase.auth.getUser();
-        
-        if (providerError) {
-          throw new Error(`Erreur provider: ${providerError.message}`);
+        // Vérifier si on a le provider_token
+        if (!session.provider_token) {
+          console.log('❌ Aucun provider_token dans la session');
+          
+          // Essayer de récupérer via getUser()
+          console.log('🔍 Tentative de récupération via getUser...');
+          const { data: userData, error: userError } = await supabase.auth.getUser();
+          
+          console.log('📋 Données utilisateur:', {
+            hasUser: !!userData.user,
+            hasIdentities: !!userData.user?.identities,
+            identitiesCount: userData.user?.identities?.length || 0,
+            identities: userData.user?.identities?.map(i => ({
+              provider: i.provider,
+              hasToken: !!i.identity_data,
+            })),
+            error: userError
+          });
+          
+          const googleIdentity = userData.user?.identities?.find(
+            (identity) => identity.provider === 'google'
+          );
+          
+          if (!googleIdentity) {
+            throw new Error('Identité Google non trouvée');
+          }
+          
+          console.log('✅ Identité Google trouvée, mais pas de provider_token dans la session');
+          throw new Error('Provider token non disponible - vérifiez la configuration OAuth Google dans Supabase');
         }
 
-        // Le provider token est dans l'identité du provider
-        const googleIdentity = providerData.user?.identities?.find(
-          (identity) => identity.provider === 'google'
-        );
-
-        console.log('Google identity:', {
-          found: !!googleIdentity,
-          hasToken: !!googleIdentity?.identity_data?.token,
-        });
-
-        if (!googleIdentity?.identity_data) {
-          throw new Error('Token Google My Business non trouvé');
-        }
-
-        console.log('✅ Token Google My Business trouvé');
+        console.log('✅ Provider token Google My Business trouvé !');
         
         if (window.opener) {
           window.opener.postMessage({
             type: 'GOOGLE_AUTH_SUCCESS',
-            token: session.provider_token, // Utiliser le provider_token de la session
+            token: session.provider_token,
             refreshToken: session.provider_refresh_token
           }, window.location.origin);
         }
@@ -89,7 +104,7 @@ export default function GoogleCallback() {
         }
         window.close();
       }
-    }, 1000);
+    }, 1500);
   }, [searchParams]);
 
   return (
