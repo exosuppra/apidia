@@ -99,7 +99,8 @@ const services = [
         title: "Création automatisée de contenus visuels",
         description: "Génération d'affiches évènementiels",
         cta: "Créer mes contenus visuels",
-        price: "39€/mois"
+        price: "39€/mois",
+        link: "/generateur-affiches"
       },
       {
         icon: <MessageCircle className="w-8 h-8" />,
