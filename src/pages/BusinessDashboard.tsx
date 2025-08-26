@@ -41,6 +41,45 @@ export default function BusinessDashboard() {
       loadBusinesses();
     }
   }, [user]);
+  
+  // Effet pour capturer le token Google après redirection OAuth
+  useEffect(() => {
+    const handleGoogleRedirect = async () => {
+      // Vérifier si on vient d'une redirection Google (présence de fragment ou paramètres)
+      const urlParams = new URLSearchParams(window.location.search);
+      const fragment = window.location.hash;
+      
+      if (urlParams.get('code') || fragment.includes('access_token') || fragment.includes('provider_token')) {
+        console.log('🔄 Redirection Google détectée, tentative de stockage du token...');
+        
+        try {
+          const { data: storeResult, error: storeError } = await supabase.functions.invoke('store-google-session');
+          
+          if (!storeError && storeResult?.success) {
+            console.log('✅ Token Google stocké après redirection');
+            toast({
+              title: "Connexion réussie",
+              description: "Votre compte Google My Business est maintenant connecté !",
+            });
+            
+            // Nettoyer l'URL
+            window.history.replaceState({}, document.title, window.location.pathname);
+            
+            // Recharger les établissements
+            setTimeout(() => {
+              loadBusinesses();
+            }, 1000);
+          }
+        } catch (error) {
+          console.error('Erreur lors du stockage automatique du token:', error);
+        }
+      }
+    };
+
+    if (user) {
+      handleGoogleRedirect();
+    }
+  }, [user, toast]);
 
   const loadBusinesses = async () => {
     try {
@@ -94,116 +133,86 @@ export default function BusinessDashboard() {
   };
 
   const handleGoogleLogin = async () => {
+    if (!user) return;
+    
     try {
       setGoogleLoading(true);
       
-      const currentUrl = window.location.origin;
-      console.log('🚀 Ouverture popup Google OAuth:', {
-        origin: currentUrl,
-        redirectTo: `${currentUrl}/google-callback`
-      });
+      console.log('🔍 Vérification du token Google existant...');
       
-      // Créer une popup pour Google OAuth
-      const popup = window.open(
-        '', 
-        'google-oauth', 
-        'width=500,height=600,scrollbars=yes,resizable=yes'
-      );
+      // D'abord vérifier si l'utilisateur a déjà un token Google dans notre table
+      const { data: tokenCheck, error: tokenError } = await supabase
+        .from('user_google_tokens')
+        .select('access_token')
+        .eq('user_id', user.id)
+        .single();
       
-      if (!popup) {
-        throw new Error('Popup bloquée par le navigateur');
-      }
-      
-      // Initier la connexion Google OAuth dans la popup
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: `${currentUrl}/google-callback`,
-          queryParams: {
-            access_type: 'offline',
-            prompt: 'consent',
-          },
-          scopes: 'https://www.googleapis.com/auth/business.manage',
-        },
-      });
-
-      if (error) {
-        popup.close();
-        console.error('❌ Erreur OAuth Google:', error);
+      if (tokenCheck?.access_token) {
+        console.log('✅ Token Google déjà présent dans la base');
         toast({
-          title: "Erreur OAuth",
-          description: error.message,
-          variant: "destructive",
+          title: "Déjà connecté",
+          description: "Votre compte Google My Business est déjà connecté",
         });
+        // Essayer de recharger les établissements
+        loadBusinesses();
         return;
       }
-
-      // Rediriger la popup vers l'URL d'authentification
-      if (data.url) {
-        popup.location.href = data.url;
+      
+      console.log('❌ Pas de token dans la base, vérification session Google...');
+      
+      // Essayer de récupérer le token depuis la session actuelle et le stocker
+      const { data: storeResult, error: storeError } = await supabase.functions.invoke('store-google-session');
+      
+      if (storeError || storeResult?.error) {
+        if (storeResult?.needsReauth) {
+          console.log('🔄 Réauthentification Google nécessaire...');
+          
+          // Redirection vers Google pour réauthentification
+          const { error } = await supabase.auth.signInWithOAuth({
+            provider: 'google',
+            options: {
+              redirectTo: `${window.location.origin}/avis`,
+              queryParams: {
+                access_type: 'offline',
+                prompt: 'consent',
+              },
+              scopes: 'https://www.googleapis.com/auth/business.manage',
+            },
+          });
+          
+          if (error) {
+            throw error;
+          }
+          
+          toast({
+            title: "Redirection",
+            description: "Redirection vers Google pour autoriser l'accès...",
+          });
+          
+          return;
+        } else {
+          throw new Error(storeResult?.error || storeError?.message);
+        }
       }
       
-      // Écouter les messages de la popup
-      const handlePopupMessage = async (event: MessageEvent) => {
-        if (event.origin !== window.location.origin) return;
-        
-        if (event.data.type === 'GOOGLE_AUTH_SUCCESS') {
-          console.log('✅ Token Google reçu');
-          popup.close();
-          window.removeEventListener('message', handlePopupMessage);
-          
-          // Stocker le token Google pour l'utilisateur actuel
-          const { error: storeError } = await supabase.functions.invoke('store-google-token', {
-            body: { 
-              googleToken: event.data.token,
-              refreshToken: event.data.refreshToken 
-            }
-          });
-          
-          if (storeError) {
-            console.error('Erreur stockage token:', storeError);
-            toast({
-              title: "Erreur",
-              description: "Impossible de sauvegarder le token Google",
-              variant: "destructive",
-            });
-          } else {
-            toast({
-              title: "Succès",
-              description: "Compte Google lié avec succès !",
-            });
-            // Recharger les établissements
-            loadBusinesses();
-          }
-        } else if (event.data.type === 'GOOGLE_AUTH_ERROR') {
-          popup.close();
-          window.removeEventListener('message', handlePopupMessage);
-          toast({
-            title: "Erreur",
-            description: event.data.error,
-            variant: "destructive",
-          });
-        }
-      };
+      console.log('✅ Token récupéré et stocké depuis la session');
+      toast({
+        title: "Succès",
+        description: "Token Google récupéré avec succès !",
+      });
       
-      window.addEventListener('message', handlePopupMessage);
-      
-      // Vérifier si la popup est fermée manuellement
-      const checkClosed = setInterval(() => {
-        if (popup.closed) {
-          clearInterval(checkClosed);
-          window.removeEventListener('message', handlePopupMessage);
-          setGoogleLoading(false);
-        }
-      }, 1000);
+      // Recharger les établissements
+      loadBusinesses();
       
     } catch (error) {
-      console.error('❌ Erreur popup Google:', error);
+      console.error('❌ Erreur connexion Google:', error);
       toast({
         title: "Erreur",
-        description: "Impossible d'ouvrir la fenêtre de connexion Google",
+        description: "Impossible de se connecter à Google",
         variant: "destructive",
       });
+    } finally {
+      setGoogleLoading(false);
     }
   };
 

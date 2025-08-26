@@ -36,11 +36,11 @@ serve(async (req) => {
     // Récupérer le token Google depuis la table user_google_tokens
     const { data: tokenData, error: tokenError } = await supabaseClient
       .from('user_google_tokens')
-      .select('google_token')
+      .select('access_token')
       .eq('user_id', user.id)
       .single();
     
-    if (tokenError || !tokenData?.google_token) {
+    if (tokenError || !tokenData?.access_token) {
       console.error('❌ Token Google non trouvé:', tokenError);
       return new Response(
         JSON.stringify({ 
@@ -51,7 +51,7 @@ serve(async (req) => {
       );
     }
     
-    const googleAccessToken = tokenData.google_token;
+    const googleAccessToken = tokenData.access_token;
     console.log('✅ Token Google trouvé pour l\'utilisateur');
 
     console.log('Using Google access token to fetch businesses');
