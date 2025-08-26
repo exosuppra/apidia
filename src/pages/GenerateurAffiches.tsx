@@ -96,20 +96,25 @@ export default function GenerateurAffiches() {
       return;
     }
 
+    console.log("Début de la génération d'affiche");
     setIsGenerating(true);
     
     try {
       // Simulation de la génération d'affiche
       await new Promise(resolve => setTimeout(resolve, 3000));
       
-      // Pour la démo, on utilise une image placeholder
-      setGeneratedImage("https://via.placeholder.com/400x600/6366f1/ffffff?text=Affiche+Générée");
+      // Pour la démo, on utilise une image placeholder plus fiable
+      const imageUrl = "https://picsum.photos/400/600?random=" + Date.now();
+      console.log("URL de l'image générée:", imageUrl);
+      setGeneratedImage(imageUrl);
+      console.log("State generatedImage mis à jour");
       toast.success("Affiche générée avec succès !");
     } catch (error) {
       console.error("Erreur lors de la génération:", error);
       toast.error("Erreur lors de la génération de l'affiche");
     } finally {
       setIsGenerating(false);
+      console.log("Fin de la génération");
     }
   };
 
@@ -423,6 +428,8 @@ export default function GenerateurAffiches() {
                         src={generatedImage}
                         alt="Affiche générée"
                         className="w-full h-auto"
+                        onLoad={() => console.log("Image chargée avec succès")}
+                        onError={(e) => console.error("Erreur de chargement d'image:", e)}
                       />
                     </div>
                     <div className="flex gap-2">
