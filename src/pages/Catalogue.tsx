@@ -116,9 +116,9 @@ const services = [
     services: [
       {
         icon: <Users className="w-8 h-8" />,
-        title: "CRM simplifié",
-        description: "Gestion de votre fichier clients avec outils de fidélisation",
-        cta: "Découvrir le CRM IA",
+        title: "Gestion de votre fichier clients",
+        description: "Récupérez les informations de vos clients même si vous passez par des plateformes tierces (Booking.com, Airbnb...) et développez vos outils de fidélisation",
+        cta: "Découvrir le CRM",
         price: "25€/mois",
         link: "/crm-simplifie"
       },
