@@ -218,92 +218,190 @@ export default function GenerateurAffiches() {
           
           const layout = {
             margin: baseSize * 0.08,
-            titleSize: baseSize * (isVertical ? 0.12 : 0.08),
-            subtitleSize: baseSize * (isVertical ? 0.05 : 0.04),
-            detailSize: baseSize * (isVertical ? 0.035 : 0.03),
-            spacing: baseSize * 0.06
+            titleSize: baseSize * (isVertical ? 0.10 : 0.07),
+            subtitleSize: baseSize * (isVertical ? 0.04 : 0.035),
+            detailSize: baseSize * (isVertical ? 0.03 : 0.025),
+            spacing: baseSize * 0.05
           };
+
+          // Polices Google Fonts selon le type d'événement avec fallbacks robustes
+          const getFontFamily = (element: 'title' | 'subtitle' | 'detail') => {
+            const eventLower = selectedFiche.type.toLowerCase();
+            
+            if (eventLower.includes('sport') || eventLower.includes('trail')) {
+              // Sport: polices impactantes
+              return element === 'title' ? '"Bebas Neue", "Oswald", Impact, "Arial Black", sans-serif' : 
+                     element === 'subtitle' ? '"Oswald", "Roboto Condensed", "Arial Narrow", sans-serif' : 
+                     '"Roboto", "Arial", sans-serif';
+            } else if (eventLower.includes('culturel') || eventLower.includes('festival') || eventLower.includes('jazz')) {
+              // Culture: polices élégantes
+              return element === 'title' ? '"Playfair Display", "Times New Roman", serif' : 
+                     element === 'subtitle' ? '"Crimson Text", "Georgia", serif' : 
+                     '"Lato", "Arial", sans-serif';
+            } else if (eventLower.includes('commercial') || eventLower.includes('marché')) {
+              // Commercial: polices modernes
+              return element === 'title' ? '"Montserrat", "Helvetica", sans-serif' : 
+                     element === 'subtitle' ? '"Open Sans", "Arial", sans-serif' : 
+                     '"Lato", "Arial", sans-serif';
+            } else if (eventLower.includes('festiv') || eventLower.includes('fête')) {
+              // Festif: polices ludiques
+              return element === 'title' ? '"Fredoka One", "Comic Sans MS", cursive' : 
+                     element === 'subtitle' ? '"Comfortaa", "Verdana", cursive' : 
+                     '"Nunito", "Arial", sans-serif';
+            } else {
+              // Par défaut: polices professionnelles
+              return element === 'title' ? '"Inter", "Helvetica", "Arial", sans-serif' : 
+                     element === 'subtitle' ? '"Inter", "Helvetica", "Arial", sans-serif' : 
+                     '"Inter", "Arial", sans-serif';
+            }
+          };
+
+          console.log(`🎨 Génération ${formatKey}:`, {
+            title: selectedFiche.title,
+            type: selectedFiche.type,
+            fonts: {
+              title: getFontFamily('title'),
+              subtitle: getFontFamily('subtitle'),
+              detail: getFontFamily('detail')
+            }
+          });
 
           // Badge type d'événement
           const badgeY = layout.margin;
-          const badgeHeight = layout.subtitleSize * 1.2;
+          const badgeHeight = layout.subtitleSize * 1.4;
           const badgeText = selectedFiche.type.toUpperCase();
           
-          ctx.font = `600 ${layout.detailSize}px Arial`;
+          ctx.font = `600 ${layout.detailSize * 0.9}px ${getFontFamily('detail')}`;
           const badgeWidth = ctx.measureText(badgeText).width + layout.margin;
           
-          // Fond du badge
+          // Fond du badge avec ombre
+          ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
+          ctx.shadowBlur = 8;
+          ctx.shadowOffsetY = 4;
+          
           ctx.fillStyle = template.accent;
           ctx.beginPath();
           ctx.roundRect(layout.margin, badgeY, badgeWidth, badgeHeight, badgeHeight / 3);
           ctx.fill();
           
+          // Reset shadow pour le texte
+          ctx.shadowColor = 'transparent';
+          ctx.shadowBlur = 0;
+          ctx.shadowOffsetY = 0;
+          
           // Texte du badge
           ctx.fillStyle = '#ffffff';
           ctx.textAlign = 'left';
-          ctx.fillText(badgeText, layout.margin + layout.margin/2, badgeY + badgeHeight * 0.7);
+          ctx.font = `700 ${layout.detailSize * 0.9}px ${getFontFamily('detail')}`;
+          ctx.fillText(badgeText, layout.margin + layout.margin/2, badgeY + badgeHeight * 0.65);
 
-          // Titre principal
-          const titleY = canvas.height * (isVertical ? 0.15 : 0.25);
-          ctx.font = `900 ${layout.titleSize}px Arial`;
+          // TITRE PRINCIPAL - Plus visible et imposant
+          const titleY = canvas.height * (isVertical ? 0.3 : 0.4);
+          const title = customText || selectedFiche.title;
+          
+          console.log(`📝 Titre à afficher: "${title}"`);
+          
+          // Police et taille du titre selon le format
+          const titleFontSize = isVertical ? layout.titleSize * 1.4 : layout.titleSize * 1.2;
+          const titleFont = `900 ${titleFontSize}px ${getFontFamily('title')}`;
+          
+          console.log(`🎯 Police titre: ${titleFont}`);
+          
+          ctx.font = titleFont;
           ctx.fillStyle = template.textColor;
           ctx.textAlign = 'center';
-          ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
-          ctx.shadowBlur = 12;
-          ctx.shadowOffsetY = 4;
+          ctx.textBaseline = 'top';
           
-          // Découper le titre si trop long
-          const title = customText || selectedFiche.title;
-          const maxWidth = canvas.width - layout.margin * 2;
+          // Ombre portée forte pour le titre
+          ctx.shadowColor = 'rgba(0, 0, 0, 0.9)';
+          ctx.shadowBlur = 15;
+          ctx.shadowOffsetX = 3;
+          ctx.shadowOffsetY = 6;
+          
+          // Découper le titre en lignes si nécessaire
+          const maxTitleWidth = canvas.width - layout.margin * 2;
           const words = title.split(' ');
-          const lines: string[] = [];
+          const titleLines: string[] = [];
           let currentLine = '';
           
           for (const word of words) {
             const testLine = currentLine + (currentLine ? ' ' : '') + word;
-            if (ctx.measureText(testLine).width <= maxWidth || !currentLine) {
+            const metrics = ctx.measureText(testLine);
+            if (metrics.width <= maxTitleWidth || !currentLine) {
               currentLine = testLine;
             } else {
-              lines.push(currentLine);
+              titleLines.push(currentLine);
               currentLine = word;
             }
           }
-          if (currentLine) lines.push(currentLine);
+          if (currentLine) titleLines.push(currentLine);
           
-          lines.forEach((line, index) => {
-            ctx.fillText(line, canvas.width / 2, titleY + index * layout.titleSize * 1.1);
+          console.log(`📏 Titre divisé en ${titleLines.length} lignes:`, titleLines);
+          
+          // Afficher chaque ligne du titre
+          titleLines.forEach((line, index) => {
+            const lineY = titleY + index * titleFontSize * 1.2;
+            console.log(`✏️ Ligne ${index + 1}: "${line}" à Y=${lineY}`);
+            ctx.fillText(line, canvas.width / 2, lineY);
           });
+          
+          // Reset shadow
+          ctx.shadowColor = 'transparent';
+          ctx.shadowBlur = 0;
+          ctx.shadowOffsetX = 0;
+          ctx.shadowOffsetY = 0;
 
-          // Date
+          // DATE - Sous-titre proéminent
           const dateText = selectedFiche.dateDebut === selectedFiche.dateFin 
             ? new Date(selectedFiche.dateDebut).toLocaleDateString('fr-FR', { 
                 weekday: 'long', 
                 day: 'numeric', 
-                month: 'long' 
+                month: 'long',
+                year: 'numeric'
               })
             : `${new Date(selectedFiche.dateDebut).toLocaleDateString('fr-FR')} - ${new Date(selectedFiche.dateFin).toLocaleDateString('fr-FR')}`;
 
-          const dateY = titleY + lines.length * layout.titleSize * 1.1 + layout.spacing;
-          ctx.font = `600 ${layout.subtitleSize}px Arial`;
+          const dateY = titleY + titleLines.length * titleFontSize * 1.1 + layout.spacing * 1.5;
+          ctx.font = `700 ${layout.subtitleSize}px ${getFontFamily('subtitle')}`;
           ctx.fillStyle = template.secondaryColor;
+          ctx.textAlign = 'center';
+          
+          // Ombre légère pour la date
+          ctx.shadowColor = 'rgba(0, 0, 0, 0.6)';
+          ctx.shadowBlur = 8;
+          ctx.shadowOffsetY = 3;
+          
           ctx.fillText(dateText.toUpperCase(), canvas.width / 2, dateY);
 
-          // Lieu
-          const locationY = dateY + layout.spacing;
-          ctx.font = `500 ${layout.detailSize}px Arial`;
+          // LIEU - Information importante
+          const locationY = dateY + layout.spacing * 1.2;
+          ctx.font = `600 ${layout.detailSize * 1.1}px ${getFontFamily('detail')}`;
           ctx.fillStyle = template.textColor;
           const location = selectedFiche.lieu.split(',')[0];
-          ctx.fillText(location.toUpperCase(), canvas.width / 2, locationY);
+          
+          // Ombre pour le lieu
+          ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+          ctx.shadowBlur = 6;
+          ctx.shadowOffsetY = 2;
+          
+          ctx.fillText(`📍 ${location.toUpperCase()}`, canvas.width / 2, locationY);
 
-          // Ligne d'accent en bas
-          const lineY = canvas.height - layout.margin - 20;
-          const lineWidth = canvas.width * 0.3;
+          // Ligne d'accent décorative en bas
+          const lineY = canvas.height - layout.margin * 1.5;
+          const lineWidth = canvas.width * 0.4;
+          
+          // Ombre pour la ligne
+          ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
+          ctx.shadowBlur = 6;
+          ctx.shadowOffsetY = 3;
+          
           ctx.fillStyle = template.accent;
-          ctx.fillRect((canvas.width - lineWidth) / 2, lineY, lineWidth, 8);
+          ctx.fillRect((canvas.width - lineWidth) / 2, lineY, lineWidth, 12);
 
-          // Reset shadow
+          // Reset tous les effets d'ombre
           ctx.shadowColor = 'transparent';
           ctx.shadowBlur = 0;
+          ctx.shadowOffsetX = 0;
           ctx.shadowOffsetY = 0;
 
           // Convertir en image
