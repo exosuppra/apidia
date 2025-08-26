@@ -1,62 +1,33 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import GoogleMyBusinessSetup from "./GoogleMyBusinessSetup";
-import { Star, MessageSquare, ExternalLink } from "lucide-react";
+import { Star, MessageSquare } from "lucide-react";
 
 export default function GoogleMyBusinessReviews() {
-  const [isSetup, setIsSetup] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
-
-  useEffect(() => {
-    checkSetupStatus();
-  }, []);
-
-  const checkSetupStatus = async () => {
-    try {
-      const { data, error } = await supabase.functions.invoke('google-auth-setup', {
-        method: 'GET'
-      });
-
-      if (error) throw error;
-      setIsSetup(data.hasCredentials);
-    } catch (error) {
-      console.error('Error checking setup status:', error);
-    }
-  };
 
   const handleGoogleConnect = async () => {
     setLoading(true);
     
     try {
-      const redirectUri = `${window.location.origin}/dashboard`;
-      
-      const { data, error } = await supabase.functions.invoke('google-oauth', {
-        body: { action: 'getAuthUrl', redirectUri }
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          scopes: 'https://www.googleapis.com/auth/business.manage',
+          redirectTo: `${window.location.origin}/dashboard`
+        }
       });
 
       if (error) throw error;
 
-      // Open Google OAuth in a popup
-      const popup = window.open(
-        data.authUrl,
-        'google-oauth',
-        'width=500,height=600,scrollbars=yes,resizable=yes'
-      );
-
-      // Listen for the popup to close or for a message from it
-      const checkClosed = setInterval(() => {
-        if (popup?.closed) {
-          clearInterval(checkClosed);
-          setLoading(false);
-          // Check if connection was successful
-          checkConnectionStatus();
-        }
-      }, 1000);
+      toast({
+        title: "Redirection vers Google",
+        description: "Vous allez être redirigé vers Google pour vous connecter"
+      });
 
     } catch (error: any) {
       console.error('Connection error:', error);
@@ -65,23 +36,10 @@ export default function GoogleMyBusinessReviews() {
         description: error.message || "Impossible de se connecter à Google",
         variant: "destructive"
       });
+    } finally {
       setLoading(false);
     }
   };
-
-  const checkConnectionStatus = async () => {
-    // This would check if we have valid tokens
-    // For now, we'll implement this in a future iteration
-    setIsConnected(true);
-    toast({
-      title: "Connexion réussie",
-      description: "Votre compte Google My Business est maintenant connecté"
-    });
-  };
-
-  if (!isSetup) {
-    return <GoogleMyBusinessSetup onSetupComplete={() => setIsSetup(true)} />;
-  }
 
   return (
     <div className="space-y-6">
@@ -107,7 +65,7 @@ export default function GoogleMyBusinessReviews() {
                 disabled={loading}
                 className="w-full"
               >
-                {loading ? "Connexion..." : "Se connecter à Google My Business"}
+                {loading ? "Connexion..." : "Se connecter avec Google"}
               </Button>
             </div>
           </CardContent>
