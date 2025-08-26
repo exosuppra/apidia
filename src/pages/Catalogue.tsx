@@ -97,7 +97,7 @@ const services = [
       {
         icon: <Camera className="w-8 h-8" />,
         title: "Création automatisée de contenus visuels",
-        description: "Génération d'affiches évènementiels, visuels pour sites web et contenus marketing personnalisés",
+        description: "Génération d'affiches évènementiels",
         cta: "Créer mes contenus visuels",
         price: "39€/mois"
       },
