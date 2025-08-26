@@ -1066,17 +1066,32 @@ export default function GenerateurAffiches() {
                         </Select>
                       </div>
 
-                      <div className="space-y-2">
-                        <Label>Texte supplémentaire (optionnel)</Label>
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-2">
+                          <Type className="w-4 h-4" />
+                          <Label className="text-base font-medium">Texte supplémentaire pour affiche</Label>
+                        </div>
                         <Textarea
-                          placeholder="Ajouter un texte en complément du titre principal..."
+                          placeholder="Ex: Entrée gratuite • Restauration sur place • Inscription obligatoire..."
                           value={customText}
                           onChange={(e) => setCustomText(e.target.value)}
-                          rows={3}
+                          rows={4}
+                          className="resize-none"
                         />
-                        <p className="text-xs text-muted-foreground">
-                          Ce texte s'ajoutera au titre original, il ne le remplacera pas.
-                        </p>
+                        <div className="space-y-2">
+                          <p className="text-xs text-muted-foreground">
+                            💡 <strong>Ce texte s'ajoute au titre principal</strong> - Utilisez-le pour des informations pratiques importantes
+                          </p>
+                          <div className="text-xs text-muted-foreground">
+                            <p className="font-medium mb-1">Suggestions :</p>
+                            <ul className="list-disc list-inside space-y-0.5 pl-2">
+                              <li>Informations pratiques : "Entrée libre", "Sur inscription", "Parking gratuit"</li>
+                              <li>Détails horaires : "Ouverture 9h-18h", "Nocturne jusqu'à 23h"</li>
+                              <li>Services : "Restauration", "Animations enfants", "Accessibilité PMR"</li>
+                              <li>Contact : "Réservations : 04.XX.XX.XX.XX"</li>
+                            </ul>
+                          </div>
+                        </div>
                       </div>
 
                       <div className="space-y-4">
