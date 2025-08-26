@@ -98,17 +98,27 @@ export default function BusinessDashboard() {
       setGoogleLoading(true);
       
       const currentUrl = window.location.origin;
-      console.log('🔗 Liaison du compte Google à ApidIA:', {
+      console.log('🚀 Ouverture popup Google OAuth:', {
         origin: currentUrl,
-        redirectTo: `${currentUrl}/avis`,
-        userAlreadyLoggedIn: !!user
+        redirectTo: `${currentUrl}/google-callback`
       });
       
-      // Lier le compte Google au compte ApidIA existant
-      const { error } = await supabase.auth.linkIdentity({
+      // Créer une popup pour Google OAuth
+      const popup = window.open(
+        '', 
+        'google-oauth', 
+        'width=500,height=600,scrollbars=yes,resizable=yes'
+      );
+      
+      if (!popup) {
+        throw new Error('Popup bloquée par le navigateur');
+      }
+      
+      // Initier la connexion Google OAuth dans la popup
+      const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${currentUrl}/avis`,
+          redirectTo: `${currentUrl}/google-callback`,
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',
@@ -118,27 +128,82 @@ export default function BusinessDashboard() {
       });
 
       if (error) {
-        console.error('❌ Erreur liaison Google:', error);
-        console.log('💡 Vérifiez que ces URIs sont bien configurées dans Google Cloud Console:');
-        console.log('1. JavaScript origins:', currentUrl);
-        console.log('2. Redirect URIs:', 'https://krmeineyonriifvoexkx.supabase.co/auth/v1/callback');
+        popup.close();
+        console.error('❌ Erreur OAuth Google:', error);
         toast({
-          title: "Erreur de liaison",
-          description: `${error.message} - Vérifiez la console pour plus de détails`,
+          title: "Erreur OAuth",
+          description: error.message,
           variant: "destructive",
         });
-      } else {
-        console.log('✅ Liaison Google initiée - vous devriez être redirigé vers Google');
+        return;
       }
+
+      // Rediriger la popup vers l'URL d'authentification
+      if (data.url) {
+        popup.location.href = data.url;
+      }
+      
+      // Écouter les messages de la popup
+      const handlePopupMessage = async (event: MessageEvent) => {
+        if (event.origin !== window.location.origin) return;
+        
+        if (event.data.type === 'GOOGLE_AUTH_SUCCESS') {
+          console.log('✅ Token Google reçu');
+          popup.close();
+          window.removeEventListener('message', handlePopupMessage);
+          
+          // Stocker le token Google pour l'utilisateur actuel
+          const { error: storeError } = await supabase.functions.invoke('store-google-token', {
+            body: { 
+              googleToken: event.data.token,
+              refreshToken: event.data.refreshToken 
+            }
+          });
+          
+          if (storeError) {
+            console.error('Erreur stockage token:', storeError);
+            toast({
+              title: "Erreur",
+              description: "Impossible de sauvegarder le token Google",
+              variant: "destructive",
+            });
+          } else {
+            toast({
+              title: "Succès",
+              description: "Compte Google lié avec succès !",
+            });
+            // Recharger les établissements
+            loadBusinesses();
+          }
+        } else if (event.data.type === 'GOOGLE_AUTH_ERROR') {
+          popup.close();
+          window.removeEventListener('message', handlePopupMessage);
+          toast({
+            title: "Erreur",
+            description: event.data.error,
+            variant: "destructive",
+          });
+        }
+      };
+      
+      window.addEventListener('message', handlePopupMessage);
+      
+      // Vérifier si la popup est fermée manuellement
+      const checkClosed = setInterval(() => {
+        if (popup.closed) {
+          clearInterval(checkClosed);
+          window.removeEventListener('message', handlePopupMessage);
+          setGoogleLoading(false);
+        }
+      }, 1000);
+      
     } catch (error) {
-      console.error('❌ Erreur catch liaison:', error);
+      console.error('❌ Erreur popup Google:', error);
       toast({
         title: "Erreur",
-        description: "Impossible de lier le compte Google",
+        description: "Impossible d'ouvrir la fenêtre de connexion Google",
         variant: "destructive",
       });
-    } finally {
-      setGoogleLoading(false);
     }
   };
 
