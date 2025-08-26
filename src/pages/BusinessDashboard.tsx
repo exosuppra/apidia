@@ -96,9 +96,7 @@ export default function BusinessDashboard() {
   const handleGoogleLogin = async () => {
     try {
       setGoogleLoading(true);
-      
-      // Ouvrir la popup Google OAuth sans déconnecter l'utilisateur ApidIA
-      const { error } = await supabase.auth.linkIdentity({
+      const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
           redirectTo: `${window.location.origin}/avis`,
@@ -116,17 +114,11 @@ export default function BusinessDashboard() {
           description: error.message,
           variant: "destructive",
         });
-      } else {
-        toast({
-          title: "Connexion Google",
-          description: "Connexion Google My Business en cours...",
-        });
       }
     } catch (error) {
-      console.error('Google link error:', error);
       toast({
         title: "Erreur",
-        description: "Impossible de connecter Google My Business",
+        description: "Impossible de se connecter avec Google",
         variant: "destructive",
       });
     } finally {
@@ -173,12 +165,12 @@ export default function BusinessDashboard() {
                   Connectez votre compte Google My Business pour accéder à vos établissements tout en restant connecté à ApidIA.
                 </p>
                 <div className="space-y-2">
-                  <p className="text-sm text-blue-600 bg-blue-50 p-2 rounded">
-                    💼 Connectez votre compte Google My Business pour accéder à vos établissements.
+                  <p className="text-sm text-amber-600 bg-amber-50 p-2 rounded">
+                    ⚠️ Pour accéder à Google My Business, vous devez vous connecter avec Google. Après avoir autorisé l'accès, revenez vous connecter à ApidIA avec vos identifiants habituels.
                   </p>
                   <div className="flex gap-3 justify-center">
                     <Button onClick={handleGoogleLogin} disabled={googleLoading}>
-                      {googleLoading ? "Connexion..." : "Connecter Google My Business"}
+                      {googleLoading ? "Connexion..." : "Se connecter avec Google"}
                     </Button>
                     <Button variant="outline" onClick={loadBusinesses}>Actualiser</Button>
                   </div>
