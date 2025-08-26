@@ -29,36 +29,36 @@ import {
   RotateCcw
 } from "lucide-react";
 
-// Mock data pour les fiches Apidae (en attendant l'intégration avec l'API)
+// Événements proposés pour la région
 const mockFiches = [
   {
     id: "1",
-    title: "Festival de Jazz de Montpellier",
+    title: "Festival de Lavande",
     type: "Manifestation culturelle",
-    dateDebut: "2024-06-15",
-    dateFin: "2024-06-22",
-    lieu: "Esplanade Charles de Gaulle, Montpellier",
-    description: "Le plus grand festival de jazz du Sud de la France avec des artistes internationaux. Une semaine de concerts exceptionnels dans un cadre unique.",
-    image: "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400&h=240&fit=crop&crop=center"
+    dateDebut: "2024-07-08",
+    dateFin: "2024-07-15",
+    lieu: "Plateau de Valensole",
+    description: "Festival annuel célébrant la lavande en fleur avec animations provençales, marchés d'artisans et spectacles traditionnels au cœur des champs violets.",
+    image: "https://images.unsplash.com/photo-1499002238440-d264edd596ec?w=400&h=240&fit=crop&crop=center"
   },
   {
     id: "2", 
-    title: "Marché de Noël artisanal",
+    title: "Thermalies & Bien-être",
     type: "Manifestation commerciale",
-    dateDebut: "2024-12-01",
-    dateFin: "2024-12-24",
-    lieu: "Place de la Comédie, Montpellier",
-    description: "Marché de Noël traditionnel avec des artisans locaux, produits du terroir et animations pour toute la famille.",
-    image: "https://images.unsplash.com/photo-1512389142860-9c449e58a543?w=400&h=240&fit=crop&crop=center"
+    dateDebut: "2024-10-05",
+    dateFin: "2024-10-07",
+    lieu: "Centre thermal, Gréoux-les-Bains",
+    description: "Salon du thermalisme et du bien-être avec exposants, conférences santé, ateliers relaxation et découverte des soins thermaux.",
+    image: "https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=400&h=240&fit=crop&crop=center"
   },
   {
     id: "3",
-    title: "Trail des Vignes",
+    title: "Trail des Collines",
     type: "Manifestation sportive", 
-    dateDebut: "2024-09-14",
-    dateFin: "2024-09-14",
-    lieu: "Domaine viticole de Pic Saint-Loup",
-    description: "Course nature de 15km et 25km à travers les vignobles avec dégustation à l'arrivée.",
+    dateDebut: "2024-09-22",
+    dateFin: "2024-09-22",
+    lieu: "Centre-ville, Manosque",
+    description: "Course nature de 10km et 21km à travers les collines manosquines, départ et arrivée place du Terreau avec ravitaillement local.",
     image: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=240&fit=crop&crop=center"
   }
 ];
@@ -367,23 +367,26 @@ export default function GenerateurAffiches() {
             ctx.fillText(line, canvas.width / 2, lineY);
           });
 
-          // TEXTE SUPPLÉMENTAIRE (si présent)
+          // TEXTE SUPPLÉMENTAIRE (si présent) - Mise en forme améliorée
           let additionalTextHeight = 0;
           if (additionalText) {
-            const additionalTextY = titleY + titleLines.length * titleFontSize * 1.2 + layout.spacing * 0.8;
-            const additionalFontSize = titleFontSize * 0.7;
-            ctx.font = `600 ${additionalFontSize}px ${getFontFamily('subtitle')}`;
-            ctx.fillStyle = template.accent;
+            const additionalTextY = titleY + titleLines.length * titleFontSize * 1.2 + layout.spacing * 1.2;
+            const additionalFontSize = titleFontSize * 0.75; // Taille légèrement plus grande
             
-            // Découper le texte supplémentaire si nécessaire
+            // Style du texte supplémentaire avec encadré
+            ctx.font = `700 ${additionalFontSize}px ${getFontFamily('subtitle')}`;
+            
+            // Découper le texte supplémentaire en lignes
             const additionalWords = additionalText.split(' ');
             const additionalLines: string[] = [];
             let additionalCurrentLine = '';
             
+            const maxAdditionalWidth = canvas.width - layout.margin * 3; // Un peu plus étroit
+            
             for (const word of additionalWords) {
               const testLine = additionalCurrentLine + (additionalCurrentLine ? ' ' : '') + word;
               const metrics = ctx.measureText(testLine);
-              if (metrics.width <= maxTitleWidth || !additionalCurrentLine) {
+              if (metrics.width <= maxAdditionalWidth || !additionalCurrentLine) {
                 additionalCurrentLine = testLine;
               } else {
                 additionalLines.push(additionalCurrentLine);
@@ -392,13 +395,48 @@ export default function GenerateurAffiches() {
             }
             if (additionalCurrentLine) additionalLines.push(additionalCurrentLine);
             
+            // Calculer la hauteur totale du bloc de texte
+            const totalTextHeight = additionalLines.length * additionalFontSize * 1.3;
+            const paddingV = layout.spacing * 0.6;
+            const paddingH = layout.spacing * 0.8;
+            
+            // Fond du texte supplémentaire avec bordure
+            const bgX = layout.margin * 1.5;
+            const bgY = additionalTextY - paddingV;
+            const bgWidth = canvas.width - layout.margin * 3;
+            const bgHeight = totalTextHeight + paddingV * 2;
+            
+            // Ombre du fond
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
+            ctx.shadowBlur = 12;
+            ctx.shadowOffsetY = 6;
+            
+            // Fond semi-transparent
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+            ctx.beginPath();
+            ctx.roundRect(bgX, bgY, bgWidth, bgHeight, paddingV);
+            ctx.fill();
+            
+            // Bordure colorée
+            ctx.strokeStyle = template.accent;
+            ctx.lineWidth = 4;
+            ctx.stroke();
+            
+            // Reset shadow
+            ctx.shadowColor = 'transparent';
+            ctx.shadowBlur = 0;
+            ctx.shadowOffsetY = 0;
+            
             // Afficher le texte supplémentaire
+            ctx.fillStyle = '#1a1a1a'; // Texte sombre pour le contraste
+            ctx.textAlign = 'center';
+            
             additionalLines.forEach((line, index) => {
-              const lineY = additionalTextY + index * additionalFontSize * 1.1;
+              const lineY = additionalTextY + paddingV/2 + index * additionalFontSize * 1.3;
               ctx.fillText(line, canvas.width / 2, lineY);
             });
             
-            additionalTextHeight = additionalLines.length * additionalFontSize * 1.1 + layout.spacing * 0.5;
+            additionalTextHeight = bgHeight + layout.spacing;
           }
           
           // Reset shadow
