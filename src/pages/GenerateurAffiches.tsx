@@ -1027,7 +1027,7 @@ export default function GenerateurAffiches() {
                       <div className="space-y-4">
                         <Label className="text-base font-medium">Images personnalisées HD (optionnel)</Label>
                         
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 gap-4">
                           {/* Image Portrait pour affiches */}
                           <div className="space-y-2">
                             <Label className="text-sm">Image portrait (affiches)</Label>
