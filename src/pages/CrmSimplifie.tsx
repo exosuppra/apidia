@@ -49,33 +49,12 @@ const crmFeatures = [
         cta: "Voir le formulaire",
         price: "Inclus"
       },
-      {
-        icon: <Database className="w-8 h-8" />,
-        title: "Base de données sécurisée",
-        description: "Stockage RGPD compliant de toutes les données clients avec chiffrement et sauvegarde automatique",
-        cta: "Découvrir la sécurité",
-        price: "Inclus"
-      }
     ]
   },
   {
     category: "Gestion clients",
     color: "bg-secondary/10 text-secondary-foreground",
     services: [
-      {
-        icon: <Users className="w-8 h-8" />,
-        title: "Profils clients enrichis",
-        description: "Base de données complète avec historique des visites, préférences et données de contact",
-        cta: "Voir les profils",
-        price: "29€/mois"
-      },
-      {
-        icon: <BarChart3 className="w-8 h-8" />,
-        title: "Analytics avancés",
-        description: "Tableaux de bord détaillés : taux de conversion, origine des clients, tendances saisonnières",
-        cta: "Voir les stats",
-        price: "49€/mois"
-      },
       {
         icon: <FileText className="w-8 h-8" />,
         title: "Export des données",
@@ -95,13 +74,6 @@ const crmFeatures = [
         description: "Création automatique d'emails personnalisés basés sur le profil et comportement client",
         cta: "Créer une campagne",
         price: "79€/mois"
-      },
-      {
-        icon: <Target className="w-8 h-8" />,
-        title: "Segmentation intelligente",
-        description: "L'IA segmente automatiquement vos clients selon leurs préférences et comportements",
-        cta: "Voir les segments",
-        price: "39€/mois"
       },
       {
         icon: <Calendar className="w-8 h-8" />,
