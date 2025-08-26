@@ -76,6 +76,8 @@ export default function GenerateurAffiches() {
   const [selectedStyle, setSelectedStyle] = useState("");
   const [customText, setCustomText] = useState("");
   const [customImage, setCustomImage] = useState<string | null>(null);
+  const [customImagePortrait, setCustomImagePortrait] = useState<string | null>(null);
+  const [customImageLandscape, setCustomImageLandscape] = useState<string | null>(null);
   const [showEditor, setShowEditor] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedPosters, setGeneratedPosters] = useState<{
@@ -173,14 +175,29 @@ export default function GenerateurAffiches() {
           canvas.height = formatConfig.height;
           const ctx = canvas.getContext('2d')!;
 
-          // Charger l'image de fond
+          // Charger l'image de fond (utiliser l'image personnalisée appropriée selon le format)
           const img = new Image();
           img.crossOrigin = 'anonymous';
           
           await new Promise((resolve, reject) => {
             img.onload = resolve;
             img.onerror = reject;
-            img.src = selectedFiche.image;
+            
+            // Choisir l'image selon le format
+            let imageSource = selectedFiche.image; // Image par défaut
+            
+            if (formatKey === 'banner' && customImageLandscape) {
+              // Utiliser l'image paysage pour les bannières web
+              imageSource = customImageLandscape;
+            } else if (['print', 'story', 'feed'].includes(formatKey) && customImagePortrait) {
+              // Utiliser l'image portrait pour les formats verticaux
+              imageSource = customImagePortrait;
+            } else if (customImage) {
+              // Fallback sur l'ancienne variable si présente
+              imageSource = customImage;
+            }
+            
+            img.src = imageSource;
           });
 
           // Dessiner l'image de fond (couvrir tout le canvas)
@@ -1038,7 +1055,7 @@ export default function GenerateurAffiches() {
                                 const file = e.target.files?.[0];
                                 if (file) {
                                   const reader = new FileReader();
-                                  reader.onload = (e) => setCustomImage(e.target?.result as string);
+                                  reader.onload = (e) => setCustomImagePortrait(e.target?.result as string);
                                   reader.readAsDataURL(file);
                                 }
                               }}
@@ -1057,9 +1074,8 @@ export default function GenerateurAffiches() {
                               onChange={(e) => {
                                 const file = e.target.files?.[0];
                                 if (file) {
-                                  // Pour l'instant, on utilise la même variable, à améliorer plus tard
                                   const reader = new FileReader();
-                                  reader.onload = (e) => setCustomImage(e.target?.result as string);
+                                  reader.onload = (e) => setCustomImageLandscape(e.target?.result as string);
                                   reader.readAsDataURL(file);
                                 }
                               }}
@@ -1070,14 +1086,18 @@ export default function GenerateurAffiches() {
                           </div>
                         </div>
 
-                        {customImage && (
-                          <div className="w-full h-24 rounded bg-muted overflow-hidden">
-                            <img src={customImage} alt="Aperçu" className="w-full h-full object-cover" />
-                          </div>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
+                         {(customImagePortrait || customImageLandscape) && (
+                           <div className="w-full h-24 rounded bg-muted overflow-hidden">
+                             <img 
+                               src={customImagePortrait || customImageLandscape || ''} 
+                               alt="Aperçu image personnalisée"
+                               className="w-full h-full object-cover"
+                             />
+                           </div>
+                         )}
+                       </div>
+                     </CardContent>
+                   </Card>
                 </div>
 
                 {/* Étape 3: Génération */}
