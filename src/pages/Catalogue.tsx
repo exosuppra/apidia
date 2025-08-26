@@ -46,7 +46,8 @@ const services = [
         title: "Bilan de site web",
         description: "Analyse complète : qualité SEO, textes, temps de chargement des pages, différences avec la concurrence",
         cta: "Obtenir mon bilan",
-        price: "49€"
+        price: "49€",
+        link: "/bilan-site-web"
       },
       {
         icon: <Smartphone className="w-8 h-8" />,
