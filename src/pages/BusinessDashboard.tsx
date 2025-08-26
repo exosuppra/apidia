@@ -45,6 +45,19 @@ export default function BusinessDashboard() {
   const loadBusinesses = async () => {
     try {
       setLoading(true);
+      
+      // Vérifier la session actuelle
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      console.log('🔍 Session actuelle:', { 
+        session: session?.user?.id, 
+        accessToken: session?.access_token ? 'PRÉSENT' : 'ABSENT',
+        error: sessionError 
+      });
+      
+      if (!session) {
+        throw new Error('Pas de session active');
+      }
+      
       const { data, error } = await supabase.functions.invoke('get-businesses');
       
       if (error) {
@@ -128,29 +141,48 @@ export default function BusinessDashboard() {
           popup.close();
           window.removeEventListener('message', handlePopupMessage);
           
-          // Stocker le token Google pour l'utilisateur actuel
-          const { error: storeError } = await supabase.functions.invoke('store-google-token', {
-            body: { 
-              googleToken: event.data.token,
-              refreshToken: event.data.refreshToken 
+          // Attendre un peu que la session soit synchronisée
+          setTimeout(async () => {
+            try {
+              // Vérifier la nouvelle session
+              const { data: { session } } = await supabase.auth.getSession();
+              console.log('🔍 Session après Google OAuth:', {
+                userId: session?.user?.id,
+                hasToken: !!session?.access_token
+              });
+              
+              // Stocker le token Google pour l'utilisateur actuel
+              const { error: storeError } = await supabase.functions.invoke('store-google-token', {
+                body: { 
+                  googleToken: event.data.token,
+                  refreshToken: event.data.refreshToken 
+                }
+              });
+              
+              if (storeError) {
+                console.error('Erreur stockage token:', storeError);
+                toast({
+                  title: "Erreur",
+                  description: "Impossible de sauvegarder le token Google",
+                  variant: "destructive",
+                });
+              } else {
+                toast({
+                  title: "Succès",
+                  description: "Compte Google lié avec succès !",
+                });
+                // Recharger les établissements
+                loadBusinesses();
+              }
+            } catch (error) {
+              console.error('Erreur lors du traitement:', error);
+              toast({
+                title: "Erreur",
+                description: "Problème de synchronisation. Rechargez la page.",
+                variant: "destructive",
+              });
             }
-          });
-          
-          if (storeError) {
-            console.error('Erreur stockage token:', storeError);
-            toast({
-              title: "Erreur",
-              description: "Impossible de sauvegarder le token Google",
-              variant: "destructive",
-            });
-          } else {
-            toast({
-              title: "Succès",
-              description: "Compte Google lié avec succès !",
-            });
-            // Recharger les établissements
-            loadBusinesses();
-          }
+          }, 1000);
         } else if (event.data.type === 'GOOGLE_AUTH_ERROR') {
           popup.close();
           window.removeEventListener('message', handlePopupMessage);
