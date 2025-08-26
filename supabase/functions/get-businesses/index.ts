@@ -1,23 +1,30 @@
-import "https://deno.land/x/xhr@0.1.0/mod.ts";
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
+import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.55.0";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-serve(async (req) => {
+serve(async (req: Request) => {
+  console.log('🚀 GET-BUSINESSES FUNCTION CALLED');
+  
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
+    console.log('✅ CORS OPTIONS for get-businesses');
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
+    console.log('🔍 Starting get-businesses...');
+    
     const authHeader = req.headers.get('authorization');
     if (!authHeader) {
+      console.log('❌ No auth header in get-businesses');
       throw new Error('No authorization header');
     }
+
+    console.log('✅ Auth header present in get-businesses');
 
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -25,12 +32,15 @@ serve(async (req) => {
       { global: { headers: { Authorization: authHeader } } }
     );
 
+    console.log('🔍 Getting user...');
     // Get the current user to verify authentication
     const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
     if (userError || !user) {
+      console.error('❌ User not authenticated in get-businesses:', userError);
       throw new Error('User not authenticated');
     }
 
+    console.log('✅ User authenticated:', user.id);
     console.log('🔍 Récupération du token Google pour l\'utilisateur:', user.id);
     
     // Récupérer le token Google depuis la table user_google_tokens
@@ -38,12 +48,18 @@ serve(async (req) => {
       .from('user_google_tokens')
       .select('access_token, expires_at')
       .eq('user_id', user.id)
-      .single();
+      .maybeSingle();
+    
+    console.log('🔍 Token query result:', {
+      hasToken: !!tokenData?.access_token,
+      error: tokenError?.message || 'AUCUNE'
+    });
     
     if (tokenError || !tokenData?.access_token) {
       console.error('❌ Token Google non trouvé:', tokenError);
       return new Response(
         JSON.stringify({ 
+          businesses: [],
           error: 'Aucun compte Google connecté. Cliquez sur "Connecter Google My Business" pour lier votre compte.',
           errorCode: 'NO_GOOGLE_TOKEN'
         }),
