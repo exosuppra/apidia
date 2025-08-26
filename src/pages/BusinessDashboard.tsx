@@ -32,6 +32,7 @@ export default function BusinessDashboard() {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingReviews, setLoadingReviews] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
 
@@ -92,6 +93,39 @@ export default function BusinessDashboard() {
     loadReviews(business.id);
   };
 
+  const handleGoogleLogin = async () => {
+    try {
+      setGoogleLoading(true);
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/avis`,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          },
+          scopes: 'https://www.googleapis.com/auth/business.manage',
+        },
+      });
+
+      if (error) {
+        toast({
+          title: "Erreur",
+          description: error.message,
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Erreur",
+        description: "Impossible de se connecter avec Google",
+        variant: "destructive",
+      });
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
+
   if (!selectedBusiness) {
     return (
       <>
@@ -128,9 +162,14 @@ export default function BusinessDashboard() {
                 <Building2 className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
                 <h3 className="text-lg font-medium mb-2">Aucun établissement trouvé</h3>
                 <p className="text-muted-foreground mb-4">
-                  Vérifiez que votre compte Google a accès à des établissements Google My Business
+                  Pour accéder à vos établissements Google My Business, connectez-vous avec votre compte Google professionnel.
                 </p>
-                <Button onClick={loadBusinesses}>Actualiser</Button>
+                <div className="flex gap-3 justify-center">
+                  <Button onClick={handleGoogleLogin} disabled={googleLoading}>
+                    {googleLoading ? "Connexion..." : "Se connecter avec Google"}
+                  </Button>
+                  <Button variant="outline" onClick={loadBusinesses}>Actualiser</Button>
+                </div>
               </CardContent>
             </Card>
           ) : (
