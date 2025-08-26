@@ -162,13 +162,18 @@ export default function BusinessDashboard() {
                 <Building2 className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
                 <h3 className="text-lg font-medium mb-2">Aucun établissement trouvé</h3>
                 <p className="text-muted-foreground mb-4">
-                  Pour accéder à vos établissements Google My Business, connectez-vous avec votre compte Google professionnel.
+                  Pour accéder à vos établissements Google My Business, vous devez vous déconnecter puis vous reconnecter avec Google OAuth.
                 </p>
-                <div className="flex gap-3 justify-center">
-                  <Button onClick={handleGoogleLogin} disabled={googleLoading}>
-                    {googleLoading ? "Connexion..." : "Se connecter avec Google"}
-                  </Button>
-                  <Button variant="outline" onClick={loadBusinesses}>Actualiser</Button>
+                <div className="space-y-2">
+                  <p className="text-sm text-orange-600 bg-orange-50 p-2 rounded">
+                    ⚠️ Vous êtes connecté via email/password. Déconnectez-vous et reconnectez-vous avec Google pour accéder à vos établissements.
+                  </p>
+                  <div className="flex gap-3 justify-center">
+                    <Button onClick={handleGoogleLogin} disabled={googleLoading}>
+                      {googleLoading ? "Connexion..." : "Se connecter avec Google"}
+                    </Button>
+                    <Button variant="outline" onClick={loadBusinesses}>Actualiser</Button>
+                  </div>
                 </div>
               </CardContent>
             </Card>
