@@ -23,9 +23,3 @@ verify_jwt = false
 
 [functions.create-admin]
 verify_jwt = false
-
-[functions.google-business-reviews]
-verify_jwt = true
-
-[functions.generate-review-response]
-verify_jwt = true

@@ -3,7 +3,6 @@ import Seo from "@/components/Seo";
 import { Activity, MessageSquare, Star, TrendingUp, FileText } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import GoogleMyBusinessReviews from "@/components/GoogleMyBusinessReviews";
 
 export default function Overview() {
   const kpis = [
@@ -55,8 +54,6 @@ export default function Overview() {
             cadence de publications pour améliorer le score local.
           </p>
         </article>
-
-        <GoogleMyBusinessReviews />
       </section>
     </>
   );
