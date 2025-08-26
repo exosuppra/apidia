@@ -188,8 +188,11 @@ export default function BusinessDashboard() {
                   title: "Succès",
                   description: storeResult.data?.message || "Token stocké !",
                 });
-                // Recharger les établissements
-                loadBusinesses();
+                
+                // Attendre un peu que la DB soit synchronisée avant de charger les établissements
+                setTimeout(() => {
+                  loadBusinesses();
+                }, 2000);
               }
             } catch (error) {
               console.error('❌ Erreur lors du traitement:', error);
