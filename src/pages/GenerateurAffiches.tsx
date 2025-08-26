@@ -253,8 +253,21 @@ export default function GenerateurAffiches() {
             ctx.fillRect(0, 0, width, height);
           }
 
-          // Zone de texte avec design adaptatif
-          const margin = width * 0.08;
+          // Définir les safe areas (grille rigoureuse)
+          const safeArea = {
+            top: height * 0.1,
+            bottom: height * 0.1,
+            left: width * 0.08,
+            right: width * 0.08
+          };
+          
+          const contentArea = {
+            x: safeArea.left,
+            y: safeArea.top,
+            width: width - safeArea.left - safeArea.right,
+            height: height - safeArea.top - safeArea.bottom
+          };
+
           const centerX = width / 2;
 
           // Fonction de dessin de texte sophistiquée
@@ -302,8 +315,52 @@ export default function GenerateurAffiches() {
             ctx.shadowOffsetY = 0;
           };
 
+          // Scrim pour améliorer la lisibilité du texte
+          const drawTextScrim = (textY: number, textHeight: number) => {
+            const scrimGradient = ctx.createLinearGradient(0, textY - height * 0.02, 0, textY + textHeight + height * 0.02);
+            scrimGradient.addColorStop(0, 'rgba(0, 0, 0, 0)');
+            scrimGradient.addColorStop(0.2, 'rgba(0, 0, 0, 0.6)');
+            scrimGradient.addColorStop(0.8, 'rgba(0, 0, 0, 0.6)');
+            scrimGradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+            
+            ctx.fillStyle = scrimGradient;
+            ctx.fillRect(0, textY - height * 0.02, width, textHeight + height * 0.04);
+          };
+
+          // Fonction pour dessiner des pictogrammes simples
+          const drawIcon = (x: number, y: number, size: number, type: 'calendar' | 'location') => {
+            ctx.strokeStyle = currentStyleConfig.textColor;
+            ctx.fillStyle = currentStyleConfig.textColor;
+            ctx.lineWidth = size * 0.08;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            
+            if (type === 'calendar') {
+              // Icône calendrier
+              ctx.strokeRect(x, y + size * 0.2, size * 0.8, size * 0.7);
+              ctx.fillRect(x + size * 0.15, y, size * 0.1, size * 0.4);
+              ctx.fillRect(x + size * 0.55, y, size * 0.1, size * 0.4);
+              ctx.beginPath();
+              ctx.moveTo(x + size * 0.2, y + size * 0.45);
+              ctx.lineTo(x + size * 0.6, y + size * 0.45);
+              ctx.moveTo(x + size * 0.2, y + size * 0.65);
+              ctx.lineTo(x + size * 0.6, y + size * 0.65);
+              ctx.stroke();
+            } else if (type === 'location') {
+              // Icône localisation
+              ctx.beginPath();
+              ctx.moveTo(x + size * 0.4, y + size * 0.9);
+              ctx.lineTo(x + size * 0.4, y + size * 0.5);
+              ctx.arc(x + size * 0.4, y + size * 0.3, size * 0.25, 0, Math.PI * 2);
+              ctx.stroke();
+              ctx.beginPath();
+              ctx.arc(x + size * 0.4, y + size * 0.3, size * 0.1, 0, Math.PI * 2);
+              ctx.fill();
+            }
+          };
+
           // Composition graphique professionnelle
-          let currentY = height * 0.2;
+          let currentY = contentArea.y + height * 0.08;
 
           // Badge type avec design élégant
           const badgeText = fiche.type.toUpperCase();
@@ -337,7 +394,7 @@ export default function GenerateurAffiches() {
           currentY += badgeHeight + height * 0.08;
 
           // Titre avec découpe intelligente
-          const maxTitleWidth = width - margin * 2;
+          const maxTitleWidth = contentArea.width;
           const titleLines = wrapText(ctx, fiche.title.toUpperCase(), maxTitleWidth, currentStyleConfig.titleFont);
           
           titleLines.forEach((line, index) => {
@@ -368,7 +425,10 @@ export default function GenerateurAffiches() {
           ctx.globalAlpha = 1;
           currentY += height * 0.06;
 
-          // Informations avec hiérarchie visuelle
+          // Calculer la zone de texte pour le scrim
+          const textStartY = currentY;
+          
+          // Informations avec hiérarchie visuelle et pictogrammes
           const dateStart = new Date(fiche.dateDebut);
           const dateEnd = new Date(fiche.dateFin);
           
@@ -388,24 +448,82 @@ export default function GenerateurAffiches() {
             });
             dateText += ` - ${endText}`;
           }
+
+          // Mesurer la hauteur totale du texte pour le scrim
+          const iconSize = height * 0.04;
+          const dateHeight = height * 0.055;
+          const locationLines = wrapText(ctx, fiche.lieu, contentArea.width - iconSize - height * 0.02, currentStyleConfig.detailFont);
+          const locationHeight = locationLines.length * height * 0.04 + height * 0.02;
+          const customTextHeight = customText && customText.trim() ? 
+            wrapText(ctx, customText.trim(), contentArea.width, currentStyleConfig.detailFont).length * height * 0.035 + height * 0.05 : 0;
           
-          drawProfessionalText(dateText, centerX, currentY, currentStyleConfig.subtitleFont);
-          currentY += height * 0.05;
+          const totalTextHeight = dateHeight + locationHeight + customTextHeight;
+          
+          // Appliquer le scrim pour améliorer la lisibilité
+          drawTextScrim(textStartY, totalTextHeight);
 
-          // Lieu
-          const locationLines = wrapText(ctx, fiche.lieu, width - margin * 2, currentStyleConfig.detailFont);
+          // Date avec pictogramme et alignement à gauche
+          const dateX = contentArea.x + iconSize + height * 0.02;
+          drawIcon(contentArea.x, currentY - iconSize * 0.3, iconSize, 'calendar');
+          
+          ctx.font = currentStyleConfig.subtitleFont;
+          ctx.textAlign = 'left';
+          ctx.shadowColor = qualityConfig.textShadow;
+          ctx.shadowBlur = width * 0.006;
+          ctx.shadowOffsetX = width * 0.001;
+          ctx.shadowOffsetY = width * 0.001;
+          ctx.fillStyle = currentStyleConfig.textColor;
+          ctx.fillText(dateText, dateX, currentY);
+          
+          // Reset shadow
+          ctx.shadowColor = 'transparent';
+          ctx.shadowBlur = 0;
+          ctx.shadowOffsetX = 0;
+          ctx.shadowOffsetY = 0;
+          
+          currentY += dateHeight;
+
+          // Lieu avec pictogramme et alignement à gauche
+          drawIcon(contentArea.x, currentY - iconSize * 0.3, iconSize, 'location');
+          
           locationLines.forEach((line, index) => {
-            drawProfessionalText(line, centerX, currentY + (index * height * 0.04), currentStyleConfig.detailFont);
+            ctx.font = currentStyleConfig.detailFont;
+            ctx.textAlign = 'left';
+            ctx.shadowColor = qualityConfig.textShadow;
+            ctx.shadowBlur = width * 0.005;
+            ctx.shadowOffsetX = width * 0.001;
+            ctx.shadowOffsetY = width * 0.001;
+            ctx.fillStyle = currentStyleConfig.textColor;
+            ctx.fillText(line, dateX, currentY + (index * height * 0.04));
+            
+            // Reset shadow
+            ctx.shadowColor = 'transparent';
+            ctx.shadowBlur = 0;
+            ctx.shadowOffsetX = 0;
+            ctx.shadowOffsetY = 0;
           });
-          currentY += locationLines.length * height * 0.04 + height * 0.04;
+          currentY += locationHeight;
 
-          // Texte personnalisé
+          // Texte personnalisé avec alignement centré si présent
           if (customText && customText.trim()) {
             currentY += height * 0.03;
-            const customLines = wrapText(ctx, customText.trim(), width - margin * 2, currentStyleConfig.detailFont);
+            const customLines = wrapText(ctx, customText.trim(), contentArea.width, currentStyleConfig.detailFont);
             
             customLines.forEach((line, index) => {
-              drawProfessionalText(line, centerX, currentY + (index * height * 0.035), currentStyleConfig.detailFont);
+              ctx.font = currentStyleConfig.detailFont;
+              ctx.textAlign = 'center';
+              ctx.shadowColor = qualityConfig.textShadow;
+              ctx.shadowBlur = width * 0.005;
+              ctx.shadowOffsetX = width * 0.001;
+              ctx.shadowOffsetY = width * 0.001;
+              ctx.fillStyle = currentStyleConfig.textColor;
+              ctx.fillText(line, centerX, currentY + (index * height * 0.035));
+              
+              // Reset shadow
+              ctx.shadowColor = 'transparent';
+              ctx.shadowBlur = 0;
+              ctx.shadowOffsetX = 0;
+              ctx.shadowOffsetY = 0;
             });
           }
 
