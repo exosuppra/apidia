@@ -397,46 +397,23 @@ export default function GenerateurAffiches() {
             
             // Calculer la hauteur totale du bloc de texte
             const totalTextHeight = additionalLines.length * additionalFontSize * 1.3;
-            const paddingV = layout.spacing * 0.6;
-            const paddingH = layout.spacing * 0.8;
             
-            // Fond du texte supplémentaire avec bordure
-            const bgX = layout.margin * 1.5;
-            const bgY = additionalTextY - paddingV;
-            const bgWidth = canvas.width - layout.margin * 3;
-            const bgHeight = totalTextHeight + paddingV * 2;
-            
-            // Ombre du fond
-            ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
-            ctx.shadowBlur = 12;
-            ctx.shadowOffsetY = 6;
-            
-            // Fond semi-transparent
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
-            ctx.beginPath();
-            ctx.roundRect(bgX, bgY, bgWidth, bgHeight, paddingV);
-            ctx.fill();
-            
-            // Bordure colorée
-            ctx.strokeStyle = template.accent;
-            ctx.lineWidth = 4;
-            ctx.stroke();
-            
-            // Reset shadow
-            ctx.shadowColor = 'transparent';
-            ctx.shadowBlur = 0;
-            ctx.shadowOffsetY = 0;
-            
-            // Afficher le texte supplémentaire
-            ctx.fillStyle = '#1a1a1a'; // Texte sombre pour le contraste
+            // Afficher le texte supplémentaire avec ombre portée
+            ctx.fillStyle = template.textColor;
             ctx.textAlign = 'center';
             
+            // Ombre portée pour le texte supplémentaire
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.9)';
+            ctx.shadowBlur = 15;
+            ctx.shadowOffsetX = 3;
+            ctx.shadowOffsetY = 6;
+            
             additionalLines.forEach((line, index) => {
-              const lineY = additionalTextY + paddingV/2 + index * additionalFontSize * 1.3;
+              const lineY = additionalTextY + index * additionalFontSize * 1.3;
               ctx.fillText(line, canvas.width / 2, lineY);
             });
             
-            additionalTextHeight = bgHeight + layout.spacing;
+            additionalTextHeight = totalTextHeight + layout.spacing;
           }
           
           // Reset shadow
