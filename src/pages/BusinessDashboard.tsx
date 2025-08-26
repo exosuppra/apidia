@@ -138,7 +138,9 @@ export default function BusinessDashboard() {
       // Construire l'URL OAuth Google manuellement
       const supabaseUrl = 'https://krmeineyonriifvoexkx.supabase.co';
       const redirectUri = `${currentUrl}/google-callback`;
-      const oauthUrl = `${supabaseUrl}/auth/v1/authorize?provider=google&redirect_to=${encodeURIComponent(redirectUri)}&scopes=https://www.googleapis.com/auth/business.manage`;
+      const oauthUrl = `${supabaseUrl}/auth/v1/authorize?provider=google&redirect_to=${encodeURIComponent(redirectUri)}&scopes=${encodeURIComponent('https://www.googleapis.com/auth/business.manage openid email profile')}`;
+      
+      console.log('🔗 URL OAuth construite:', oauthUrl);
       
       // Créer une popup pour Google OAuth
       const popup = window.open(
