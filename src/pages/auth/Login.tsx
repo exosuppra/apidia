@@ -21,6 +21,7 @@ const firstLoginSchema = z.object({
 
 const standardLoginSchema = z.object({
   id: z.string().min(1, "Identifiant requis"),
+  email: z.string().email("Email invalide").min(1, "Email requis"),
   code: z.string().min(1, "Code requis"),
 });
 
@@ -38,7 +39,7 @@ export default function Login() {
 
   const standardForm = useForm<z.infer<typeof standardLoginSchema>>({
     resolver: zodResolver(standardLoginSchema),
-    defaultValues: { id: "", code: "" },
+    defaultValues: { id: "", email: "", code: "" },
   });
 
   useEffect(() => {
@@ -82,7 +83,7 @@ export default function Login() {
       setLoading(true);
       
       const { data, error } = await supabase.functions.invoke("verify-login", {
-        body: { id: values.id.trim(), code: values.code.trim() },
+        body: { id: values.id.trim(), email: values.email.trim(), code: values.code.trim() },
       });
 
       if (error) {
@@ -208,6 +209,24 @@ export default function Login() {
                             <Input 
                               type="text" 
                               placeholder="Votre identifiant" 
+                              {...field} 
+                              value={field.value ?? ""} 
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={standardForm.control}
+                      name="email"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Email</FormLabel>
+                          <FormControl>
+                            <Input 
+                              type="email" 
+                              placeholder="Votre email" 
                               {...field} 
                               value={field.value ?? ""} 
                             />
