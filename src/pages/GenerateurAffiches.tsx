@@ -297,9 +297,14 @@ export default function GenerateurAffiches() {
 
           // TITRE PRINCIPAL - Plus visible et imposant
           const titleY = canvas.height * (isVertical ? 0.3 : 0.4);
-          const title = customText || selectedFiche.title;
+          // Utiliser le titre original + texte personnalisé en supplément
+          const mainTitle = selectedFiche.title;
+          const additionalText = customText;
           
-          console.log(`📝 Titre à afficher: "${title}"`);
+          console.log(`📝 Titre principal à afficher: "${mainTitle}"`);
+          if (additionalText) {
+            console.log(`📝 Texte supplémentaire: "${additionalText}"`);
+          }
           
           // Police et taille du titre selon le format
           const titleFontSize = isVertical ? layout.titleSize * 1.4 : layout.titleSize * 1.2;
@@ -318,9 +323,9 @@ export default function GenerateurAffiches() {
           ctx.shadowOffsetX = 3;
           ctx.shadowOffsetY = 6;
           
-          // Découper le titre en lignes si nécessaire
+          // Découper le titre principal en lignes si nécessaire
           const maxTitleWidth = canvas.width - layout.margin * 2;
-          const words = title.split(' ');
+          const words = mainTitle.split(' ');
           const titleLines: string[] = [];
           let currentLine = '';
           
@@ -336,14 +341,48 @@ export default function GenerateurAffiches() {
           }
           if (currentLine) titleLines.push(currentLine);
           
-          console.log(`📏 Titre divisé en ${titleLines.length} lignes:`, titleLines);
+          console.log(`📏 Titre principal divisé en ${titleLines.length} lignes:`, titleLines);
           
-          // Afficher chaque ligne du titre
+          // Afficher chaque ligne du titre principal
           titleLines.forEach((line, index) => {
             const lineY = titleY + index * titleFontSize * 1.2;
             console.log(`✏️ Ligne ${index + 1}: "${line}" à Y=${lineY}`);
             ctx.fillText(line, canvas.width / 2, lineY);
           });
+
+          // TEXTE SUPPLÉMENTAIRE (si présent)
+          let additionalTextHeight = 0;
+          if (additionalText) {
+            const additionalTextY = titleY + titleLines.length * titleFontSize * 1.2 + layout.spacing * 0.8;
+            const additionalFontSize = titleFontSize * 0.7;
+            ctx.font = `600 ${additionalFontSize}px ${getFontFamily('subtitle')}`;
+            ctx.fillStyle = template.accent;
+            
+            // Découper le texte supplémentaire si nécessaire
+            const additionalWords = additionalText.split(' ');
+            const additionalLines: string[] = [];
+            let additionalCurrentLine = '';
+            
+            for (const word of additionalWords) {
+              const testLine = additionalCurrentLine + (additionalCurrentLine ? ' ' : '') + word;
+              const metrics = ctx.measureText(testLine);
+              if (metrics.width <= maxTitleWidth || !additionalCurrentLine) {
+                additionalCurrentLine = testLine;
+              } else {
+                additionalLines.push(additionalCurrentLine);
+                additionalCurrentLine = word;
+              }
+            }
+            if (additionalCurrentLine) additionalLines.push(additionalCurrentLine);
+            
+            // Afficher le texte supplémentaire
+            additionalLines.forEach((line, index) => {
+              const lineY = additionalTextY + index * additionalFontSize * 1.1;
+              ctx.fillText(line, canvas.width / 2, lineY);
+            });
+            
+            additionalTextHeight = additionalLines.length * additionalFontSize * 1.1 + layout.spacing * 0.5;
+          }
           
           // Reset shadow
           ctx.shadowColor = 'transparent';
@@ -351,17 +390,17 @@ export default function GenerateurAffiches() {
           ctx.shadowOffsetX = 0;
           ctx.shadowOffsetY = 0;
 
-          // DATE - Sous-titre proéminent
+          // DATE ET HEURE - Sous-titre proéminent
           const dateText = selectedFiche.dateDebut === selectedFiche.dateFin 
             ? new Date(selectedFiche.dateDebut).toLocaleDateString('fr-FR', { 
                 weekday: 'long', 
                 day: 'numeric', 
                 month: 'long',
                 year: 'numeric'
-              })
-            : `${new Date(selectedFiche.dateDebut).toLocaleDateString('fr-FR')} - ${new Date(selectedFiche.dateFin).toLocaleDateString('fr-FR')}`;
+              }) + ' • 14:00' // Ajout d'une heure par défaut, à personaliser selon les données
+            : `${new Date(selectedFiche.dateDebut).toLocaleDateString('fr-FR')} - ${new Date(selectedFiche.dateFin).toLocaleDateString('fr-FR')} • 14:00`;
 
-          const dateY = titleY + titleLines.length * titleFontSize * 1.1 + layout.spacing * 1.5;
+          const dateY = titleY + titleLines.length * titleFontSize * 1.1 + additionalTextHeight + layout.spacing * 1.5;
           ctx.font = `700 ${layout.subtitleSize}px ${getFontFamily('subtitle')}`;
           ctx.fillStyle = template.secondaryColor;
           ctx.textAlign = 'center';
@@ -373,11 +412,11 @@ export default function GenerateurAffiches() {
           
           ctx.fillText(dateText.toUpperCase(), canvas.width / 2, dateY);
 
-          // LIEU - Information importante
+          // LIEU AVEC VILLE - Information importante
           const locationY = dateY + layout.spacing * 1.2;
           ctx.font = `600 ${layout.detailSize * 1.1}px ${getFontFamily('detail')}`;
           ctx.fillStyle = template.textColor;
-          const location = selectedFiche.lieu.split(',')[0];
+          const location = selectedFiche.lieu; // Afficher le lieu complet avec la ville
           
           // Ombre pour le lieu
           ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
@@ -973,29 +1012,64 @@ export default function GenerateurAffiches() {
                       </div>
 
                       <div className="space-y-2">
-                        <Label>Texte personnalisé (optionnel)</Label>
+                        <Label>Texte supplémentaire (optionnel)</Label>
                         <Textarea
-                          placeholder="Remplacer le titre par un texte personnalisé..."
+                          placeholder="Ajouter un texte en complément du titre principal..."
                           value={customText}
                           onChange={(e) => setCustomText(e.target.value)}
                           rows={3}
                         />
+                        <p className="text-xs text-muted-foreground">
+                          Ce texte s'ajoutera au titre original, il ne le remplacera pas.
+                        </p>
                       </div>
 
-                      <div className="space-y-2">
-                        <Label>Image personnalisée (optionnel)</Label>
-                        <Input
-                          type="file"
-                          accept="image/*"
-                          onChange={(e) => {
-                            const file = e.target.files?.[0];
-                            if (file) {
-                              const reader = new FileReader();
-                              reader.onload = (e) => setCustomImage(e.target?.result as string);
-                              reader.readAsDataURL(file);
-                            }
-                          }}
-                        />
+                      <div className="space-y-4">
+                        <Label className="text-base font-medium">Images personnalisées HD (optionnel)</Label>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {/* Image Portrait pour affiches */}
+                          <div className="space-y-2">
+                            <Label className="text-sm">Image portrait (affiches)</Label>
+                            <Input
+                              type="file"
+                              accept="image/*"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) {
+                                  const reader = new FileReader();
+                                  reader.onload = (e) => setCustomImage(e.target?.result as string);
+                                  reader.readAsDataURL(file);
+                                }
+                              }}
+                            />
+                            <p className="text-xs text-muted-foreground">
+                              Recommandé : Format vertical (3:4) en HD
+                            </p>
+                          </div>
+
+                          {/* Image Paysage pour web */}
+                          <div className="space-y-2">
+                            <Label className="text-sm">Image paysage (web)</Label>
+                            <Input
+                              type="file"
+                              accept="image/*"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) {
+                                  // Pour l'instant, on utilise la même variable, à améliorer plus tard
+                                  const reader = new FileReader();
+                                  reader.onload = (e) => setCustomImage(e.target?.result as string);
+                                  reader.readAsDataURL(file);
+                                }
+                              }}
+                            />
+                            <p className="text-xs text-muted-foreground">
+                              Recommandé : Format horizontal (16:9) en HD
+                            </p>
+                          </div>
+                        </div>
+
                         {customImage && (
                           <div className="w-full h-24 rounded bg-muted overflow-hidden">
                             <img src={customImage} alt="Aperçu" className="w-full h-full object-cover" />
