@@ -70,7 +70,7 @@ const crmFeatures = [
     services: [
       {
         icon: <Mail className="w-8 h-8" />,
-        title: "Campagnes email IA",
+        title: "Campagnes email automatisées",
         description: "Création automatique d'emails personnalisés basés sur le profil et comportement client",
         cta: "Créer une campagne",
         price: "79€/mois"
@@ -111,7 +111,7 @@ const steps = [
   {
     step: "3",
     title: "Enrichissement automatique",
-    description: "L'IA enrichit automatiquement les profils avec des données comportementales",
+    description: "Le système enrichit automatiquement les profils avec des données comportementales",
     icon: <Zap className="w-6 h-6" />
   },
   {
@@ -149,7 +149,7 @@ export default function CrmSimplifie() {
   return (
     <div className="min-h-screen bg-background">
       <Seo 
-        title="CRM Simplifié IA - Récupérez vos données clients | ApidIA"
+        title="CRM Simplifié - Récupérez vos données clients | ApidIA"
         description="Solution CRM avec QR Code pour les professionnels du tourisme. Collectez les données de vos clients directement, même avec Booking.com et autres plateformes."
         keywords="CRM tourisme, QR code hôtel, données clients, marketing automation, RGPD, booking.com alternative"
         ogImage="/tourism-professional-workspace.jpg"
@@ -176,7 +176,7 @@ export default function CrmSimplifie() {
               <div className="space-y-2">
                 <Badge variant="secondary" className="text-xs px-2 py-1">
                   <Sparkles className="w-3 h-3 mr-1" />
-                  Solution CRM IA
+                  Solution CRM
                 </Badge>
                 <h1 className="text-3xl lg:text-4xl font-bold tracking-tight">
                   Récupérez enfin <span className="bg-gradient-to-br from-primary/20 via-primary/10 to-secondary/20 backdrop-blur-sm px-3 py-1 rounded-lg">VOS données clients</span>
