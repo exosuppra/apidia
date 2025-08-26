@@ -31,31 +31,28 @@ serve(async (req) => {
       throw new Error('User not authenticated');
     }
 
-    console.log('Fetching businesses for user:', user.id);
-
-    // Get user's Google access token from identities
-    console.log('User identities:', user.identities);
-    console.log('User metadata:', user.user_metadata);
+    console.log('🔍 Récupération du token Google pour l\'utilisateur:', user.id);
     
-    // Look for Google identity
-    const googleIdentity = user.identities?.find(identity => identity.provider === 'google');
-    let googleAccessToken = null;
+    // Récupérer le token Google depuis la table user_google_tokens
+    const { data: tokenData, error: tokenError } = await supabaseClient
+      .from('user_google_tokens')
+      .select('google_token')
+      .eq('user_id', user.id)
+      .single();
     
-    if (googleIdentity) {
-      // For linked identities, the token might be in different places
-      googleAccessToken = googleIdentity.identity_data?.provider_token || 
-                         user.user_metadata?.provider_token ||
-                         user.user_metadata?.google_access_token;
-    } else {
-      // If no Google identity found, check user metadata
-      googleAccessToken = user.user_metadata?.provider_token;
+    if (tokenError || !tokenData?.google_token) {
+      console.error('❌ Token Google non trouvé:', tokenError);
+      return new Response(
+        JSON.stringify({ 
+          error: 'Aucun compte Google connecté. Cliquez sur "Connecter Google My Business" pour lier votre compte.',
+          errorCode: 'NO_GOOGLE_TOKEN'
+        }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
     
-    console.log('Google access token found:', !!googleAccessToken);
-    
-    if (!googleAccessToken) {
-      throw new Error('No Google access token found. Please link your Google account first by clicking "Se connecter avec Google".');
-    }
+    const googleAccessToken = tokenData.google_token;
+    console.log('✅ Token Google trouvé pour l\'utilisateur');
 
     console.log('Using Google access token to fetch businesses');
 
