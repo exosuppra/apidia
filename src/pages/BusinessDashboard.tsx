@@ -103,44 +103,20 @@ export default function BusinessDashboard() {
         redirectTo: `${currentUrl}/google-callback`
       });
       
+      // Construire l'URL OAuth Google manuellement
+      const supabaseUrl = 'https://krmeineyonriifvoexkx.supabase.co';
+      const redirectUri = `${currentUrl}/google-callback`;
+      const oauthUrl = `${supabaseUrl}/auth/v1/authorize?provider=google&redirect_to=${encodeURIComponent(redirectUri)}&scopes=https://www.googleapis.com/auth/business.manage`;
+      
       // Créer une popup pour Google OAuth
       const popup = window.open(
-        '', 
+        oauthUrl, 
         'google-oauth', 
         'width=500,height=600,scrollbars=yes,resizable=yes'
       );
       
       if (!popup) {
         throw new Error('Popup bloquée par le navigateur');
-      }
-      
-      // Initier la connexion Google OAuth dans la popup
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: `${currentUrl}/google-callback`,
-          queryParams: {
-            access_type: 'offline',
-            prompt: 'consent',
-          },
-          scopes: 'https://www.googleapis.com/auth/business.manage',
-        },
-      });
-
-      if (error) {
-        popup.close();
-        console.error('❌ Erreur OAuth Google:', error);
-        toast({
-          title: "Erreur OAuth",
-          description: error.message,
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // Rediriger la popup vers l'URL d'authentification
-      if (data.url) {
-        popup.location.href = data.url;
       }
       
       // Écouter les messages de la popup
@@ -204,6 +180,7 @@ export default function BusinessDashboard() {
         description: "Impossible d'ouvrir la fenêtre de connexion Google",
         variant: "destructive",
       });
+      setGoogleLoading(false);
     }
   };
 
