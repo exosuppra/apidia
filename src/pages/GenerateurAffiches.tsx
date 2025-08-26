@@ -116,6 +116,178 @@ export default function GenerateurAffiches() {
     fiche.type.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  // Analyse avancée de l'image pour optimiser la mise en page
+  const analyzeImageForLayout = (ctx: CanvasRenderingContext2D, width: number, height: number) => {
+    const imageData = ctx.getImageData(0, 0, width, height);
+    const data = imageData.data;
+    
+    // Diviser l'image en grille pour analyse zonale
+    const gridSize = 16;
+    const cellWidth = width / gridSize;
+    const cellHeight = height / gridSize;
+    const zones = [];
+    
+    for (let row = 0; row < gridSize; row++) {
+      for (let col = 0; col < gridSize; col++) {
+        const startX = Math.floor(col * cellWidth);
+        const startY = Math.floor(row * cellHeight);
+        const endX = Math.floor((col + 1) * cellWidth);
+        const endY = Math.floor((row + 1) * cellHeight);
+        
+        let totalBrightness = 0;
+        let totalSaturation = 0;
+        let totalContrast = 0;
+        let pixelCount = 0;
+        let rValues = [], gValues = [], bValues = [];
+        
+        // Analyser chaque pixel de la zone
+        for (let y = startY; y < endY; y += 2) { // Échantillonnage
+          for (let x = startX; x < endX; x += 2) {
+            const index = (y * width + x) * 4;
+            if (index < data.length) {
+              const r = data[index];
+              const g = data[index + 1];
+              const b = data[index + 2];
+              
+              rValues.push(r);
+              gValues.push(g);
+              bValues.push(b);
+              
+              const brightness = (r + g + b) / 3;
+              const max = Math.max(r, g, b);
+              const min = Math.min(r, g, b);
+              const saturation = max === 0 ? 0 : (max - min) / max;
+              
+              totalBrightness += brightness;
+              totalSaturation += saturation;
+              pixelCount++;
+            }
+          }
+        }
+        
+        // Calculer les métriques de la zone
+        const avgBrightness = totalBrightness / pixelCount;
+        const avgSaturation = totalSaturation / pixelCount;
+        
+        // Calculer le contraste (écart-type de la luminosité)
+        const brightnessVariance = rValues.reduce((sum, r, i) => {
+          const brightness = (r + gValues[i] + bValues[i]) / 3;
+          return sum + Math.pow(brightness - avgBrightness, 2);
+        }, 0) / pixelCount;
+        const contrast = Math.sqrt(brightnessVariance);
+        
+        // Couleur dominante
+        const avgR = rValues.reduce((a, b) => a + b, 0) / rValues.length;
+        const avgG = gValues.reduce((a, b) => a + b, 0) / gValues.length;
+        const avgB = bValues.reduce((a, b) => a + b, 0) / bValues.length;
+        
+        zones.push({
+          row,
+          col,
+          x: startX,
+          y: startY,
+          width: cellWidth,
+          height: cellHeight,
+          brightness: avgBrightness,
+          saturation: avgSaturation,
+          contrast: contrast,
+          dominantColor: { r: avgR, g: avgG, b: avgB },
+          // Score de qualité pour placer du texte (faible contraste + luminosité uniforme = mieux)
+          textPlacementScore: avgBrightness > 50 && avgBrightness < 200 ? (255 - contrast) / 255 : 0
+        });
+      }
+    }
+    
+    return {
+      zones,
+      globalBrightness: zones.reduce((sum, zone) => sum + zone.brightness, 0) / zones.length,
+      globalContrast: zones.reduce((sum, zone) => sum + zone.contrast, 0) / zones.length,
+      globalSaturation: zones.reduce((sum, zone) => sum + zone.saturation, 0) / zones.length,
+      bestTextZones: zones
+        .filter(zone => zone.textPlacementScore > 0.3)
+        .sort((a, b) => b.textPlacementScore - a.textPlacementScore)
+        .slice(0, 6) // Top 6 zones pour le texte
+    };
+  };
+
+  // Auto-évaluation et correction du résultat
+  const evaluateAndCorrectPoster = async (
+    canvas: HTMLCanvasElement,
+    analysis: any,
+    fiche: typeof mockFiches[0],
+    style: string,
+    formatType: string,
+    isDarkVersion: boolean,
+    customText?: string
+  ): Promise<{ corrected: boolean; issues: string[] }> => {
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return { corrected: false, issues: ['Canvas context unavailable'] };
+    
+    const width = canvas.width;
+    const height = canvas.height;
+    const issues: string[] = [];
+    let corrected = false;
+    
+    // Vérifier le contraste du texte sur chaque zone de texte
+    const textZones = [
+      { name: 'title', y: height * 0.3, height: height * 0.15 },
+      { name: 'info', y: height * 0.6, height: height * 0.2 }
+    ];
+    
+    for (const textZone of textZones) {
+      const zoneImageData = ctx.getImageData(0, textZone.y, width, textZone.height);
+      const zoneData = zoneImageData.data;
+      let zoneBrightness = 0;
+      let pixelCount = 0;
+      
+      // Calculer la luminosité moyenne de la zone de texte
+      for (let i = 0; i < zoneData.length; i += 16) { // Échantillonnage
+        const r = zoneData[i];
+        const g = zoneData[i + 1];
+        const b = zoneData[i + 2];
+        zoneBrightness += (r + g + b) / 3;
+        pixelCount++;
+      }
+      
+      const avgZoneBrightness = zoneBrightness / pixelCount;
+      
+      // Vérifier si le contraste est suffisant
+      const contrastRatio = isDarkVersion ? 
+        (255 - avgZoneBrightness) / 255 : // Texte clair sur fond
+        avgZoneBrightness / 255; // Texte foncé sur fond
+      
+      if (contrastRatio < 0.4) { // Contraste insuffisant
+        issues.push(`Contraste insuffisant dans la zone ${textZone.name}`);
+        
+        // Appliquer une correction automatique
+        const correctionOverlay = ctx.createLinearGradient(0, textZone.y, 0, textZone.y + textZone.height);
+        const overlayColor = isDarkVersion ? 'rgba(0, 0, 0, 0.7)' : 'rgba(255, 255, 255, 0.7)';
+        correctionOverlay.addColorStop(0, 'rgba(0, 0, 0, 0)');
+        correctionOverlay.addColorStop(0.3, overlayColor);
+        correctionOverlay.addColorStop(0.7, overlayColor);
+        correctionOverlay.addColorStop(1, 'rgba(0, 0, 0, 0)');
+        
+        ctx.fillStyle = correctionOverlay;
+        ctx.fillRect(0, textZone.y, width, textZone.height);
+        corrected = true;
+      }
+    }
+    
+    // Vérifier l'équilibre général de l'image
+    if (analysis.globalBrightness < 30 || analysis.globalBrightness > 220) {
+      issues.push('Luminosité générale déséquilibrée');
+      
+      // Correction de luminosité globale
+      const adjustmentOverlay = analysis.globalBrightness < 30 ? 
+        'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
+      ctx.fillStyle = adjustmentOverlay;
+      ctx.fillRect(0, 0, width, height);
+      corrected = true;
+    }
+    
+    return { corrected, issues };
+  };
+
   const generateAllFormats = async (
     fiche: typeof mockFiches[0],
     style: string,
@@ -180,7 +352,7 @@ export default function GenerateurAffiches() {
       const img = new Image();
       img.crossOrigin = 'anonymous';
       
-      img.onload = () => {
+      img.onload = async () => {
         try {
           // Dessiner l'image de fond avec crop intelligent
           const imgAspect = img.width / img.height;
@@ -200,23 +372,24 @@ export default function GenerateurAffiches() {
           
           ctx.drawImage(img, offsetX, offsetY, drawWidth, drawHeight);
 
-          // Analyser la luminosité
-          const imageData = ctx.getImageData(0, 0, width, height);
-          let totalBrightness = 0;
-          let pixelCount = 0;
-          
-          for (let i = 0; i < imageData.data.length; i += 40) {
-            const r = imageData.data[i];
-            const g = imageData.data[i + 1];
-            const b = imageData.data[i + 2];
-            totalBrightness += (r + g + b) / 3;
-            pixelCount++;
-          }
-          
-          const avgBrightness = totalBrightness / pixelCount;
+          // ANALYSE DE L'IMAGE POUR OPTIMISATION DE LA MISE EN PAGE
+          const imageAnalysis = analyzeImageForLayout(ctx, width, height);
+          console.log(`[${formatType}] Analyse de l'image:`, {
+            brightness: imageAnalysis.globalBrightness.toFixed(1),
+            contrast: imageAnalysis.globalContrast.toFixed(1),
+            bestZones: imageAnalysis.bestTextZones.length
+          });
+
+          // Ajuster la position du texte selon l'analyse
+          const bestZones = imageAnalysis.bestTextZones;
+          let titleZone = bestZones.find(z => z.row < 8) || bestZones[0]; // Préférer le haut
+          let infoZone = bestZones.find(z => z.row > 8) || bestZones[1] || bestZones[0]; // Préférer le bas
+
+          // Analyser la luminosité pour adaptation
+          const avgBrightness = imageAnalysis.globalBrightness;
           const isLowQualityOrBadFormat = img.width < 800 || img.height < 600;
 
-          // Configuration adaptée pour versions claire/foncée
+          // Configuration adaptée pour versions claire/foncée avec optimisation
           const getStyleConfig = () => {
             const baseConfig = {
               moderne: {
@@ -243,12 +416,15 @@ export default function GenerateurAffiches() {
 
             const currentBase = baseConfig[style as keyof typeof baseConfig] || baseConfig.moderne;
 
+            // Ajuster l'intensité selon l'analyse de l'image
+            const overlayIntensity = imageAnalysis.globalContrast < 50 ? 0.3 : 0.8; // Moins d'overlay si image uniforme
+
             if (isDarkVersion) {
               return {
                 ...currentBase,
                 overlay: isLowQualityOrBadFormat ? 
-                  ['rgba(15, 23, 42, 0.95)', 'rgba(30, 64, 175, 0.85)'] :
-                  'rgba(15, 23, 42, 0.8)',
+                  [`rgba(15, 23, 42, ${Math.min(0.95, overlayIntensity + 0.2)})`, `rgba(30, 64, 175, ${Math.min(0.85, overlayIntensity + 0.1)})`] :
+                  `rgba(15, 23, 42, ${overlayIntensity})`,
                 textShadow: 'rgba(0, 0, 0, 0.9)',
                 textColor: '#ffffff',
                 accentColor: '#60a5fa',
@@ -258,8 +434,8 @@ export default function GenerateurAffiches() {
               return {
                 ...currentBase,
                 overlay: isLowQualityOrBadFormat ?
-                  ['rgba(255, 255, 255, 0.9)', 'rgba(248, 250, 252, 0.85)'] :
-                  'rgba(255, 255, 255, 0.75)',
+                  [`rgba(255, 255, 255, ${Math.min(0.9, overlayIntensity + 0.1)})`, `rgba(248, 250, 252, ${Math.min(0.85, overlayIntensity)})`] :
+                  `rgba(255, 255, 255, ${overlayIntensity * 0.8})`,
                 textShadow: 'rgba(0, 0, 0, 0.8)',
                 textColor: '#1e293b',
                 accentColor: '#3b82f6',
@@ -270,7 +446,7 @@ export default function GenerateurAffiches() {
 
           const currentStyleConfig = getStyleConfig();
 
-          // Appliquer l'overlay
+          // Appliquer l'overlay optimisé
           if (Array.isArray(currentStyleConfig.overlay)) {
             const gradient = ctx.createLinearGradient(0, 0, 0, height);
             gradient.addColorStop(0, currentStyleConfig.overlay[0]);
@@ -298,7 +474,12 @@ export default function GenerateurAffiches() {
           };
 
           const centerX = width / 2;
-          let currentY = contentArea.y + height * 0.08;
+          
+          // Positionnement optimisé selon l'analyse de l'image
+          let currentY = Math.max(
+            contentArea.y + height * 0.08,
+            titleZone ? titleZone.y + titleZone.height * 0.3 : contentArea.y + height * 0.15
+          );
 
           // Badge type
           const badgeText = fiche.type.toUpperCase();
@@ -329,7 +510,7 @@ export default function GenerateurAffiches() {
           
           currentY += badgeHeight + height * 0.08;
 
-          // Titre
+          // Titre avec positionnement optimisé
           const maxTitleWidth = contentArea.width;
           const titleLines = wrapText(ctx, fiche.title.toUpperCase(), maxTitleWidth, currentStyleConfig.titleFont);
           
@@ -350,11 +531,17 @@ export default function GenerateurAffiches() {
           
           currentY += titleLines.length * height * 0.08 + height * 0.06;
 
-          // Scrim pour les informations
+          // Positionnement optimisé pour les informations
+          if (infoZone && infoZone !== titleZone) {
+            currentY = Math.max(currentY, infoZone.y + infoZone.height * 0.2);
+          }
+
+          // Scrim adaptatif pour les informations
+          const scrimIntensity = imageAnalysis.globalContrast > 100 ? 0.6 : 0.3;
           const scrimGradient = ctx.createLinearGradient(0, currentY - height * 0.02, 0, currentY + height * 0.15);
           scrimGradient.addColorStop(0, 'rgba(0, 0, 0, 0)');
-          scrimGradient.addColorStop(0.2, isDarkVersion ? 'rgba(0, 0, 0, 0.4)' : 'rgba(255, 255, 255, 0.4)');
-          scrimGradient.addColorStop(0.8, isDarkVersion ? 'rgba(0, 0, 0, 0.4)' : 'rgba(255, 255, 255, 0.4)');
+          scrimGradient.addColorStop(0.2, isDarkVersion ? `rgba(0, 0, 0, ${scrimIntensity})` : `rgba(255, 255, 255, ${scrimIntensity})`);
+          scrimGradient.addColorStop(0.8, isDarkVersion ? `rgba(0, 0, 0, ${scrimIntensity})` : `rgba(255, 255, 255, ${scrimIntensity})`);
           scrimGradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
           
           ctx.fillStyle = scrimGradient;
@@ -482,6 +669,21 @@ export default function GenerateurAffiches() {
             ctx.lineTo(width - bleed, height - bleed + cropMarkOffset + cropMarkLength);
             
             ctx.stroke();
+          }
+
+          // AUTO-ÉVALUATION ET CORRECTION
+          const evaluation = await evaluateAndCorrectPoster(
+            canvas,
+            imageAnalysis,
+            fiche,
+            style,
+            formatType,
+            isDarkVersion,
+            customText
+          );
+
+          if (evaluation.corrected) {
+            console.log(`[${formatType}] Corrections appliquées:`, evaluation.issues);
           }
 
           const dataUrl = canvas.toDataURL('image/png', isPrint ? 1.0 : 0.95);
