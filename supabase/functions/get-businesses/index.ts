@@ -7,7 +7,7 @@ const corsHeaders = {
 };
 
 serve(async (req: Request) => {
-  console.log('🚀 GET-BUSINESSES FUNCTION CALLED');
+  console.log('🚀 GET-BUSINESSES FUNCTION CALLED - Version 2');
   
   if (req.method === 'OPTIONS') {
     console.log('✅ CORS OPTIONS for get-businesses');
