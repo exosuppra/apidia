@@ -84,15 +84,19 @@ export default function BusinessDashboard() {
   const loadBusinesses = async () => {
     try {
       setLoading(true);
+      console.log('🔄 Chargement des établissements...');
       const { data, error } = await supabase.functions.invoke('get-businesses');
+      
+      console.log('📡 Réponse get-businesses:', { data, error });
       
       if (error) {
         throw error;
       }
       
       setBusinesses(data.businesses || []);
+      console.log('✅ Établissements chargés:', data.businesses?.length || 0);
     } catch (error) {
-      console.error('Error loading businesses:', error);
+      console.error('❌ Erreur lors du chargement des établissements:', error);
       toast({
         title: "Erreur",
         description: "Impossible de charger vos établissements",
@@ -145,7 +149,7 @@ export default function BusinessDashboard() {
         .from('user_google_tokens')
         .select('access_token')
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
       
       if (tokenCheck?.access_token) {
         console.log('✅ Token Google déjà présent dans la base');
