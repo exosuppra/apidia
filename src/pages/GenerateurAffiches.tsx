@@ -228,64 +228,13 @@ export default function GenerateurAffiches() {
     const issues: string[] = [];
     let corrected = false;
     
-    // Vérifier le contraste du texte sur chaque zone de texte
-    const textZones = [
-      { name: 'title', y: height * 0.3, height: height * 0.15 },
-      { name: 'info', y: height * 0.6, height: height * 0.2 }
-    ];
+    // DÉSACTIVATION TEMPORAIRE DE LA CORRECTION AUTOMATIQUE
+    // Le système d'analyse fait déjà son travail en amont avec des overlays intelligents
+    // et le scrim adaptatif. La correction post-génération crée des artefacts visuels.
     
-    for (const textZone of textZones) {
-      const zoneImageData = ctx.getImageData(0, textZone.y, width, textZone.height);
-      const zoneData = zoneImageData.data;
-      let zoneBrightness = 0;
-      let pixelCount = 0;
-      
-      // Calculer la luminosité moyenne de la zone de texte
-      for (let i = 0; i < zoneData.length; i += 16) { // Échantillonnage
-        const r = zoneData[i];
-        const g = zoneData[i + 1];
-        const b = zoneData[i + 2];
-        zoneBrightness += (r + g + b) / 3;
-        pixelCount++;
-      }
-      
-      const avgZoneBrightness = zoneBrightness / pixelCount;
-      
-      // Vérifier si le contraste est suffisant
-      const contrastRatio = isDarkVersion ? 
-        (255 - avgZoneBrightness) / 255 : // Texte clair sur fond
-        avgZoneBrightness / 255; // Texte foncé sur fond
-      
-      if (contrastRatio < 0.4) { // Contraste insuffisant
-        issues.push(`Contraste insuffisant dans la zone ${textZone.name}`);
-        
-        // Appliquer une correction automatique
-        const correctionOverlay = ctx.createLinearGradient(0, textZone.y, 0, textZone.y + textZone.height);
-        const overlayColor = isDarkVersion ? 'rgba(0, 0, 0, 0.7)' : 'rgba(255, 255, 255, 0.7)';
-        correctionOverlay.addColorStop(0, 'rgba(0, 0, 0, 0)');
-        correctionOverlay.addColorStop(0.3, overlayColor);
-        correctionOverlay.addColorStop(0.7, overlayColor);
-        correctionOverlay.addColorStop(1, 'rgba(0, 0, 0, 0)');
-        
-        ctx.fillStyle = correctionOverlay;
-        ctx.fillRect(0, textZone.y, width, textZone.height);
-        corrected = true;
-      }
-    }
+    console.log(`[${formatType}] Auto-évaluation terminée sans correction (système désactivé pour éviter les artefacts)`);
     
-    // Vérifier l'équilibre général de l'image
-    if (analysis.globalBrightness < 30 || analysis.globalBrightness > 220) {
-      issues.push('Luminosité générale déséquilibrée');
-      
-      // Correction de luminosité globale
-      const adjustmentOverlay = analysis.globalBrightness < 30 ? 
-        'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
-      ctx.fillStyle = adjustmentOverlay;
-      ctx.fillRect(0, 0, width, height);
-      corrected = true;
-    }
-    
-    return { corrected, issues };
+    return { corrected: false, issues: [] };
   };
 
   const generateAllFormats = async (
