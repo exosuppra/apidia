@@ -71,18 +71,44 @@ serve(async (req) => {
     const expiresAt = new Date();
     expiresAt.setHours(expiresAt.getHours() + 1);
 
-    // Insert or update the Google token using service client
-    const { data, error } = await serviceClient
+    console.log('🔍 Vérification existence token existant...');
+
+    // Check if token already exists for this user
+    const { data: existingToken } = await serviceClient
       .from('user_google_tokens')
-      .upsert({
-        user_id: user.id,
-        access_token: googleToken,
-        refresh_token: refreshToken || null,
-        expires_at: expiresAt.toISOString(),
-        updated_at: new Date().toISOString()
-      }, {
-        onConflict: 'user_id'
-      });
+      .select('id')
+      .eq('user_id', user.id)
+      .single();
+
+    let result;
+    if (existingToken) {
+      console.log('🔄 Mise à jour token existant...');
+      // Update existing token
+      result = await serviceClient
+        .from('user_google_tokens')
+        .update({
+          access_token: googleToken,
+          refresh_token: refreshToken || null,
+          expires_at: expiresAt.toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        .eq('user_id', user.id);
+    } else {
+      console.log('➕ Création nouveau token...');
+      // Insert new token
+      result = await serviceClient
+        .from('user_google_tokens')
+        .insert({
+          user_id: user.id,
+          access_token: googleToken,
+          refresh_token: refreshToken || null,
+          expires_at: expiresAt.toISOString(),
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        });
+    }
+
+    const { data, error } = result;
 
     console.log('🔍 Résultat upsert:', {
       data: data ? 'SUCCESS' : 'NULL',
