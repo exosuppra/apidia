@@ -64,6 +64,11 @@ export default function BusinessDashboard() {
         throw error;
       }
       
+      // Vérifier si l'API a retourné une erreur même avec un status 200
+      if (data && data.error) {
+        throw new Error(data.error);
+      }
+      
       setBusinesses(data.businesses || []);
     } catch (error) {
       console.error('Error loading businesses:', error);
