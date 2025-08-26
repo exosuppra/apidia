@@ -151,22 +151,33 @@ export default function BusinessDashboard() {
                 hasToken: !!session?.access_token
               });
               
+              console.log('📤 Tentative d\'appel store-google-token avec:', {
+                googleToken: event.data.token ? 'PRÉSENT' : 'ABSENT',
+                refreshToken: event.data.refreshToken ? 'PRÉSENT' : 'ABSENT'
+              });
+              
               // Stocker le token Google pour l'utilisateur actuel
-              const { error: storeError } = await supabase.functions.invoke('store-google-token', {
+              const storeResult = await supabase.functions.invoke('store-google-token', {
                 body: { 
                   googleToken: event.data.token,
                   refreshToken: event.data.refreshToken 
                 }
               });
               
-              if (storeError) {
-                console.error('Erreur stockage token:', storeError);
+              console.log('📥 Résultat store-google-token:', {
+                data: storeResult.data,
+                error: storeResult.error
+              });
+              
+              if (storeResult.error) {
+                console.error('❌ Erreur stockage token:', storeResult.error);
                 toast({
                   title: "Erreur",
-                  description: "Impossible de sauvegarder le token Google",
+                  description: `Impossible de sauvegarder le token Google: ${storeResult.error.message}`,
                   variant: "destructive",
                 });
               } else {
+                console.log('✅ Token stocké avec succès');
                 toast({
                   title: "Succès",
                   description: "Compte Google lié avec succès !",
@@ -175,10 +186,10 @@ export default function BusinessDashboard() {
                 loadBusinesses();
               }
             } catch (error) {
-              console.error('Erreur lors du traitement:', error);
+              console.error('❌ Erreur lors du traitement:', error);
               toast({
                 title: "Erreur",
-                description: "Problème de synchronisation. Rechargez la page.",
+                description: `Problème de synchronisation: ${error.message}`,
                 variant: "destructive",
               });
             }
