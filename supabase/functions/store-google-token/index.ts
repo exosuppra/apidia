@@ -8,82 +8,103 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
+  console.log('🚀 === DÉBUT STORE-GOOGLE-TOKEN ===');
+  console.log('Method:', req.method);
+  console.log('URL:', req.url);
+  
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
+    console.log('✅ Réponse CORS OPTIONS');
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    console.log('🔍 Début de la fonction store-google-token');
-    
-    // Récupérer l'utilisateur depuis l'en-tête d'autorisation pour l'identifier
+    console.log('🔍 === ÉTAPE 1: VÉRIFICATION AUTH HEADER ===');
     const authHeader = req.headers.get('authorization');
-    console.log('🔍 Authorization header:', authHeader ? 'PRÉSENT' : 'ABSENT');
+    console.log('Authorization header:', authHeader ? 'PRÉSENT' : 'ABSENT');
     
     if (!authHeader) {
+      console.log('❌ Pas d\'auth header');
       throw new Error('No authorization header');
     }
 
-    // Créer un client avec la clé de service pour éviter les problèmes d'auth
-    const serviceClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-    );
+    console.log('🔍 === ÉTAPE 2: CRÉATION CLIENTS SUPABASE ===');
+    const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    const anonKey = Deno.env.get('SUPABASE_ANON_KEY');
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
     
+    console.log('Clés disponibles:', {
+      serviceKey: serviceKey ? 'PRÉSENT' : 'ABSENT',
+      anonKey: anonKey ? 'PRÉSENT' : 'ABSENT',
+      supabaseUrl: supabaseUrl ? 'PRÉSENT' : 'ABSENT'
+    });
+
     // Client pour récupérer l'utilisateur actuel
     const userClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      supabaseUrl ?? '',
+      anonKey ?? '',
       { global: { headers: { Authorization: authHeader } } }
     );
+    
+    // Créer un client avec la clé de service pour éviter les problèmes d'auth
+    const serviceClient = createClient(
+      supabaseUrl ?? '',
+      serviceKey ?? '',
+    );
 
-    console.log('🔍 Clients Supabase créés, récupération de l\'utilisateur...');
-
-    // Get the current user to verify authentication
+    console.log('🔍 === ÉTAPE 3: RÉCUPÉRATION UTILISATEUR ===');
     const { data: { user }, error: userError } = await userClient.auth.getUser();
     
-    console.log('🔍 Résultat getUser:', {
+    console.log('Résultat getUser:', {
       user: user?.id || 'AUCUN',
+      userEmail: user?.email || 'AUCUN',
       error: userError?.message || 'AUCUNE'
     });
     
     if (userError || !user) {
-      console.error('❌ Erreur d\'authentification:', userError);
+      console.error('❌ Erreur authentification:', userError);
       throw new Error(`User not authenticated: ${userError?.message}`);
     }
 
+    console.log('🔍 === ÉTAPE 4: LECTURE BODY REQUEST ===');
     const requestBody = await req.json();
+    console.log('Body reçu:', requestBody);
+    
     const { googleToken, refreshToken } = requestBody;
     
-    console.log('🔍 Données reçues:', {
+    console.log('Tokens extraits:', {
       hasGoogleToken: !!googleToken,
+      googleTokenLength: googleToken?.length || 0,
       hasRefreshToken: !!refreshToken,
-      tokenLength: googleToken?.length || 0
+      refreshTokenLength: refreshToken?.length || 0
     });
     
     if (!googleToken) {
+      console.log('❌ Pas de Google token');
       throw new Error('Google token is required');
     }
 
-    console.log('🔑 Stockage du token pour l\'utilisateur:', user.id);
-
-    // Set expiration to 1 hour from now (Google access tokens typically expire in 1 hour)
+    console.log('🔍 === ÉTAPE 5: PRÉPARATION DONNÉES ===');
     const expiresAt = new Date();
     expiresAt.setHours(expiresAt.getHours() + 1);
+    console.log('Expiration calculée:', expiresAt.toISOString());
 
-    console.log('🔍 Vérification existence token existant...');
-
-    // Check if token already exists for this user
-    const { data: existingToken } = await serviceClient
+    console.log('🔍 === ÉTAPE 6: VÉRIFICATION TOKEN EXISTANT ===');
+    const { data: existingToken, error: selectError } = await serviceClient
       .from('user_google_tokens')
       .select('id')
       .eq('user_id', user.id)
       .single();
 
+    console.log('Résultat vérification:', {
+      existingToken: existingToken ? 'TROUVÉ' : 'AUCUN',
+      selectError: selectError?.message || 'AUCUNE'
+    });
+
+    console.log('🔍 === ÉTAPE 7: OPÉRATION BASE DE DONNÉES ===');
     let result;
     if (existingToken) {
       console.log('🔄 Mise à jour token existant...');
-      // Update existing token
       result = await serviceClient
         .from('user_google_tokens')
         .update({
@@ -95,7 +116,6 @@ serve(async (req) => {
         .eq('user_id', user.id);
     } else {
       console.log('➕ Création nouveau token...');
-      // Insert new token
       result = await serviceClient
         .from('user_google_tokens')
         .insert({
@@ -109,19 +129,18 @@ serve(async (req) => {
     }
 
     const { data, error } = result;
-
-    console.log('🔍 Résultat upsert:', {
+    console.log('🔍 === ÉTAPE 8: RÉSULTAT OPÉRATION ===');
+    console.log('Résultat:', {
       data: data ? 'SUCCESS' : 'NULL',
       error: error?.message || 'AUCUNE'
     });
 
     if (error) {
-      console.error('❌ Erreur lors du stockage du token:', error);
+      console.error('❌ Erreur lors du stockage:', error);
       throw new Error(`Database error: ${error.message}`);
     }
 
-    console.log('✅ Token Google stocké avec succès');
-
+    console.log('✅ === SUCCÈS COMPLET ===');
     return new Response(JSON.stringify({ 
       success: true,
       message: 'Token Google stocké avec succès'
@@ -130,11 +149,15 @@ serve(async (req) => {
     });
 
   } catch (error) {
-    console.error('Error in store-google-token function:', error);
+    console.error('❌ === ERREUR GLOBALE ===');
+    console.error('Type d\'erreur:', error.constructor.name);
+    console.error('Message:', error.message);
+    console.error('Stack:', error.stack);
     
     return new Response(JSON.stringify({ 
       error: 'Erreur lors du stockage du token Google',
-      details: error.message 
+      details: error.message,
+      type: error.constructor.name 
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
