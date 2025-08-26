@@ -21,6 +21,7 @@ import CrmSimplifie from "./pages/CrmSimplifie";
 import GenerateurAffiches from "./pages/GenerateurAffiches";
 import CreationAffiches from "./pages/CreationAffiches";
 import BilanSiteWeb from "./pages/BilanSiteWeb";
+import BusinessDashboard from "./pages/BusinessDashboard";
 
 const queryClient = new QueryClient();
 
@@ -44,8 +45,17 @@ const App = () => (
             <Route path="/admin/login" element={<AdminLogin />} />
             <Route path="/admin/dashboard" element={<AdminDashboard />} />
             <Route path="/admin/fiches" element={<AllFiches />} />
+            
+            {/* Main business dashboard */}
+            <Route path="/dashboard" element={
+              <RequireAuth>
+                <BusinessDashboard />
+              </RequireAuth>
+            } />
+            
+            {/* Legacy dashboard routes */}
             <Route
-              path="/dashboard"
+              path="/dashboard/legacy"
               element={
                 <RequireAuth>
                   <DashboardLayout />
@@ -55,6 +65,7 @@ const App = () => (
               <Route index element={<Overview />} />
               <Route path="fiches" element={<Fiches />} />
             </Route>
+            
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
