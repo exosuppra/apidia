@@ -19,6 +19,7 @@ import Catalogue from "./pages/Catalogue";
 import ApidaeDetails from "./pages/ApidaeDetails";
 import CrmSimplifie from "./pages/CrmSimplifie";
 import GenerateurAffiches from "./pages/GenerateurAffiches";
+import CreationAffiches from "./pages/CreationAffiches";
 
 const queryClient = new QueryClient();
 
@@ -34,6 +35,7 @@ const App = () => (
             <Route path="/catalogue" element={<Catalogue />} />
             <Route path="/apidae-details" element={<ApidaeDetails />} />
             <Route path="/crm-simplifie" element={<CrmSimplifie />} />
+            <Route path="/creation-affiches" element={<CreationAffiches />} />
             <Route path="/generateur-affiches" element={<GenerateurAffiches />} />
             <Route path="/auth/login" element={<Login />} />
             <Route path="/auth/set-code" element={<SetCode />} />

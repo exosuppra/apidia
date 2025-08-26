@@ -96,11 +96,11 @@ const services = [
     services: [
       {
         icon: <Camera className="w-8 h-8" />,
-        title: "Création automatisée d'affiches évènementiels",
-        description: "ApidIA transforme automatiquement vos fiches Apidae en affiches professionnelles. L'IA analyse le contenu de vos événements et manifestations pour créer des visuels personnalisés qui respectent votre identité graphique et sont adaptés à chaque type d'événement.",
-        cta: "Voir la démo",
+        title: "Création automatisée de contenus visuels",
+        description: "Génération d'affiches évènementiels",
+        cta: "En savoir plus",
         price: "39€/mois",
-        link: "/generateur-affiches"
+        link: "/creation-affiches"
       },
       {
         icon: <MessageCircle className="w-8 h-8" />,
