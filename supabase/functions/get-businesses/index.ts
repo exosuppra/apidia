@@ -139,6 +139,33 @@ serve(async (req: Request) => {
         });
       }
       
+      if (businessResponse.status === 429) {
+        console.log('⚠️ Quota Google dépassé, utilisation du mode démo');
+        return new Response(JSON.stringify({ 
+          businesses: [
+            {
+              id: "demo-restaurant-quota",
+              name: "✅ APIs Activées - Restaurant Demo",
+              address: "Quota Google My Business requis (actuellement 0/min)",
+              averageRating: 4.5,
+              totalReviews: 15,
+              unreadReviews: 2,
+            },
+            {
+              id: "demo-hotel-quota", 
+              name: "✅ APIs OK - Hôtel Demo",
+              address: "Demandez une augmentation de quota Google",
+              averageRating: 4.2,
+              totalReviews: 8,
+              unreadReviews: 1,
+            }
+          ],
+          message: "APIs activées ! Demandez une augmentation de quota : https://console.cloud.google.com/iam-admin/quotas"
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      
       throw new Error(`Google API error: ${businessResponse.status} - ${errorText}`);
     }
 
