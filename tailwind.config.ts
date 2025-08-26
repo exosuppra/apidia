@@ -21,6 +21,15 @@ export default {
 				fontFamily: {
 					sans: ["Inter", "ui-sans-serif", "system-ui", "sans-serif"],
 					playfair: ['"Playfair Display"', "serif"],
+					// Pack de polices thématiques pour affiches
+					oswald: ['"Oswald"', "sans-serif"],
+					bebas: ['"Bebas Neue"', "sans-serif"],
+					crimson: ['"Crimson Text"', "serif"],
+					cormorant: ['"Cormorant Garamond"', "serif"],
+					poppins: ['"Poppins"', "sans-serif"],
+					montserrat: ['"Montserrat"', "sans-serif"],
+					fredoka: ['"Fredoka"', "sans-serif"],
+					comfortaa: ['"Comfortaa"', "sans-serif"],
 				},
 				colors: {
 				border: 'hsl(var(--border))',

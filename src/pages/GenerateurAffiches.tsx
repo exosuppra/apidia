@@ -323,10 +323,78 @@ export default function GenerateurAffiches() {
 
           // ANALYSE DE L'IMAGE POUR OPTIMISATION DE LA MISE EN PAGE
           const imageAnalysis = analyzeImageForLayout(ctx, width, height);
-          console.log(`[${formatType}] Analyse de l'image:`, {
+          
+          // Déterminer les polices selon le type d'événement
+          const getFontsByEventType = (eventType: string) => {
+            const normalizedType = eventType.toLowerCase();
+            
+            // Événements sportifs : polices dynamiques et impactantes
+            if (normalizedType.includes('sport') || normalizedType.includes('trail') || normalizedType.includes('course') || normalizedType.includes('marathon') || normalizedType.includes('vélo') || normalizedType.includes('randonnée') || normalizedType.includes('running') || normalizedType.includes('cyclisme')) {
+              return {
+                category: "🏃 Dynamique & Sportif",
+                title: "'Bebas Neue', 'Oswald', sans-serif",
+                subtitle: "'Oswald', sans-serif", 
+                detail: "'Montserrat', sans-serif"
+              };
+            }
+            
+            // Événements culturels : polices élégantes et sophistiquées
+            if (normalizedType.includes('culturel') || normalizedType.includes('festival') || normalizedType.includes('jazz') || normalizedType.includes('concert') || normalizedType.includes('théâtre') || normalizedType.includes('exposition') || normalizedType.includes('art') || normalizedType.includes('musique') || normalizedType.includes('danse') || normalizedType.includes('spectacle')) {
+              return {
+                category: "🎭 Élégant & Culturel",
+                title: "'Playfair Display', serif",
+                subtitle: "'Cormorant Garamond', serif",
+                detail: "'Crimson Text', serif"
+              };
+            }
+            
+            // Événements commerciaux : polices professionnelles et modernes
+            if (normalizedType.includes('commercial') || normalizedType.includes('marché') || normalizedType.includes('foire') || normalizedType.includes('salon') || normalizedType.includes('noël') || normalizedType.includes('vente') || normalizedType.includes('boutique') || normalizedType.includes('artisan')) {
+              return {
+                category: "💼 Professionnel & Moderne",
+                title: "'Montserrat', sans-serif",
+                subtitle: "'Poppins', sans-serif",
+                detail: "'Inter', sans-serif"
+              };
+            }
+            
+            // Événements festifs : polices ludiques et accueillantes  
+            if (normalizedType.includes('festiv') || normalizedType.includes('fête') || normalizedType.includes('carnaval') || normalizedType.includes('animation') || normalizedType.includes('famille') || normalizedType.includes('enfant') || normalizedType.includes('jeu')) {
+              return {
+                category: "🎉 Festif & Ludique",
+                title: "'Fredoka', sans-serif",
+                subtitle: "'Comfortaa', sans-serif", 
+                detail: "'Poppins', sans-serif"
+              };
+            }
+            
+            // Événements gastronomiques : polices gourmandes et chaleureuses
+            if (normalizedType.includes('gastronomie') || normalizedType.includes('cuisine') || normalizedType.includes('vin') || normalizedType.includes('dégustation') || normalizedType.includes('restaurant') || normalizedType.includes('chef')) {
+              return {
+                category: "🍷 Gourmand & Raffiné",
+                title: "'Cormorant Garamond', serif",
+                subtitle: "'Playfair Display', serif",
+                detail: "'Crimson Text', serif"
+              };
+            }
+            
+            // Par défaut : polices modernes et lisibles
+            return {
+              category: "✨ Moderne & Lisible",
+              title: "'Montserrat', sans-serif",
+              subtitle: "'Poppins', sans-serif",
+              detail: "'Inter', sans-serif"
+            };
+          };
+
+          const selectedFonts = getFontsByEventType(fiche.type);
+          
+          console.log(`[${formatType}] Analyse terminée:`, {
             brightness: imageAnalysis.globalBrightness.toFixed(1),
             contrast: imageAnalysis.globalContrast.toFixed(1),
-            bestZones: imageAnalysis.bestTextZones.length
+            bestZones: imageAnalysis.bestTextZones.length,
+            fontCategory: selectedFonts.category,
+            eventType: fiche.type
           });
 
           // Ajuster la position du texte selon l'analyse
@@ -338,28 +406,30 @@ export default function GenerateurAffiches() {
           const avgBrightness = imageAnalysis.globalBrightness;
           const isLowQualityOrBadFormat = img.width < 800 || img.height < 600;
 
-          // Configuration adaptée pour versions claire/foncée avec optimisation
+          // Configuration adaptée pour versions claire/foncée avec polices intelligentes
           const getStyleConfig = () => {
+            const eventFonts = selectedFonts;
+            
             const baseConfig = {
               moderne: {
-                titleFont: `900 ${Math.floor(width * 0.065)}px 'Arial Black', sans-serif`,
-                subtitleFont: `600 ${Math.floor(width * 0.03)}px 'Arial', sans-serif`,
-                detailFont: `400 ${Math.floor(width * 0.025)}px 'Arial', sans-serif`,
+                titleFont: `900 ${Math.floor(width * 0.065)}px ${eventFonts.title}`,
+                subtitleFont: `600 ${Math.floor(width * 0.03)}px ${eventFonts.subtitle}`,
+                detailFont: `500 ${Math.floor(width * 0.025)}px ${eventFonts.detail}`,
               },
               vintage: {
-                titleFont: `700 ${Math.floor(width * 0.055)}px 'Georgia', serif`,
-                subtitleFont: `500 ${Math.floor(width * 0.028)}px 'Georgia', serif`,
-                detailFont: `400 ${Math.floor(width * 0.023)}px 'Georgia', serif`,
+                titleFont: `700 ${Math.floor(width * 0.055)}px ${eventFonts.title}`,
+                subtitleFont: `500 ${Math.floor(width * 0.028)}px ${eventFonts.subtitle}`,
+                detailFont: `400 ${Math.floor(width * 0.023)}px ${eventFonts.detail}`,
               },
               festif: {
-                titleFont: `900 ${Math.floor(width * 0.07)}px 'Impact', sans-serif`,
-                subtitleFont: `700 ${Math.floor(width * 0.032)}px 'Arial Black', sans-serif`,
-                detailFont: `600 ${Math.floor(width * 0.027)}px 'Arial', sans-serif`,
+                titleFont: `900 ${Math.floor(width * 0.07)}px ${eventFonts.title}`,
+                subtitleFont: `700 ${Math.floor(width * 0.032)}px ${eventFonts.subtitle}`,
+                detailFont: `600 ${Math.floor(width * 0.027)}px ${eventFonts.detail}`,
               },
               elegant: {
-                titleFont: `300 ${Math.floor(width * 0.055)}px 'serif'`,
-                subtitleFont: `400 ${Math.floor(width * 0.025)}px 'serif'`,
-                detailFont: `300 ${Math.floor(width * 0.022)}px 'serif'`,
+                titleFont: `300 ${Math.floor(width * 0.055)}px ${eventFonts.title}`,
+                subtitleFont: `400 ${Math.floor(width * 0.025)}px ${eventFonts.subtitle}`,
+                detailFont: `300 ${Math.floor(width * 0.022)}px ${eventFonts.detail}`,
               }
             };
 
@@ -807,47 +877,82 @@ export default function GenerateurAffiches() {
                 </div>
                 
                 <div className="space-y-2 max-h-64 overflow-y-auto">
-                  {filteredFiches.map((fiche) => (
-                    <Card 
-                      key={fiche.id}
-                      className={`cursor-pointer transition-all ${
-                        selectedFiche?.id === fiche.id 
-                          ? 'ring-2 ring-primary bg-primary/5' 
-                          : 'hover:bg-muted/50'
-                      }`}
-                      onClick={() => setSelectedFiche(fiche)}
-                    >
-                      <CardContent className="p-3">
-                        <div className="flex gap-3">
-                          {fiche.image && (
-                            <img 
-                              src={fiche.image} 
-                              alt={fiche.title}
-                              className="w-16 h-10 object-cover rounded flex-shrink-0"
-                            />
-                          )}
-                          <div className="space-y-2 flex-1 min-w-0">
-                            <div className="flex items-start justify-between">
-                              <h4 className="font-medium text-sm truncate">{fiche.title}</h4>
-                              <Badge variant="secondary" className="text-xs ml-2 flex-shrink-0">
-                                {fiche.type}
-                              </Badge>
-                            </div>
-                            <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                              <div className="flex items-center gap-1">
-                                <Calendar className="w-3 h-3" />
-                                {new Date(fiche.dateDebut).toLocaleDateString('fr-FR')}
+                  {filteredFiches.map((fiche) => {
+                    // Déterminer le style de police selon le type d'événement
+                    const getFontStyleForEvent = (eventType: string) => {
+                      const normalizedType = eventType.toLowerCase();
+                      if (normalizedType.includes('sport') || normalizedType.includes('trail') || normalizedType.includes('course')) {
+                        return { style: "Dynamique", fonts: "Bebas Neue, Oswald", color: "text-orange-600" };
+                      }
+                      if (normalizedType.includes('culturel') || normalizedType.includes('festival') || normalizedType.includes('jazz')) {
+                        return { style: "Élégant", fonts: "Playfair Display, Cormorant", color: "text-purple-600" };
+                      }
+                      if (normalizedType.includes('commercial') || normalizedType.includes('marché') || normalizedType.includes('noël')) {
+                        return { style: "Professionnel", fonts: "Montserrat, Poppins", color: "text-blue-600" };
+                      }
+                      if (normalizedType.includes('festiv') || normalizedType.includes('fête') || normalizedType.includes('animation')) {
+                        return { style: "Festif", fonts: "Fredoka, Comfortaa", color: "text-pink-600" };
+                      }
+                      if (normalizedType.includes('gastronomie') || normalizedType.includes('cuisine') || normalizedType.includes('vin')) {
+                        return { style: "Gourmand", fonts: "Cormorant, Playfair", color: "text-amber-600" };
+                      }
+                      return { style: "Moderne", fonts: "Montserrat, Poppins", color: "text-gray-600" };
+                    };
+                    
+                    const fontInfo = getFontStyleForEvent(fiche.type);
+                    
+                    return (
+                      <Card 
+                        key={fiche.id}
+                        className={`cursor-pointer transition-all ${
+                          selectedFiche?.id === fiche.id 
+                            ? 'ring-2 ring-primary bg-primary/5' 
+                            : 'hover:bg-muted/50'
+                        }`}
+                        onClick={() => setSelectedFiche(fiche)}
+                      >
+                        <CardContent className="p-3">
+                          <div className="flex gap-3">
+                            {fiche.image && (
+                              <img 
+                                src={fiche.image} 
+                                alt={fiche.title}
+                                className="w-16 h-10 object-cover rounded flex-shrink-0"
+                              />
+                            )}
+                            <div className="space-y-2 flex-1 min-w-0">
+                              <div className="flex items-start justify-between">
+                                <h4 className="font-medium text-sm truncate">{fiche.title}</h4>
+                                <Badge variant="secondary" className="text-xs ml-2 flex-shrink-0">
+                                  {fiche.type}
+                                </Badge>
                               </div>
-                              <div className="flex items-center gap-1">
-                                <MapPin className="w-3 h-3" />
-                                {fiche.lieu.split(',')[0]}
+                              <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                                <div className="flex items-center gap-1">
+                                  <Calendar className="w-3 h-3" />
+                                  {new Date(fiche.dateDebut).toLocaleDateString('fr-FR')}
+                                </div>
+                                <div className="flex items-center gap-1">
+                                  <MapPin className="w-3 h-3" />
+                                  {fiche.lieu.split(',')[0]}
+                                </div>
+                              </div>
+                              {/* Indicateur de style de police */}
+                              <div className="flex items-center gap-2 text-xs">
+                                <Type className="w-3 h-3" />
+                                <span className={`font-medium ${fontInfo.color}`}>
+                                  Style {fontInfo.style}
+                                </span>
+                                <span className="text-muted-foreground">
+                                  • {fontInfo.fonts}
+                                </span>
                               </div>
                             </div>
                           </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
                 </div>
               </CardContent>
             </Card>
@@ -921,6 +1026,92 @@ export default function GenerateurAffiches() {
                     </SelectContent>
                   </Select>
                 </div>
+
+                {/* Aperçu des polices selon l'événement sélectionné */}
+                {selectedFiche && (
+                  <div className="p-4 bg-muted/20 rounded-lg border">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Type className="w-4 h-4" />
+                      <span className="font-medium text-sm">Polices sélectionnées automatiquement</span>
+                    </div>
+                    {(() => {
+                      const getFontPreview = (eventType: string) => {
+                        const normalizedType = eventType.toLowerCase();
+                        if (normalizedType.includes('sport') || normalizedType.includes('trail') || normalizedType.includes('course')) {
+                          return { 
+                            style: "Dynamique & Sportif", 
+                            title: "font-bebas", 
+                            subtitle: "font-oswald", 
+                            detail: "font-montserrat",
+                            preview: "Trail des Vignes"
+                          };
+                        }
+                        if (normalizedType.includes('culturel') || normalizedType.includes('festival') || normalizedType.includes('jazz')) {
+                          return { 
+                            style: "Élégant & Culturel", 
+                            title: "font-playfair", 
+                            subtitle: "font-cormorant", 
+                            detail: "font-crimson",
+                            preview: "Festival de Jazz"
+                          };
+                        }
+                        if (normalizedType.includes('commercial') || normalizedType.includes('marché') || normalizedType.includes('noël')) {
+                          return { 
+                            style: "Professionnel", 
+                            title: "font-montserrat", 
+                            subtitle: "font-poppins", 
+                            detail: "font-sans",
+                            preview: "Marché de Noël"
+                          };
+                        }
+                        if (normalizedType.includes('festiv') || normalizedType.includes('fête') || normalizedType.includes('animation')) {
+                          return { 
+                            style: "Festif & Ludique", 
+                            title: "font-fredoka", 
+                            subtitle: "font-comfortaa", 
+                            detail: "font-poppins",
+                            preview: "Fête de Village"
+                          };
+                        }
+                        if (normalizedType.includes('gastronomie') || normalizedType.includes('cuisine') || normalizedType.includes('vin')) {
+                          return { 
+                            style: "Gourmand & Raffiné", 
+                            title: "font-cormorant", 
+                            subtitle: "font-playfair", 
+                            detail: "font-crimson",
+                            preview: "Dégustation de Vins"
+                          };
+                        }
+                        return { 
+                          style: "Moderne & Lisible", 
+                          title: "font-montserrat", 
+                          subtitle: "font-poppins", 
+                          detail: "font-sans",
+                          preview: "Événement"
+                        };
+                      };
+                      
+                      const fontInfo = getFontPreview(selectedFiche.type);
+                      
+                      return (
+                        <div className="space-y-3">
+                          <div className="text-xs text-primary font-medium">{fontInfo.style}</div>
+                          <div className="space-y-2">
+                            <div className={`text-lg font-bold ${fontInfo.title}`}>
+                              {fontInfo.preview.toUpperCase()}
+                            </div>
+                            <div className={`text-sm ${fontInfo.subtitle}`}>
+                              Samedi 14 septembre 2024
+                            </div>
+                            <div className={`text-xs text-muted-foreground ${fontInfo.detail}`}>
+                              Domaine viticole de Pic Saint-Loup
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                )}
 
                 <div>
                   <Label>Formats générés automatiquement</Label>
