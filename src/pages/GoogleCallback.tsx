@@ -5,9 +5,15 @@ export default function GoogleCallback() {
   const [searchParams] = useSearchParams();
 
   useEffect(() => {
+    console.log('🔍 GoogleCallback démarré');
+    console.log('URL complète:', window.location.href);
+    console.log('Hash:', window.location.hash);
+    console.log('Search params:', window.location.search);
+    
     const error = searchParams.get('error');
     
     if (error) {
+      console.log('❌ Erreur OAuth détectée:', error);
       // Envoyer l'erreur au parent
       if (window.opener) {
         window.opener.postMessage({
@@ -15,35 +21,46 @@ export default function GoogleCallback() {
           error: error
         }, window.location.origin);
       }
+      console.log('🚪 Fermeture popup (erreur)');
       window.close();
       return;
     }
 
     // Vérifier d'abord le hash fragment pour les tokens Supabase
     const fragment = window.location.hash.substring(1);
+    console.log('Fragment:', fragment);
     const params = new URLSearchParams(fragment);
     const accessToken = params.get('access_token');
     const refreshToken = params.get('refresh_token');
     
+    console.log('Access token:', accessToken ? 'TROUVÉ' : 'NON TROUVÉ');
+    console.log('Refresh token:', refreshToken ? 'TROUVÉ' : 'NON TROUVÉ');
+    
     if (accessToken) {
-      console.log('✅ Token Google trouvé, fermeture de la popup');
+      console.log('✅ Token Google trouvé, envoi au parent');
       // Envoyer le token au parent
       if (window.opener) {
+        console.log('📤 Envoi message au parent');
         window.opener.postMessage({
           type: 'GOOGLE_AUTH_SUCCESS',
           token: accessToken,
           refreshToken: refreshToken
         }, window.location.origin);
+      } else {
+        console.log('❌ Pas de window.opener');
       }
+      console.log('🚪 Fermeture popup (succès)');
       // Fermer immédiatement la popup
-      setTimeout(() => window.close(), 100);
+      window.close();
       return;
     }
 
     // Vérifier aussi les query params au cas où
     const code = searchParams.get('code');
+    console.log('Code OAuth:', code ? 'TROUVÉ' : 'NON TROUVÉ');
+    
     if (code) {
-      console.log('✅ Code OAuth trouvé, fermeture de la popup');
+      console.log('✅ Code OAuth trouvé, envoi au parent');
       if (window.opener) {
         window.opener.postMessage({
           type: 'GOOGLE_AUTH_SUCCESS',
@@ -51,13 +68,15 @@ export default function GoogleCallback() {
           refreshToken: null
         }, window.location.origin);
       }
-      setTimeout(() => window.close(), 100);
+      console.log('🚪 Fermeture popup (code)');
+      window.close();
       return;
     }
 
     // Si aucun token, attendre un peu puis fermer
+    console.log('⏳ Aucun token trouvé, attente 2s puis fermeture');
     setTimeout(() => {
-      console.log('❌ Aucun token trouvé, fermeture de la popup');
+      console.log('❌ Timeout atteint, fermeture de la popup');
       if (window.opener) {
         window.opener.postMessage({
           type: 'GOOGLE_AUTH_ERROR',
