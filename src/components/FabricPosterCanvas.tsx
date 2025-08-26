@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState, useCallback } from "react";
-import { Canvas as FabricCanvas, FabricImage, Text, Rect, Group, Gradient } from "fabric";
+import { Canvas as FabricCanvas, FabricImage, Text, Rect, Group } from "fabric";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { 
   Download, 
@@ -19,7 +20,12 @@ import {
   ZoomOut,
   Undo,
   Redo,
-  Loader2
+  Loader2,
+  Settings,
+  Eye,
+  Maximize2,
+  Save,
+  Sparkles
 } from "lucide-react";
 
 interface PosterData {
@@ -65,19 +71,11 @@ const getTemplateByStyle = (style: string, eventType: string) => {
 
   const templates = {
     moderne: {
-      overlay: {
-        type: 'linear',
-        coords: { x1: 0, y1: 0, x2: 0, y2: 1 },
-        colorStops: [
-          { offset: 0, color: 'rgba(0,0,0,0.7)' },
-          { offset: 0.6, color: 'rgba(0,0,0,0.3)' },
-          { offset: 1, color: 'rgba(0,0,0,0.8)' }
-        ]
-      },
+      overlay: 'rgba(0,0,0,0.6)',
       typography: {
-        title: { fontFamily: 'Montserrat', fontSize: 80, fontWeight: 'bold', color: '#ffffff' },
-        subtitle: { fontFamily: 'Poppins', fontSize: 32, fontWeight: '600', color: '#e2e8f0' },
-        detail: { fontFamily: 'Inter', fontSize: 24, fontWeight: '500', color: '#cbd5e1' }
+        title: { fontFamily: 'Arial', fontSize: 80, fontWeight: 'bold', color: '#ffffff' },
+        subtitle: { fontFamily: 'Arial', fontSize: 32, fontWeight: '600', color: '#e2e8f0' },
+        detail: { fontFamily: 'Arial', fontSize: 24, fontWeight: '500', color: '#cbd5e1' }
       },
       layout: {
         titleY: 0.15,
@@ -88,18 +86,11 @@ const getTemplateByStyle = (style: string, eventType: string) => {
       accent: colors.primary
     },
     elegant: {
-      overlay: {
-        type: 'radial',
-        coords: { x1: 0.5, y1: 0.3, r1: 0, x2: 0.5, y2: 0.3, r2: 0.8 },
-        colorStops: [
-          { offset: 0, color: 'rgba(15,23,42,0.4)' },
-          { offset: 1, color: 'rgba(15,23,42,0.9)' }
-        ]
-      },
+      overlay: 'rgba(15,23,42,0.75)',
       typography: {
-        title: { fontFamily: 'Playfair Display', fontSize: 70, fontWeight: '700', color: '#f8fafc' },
-        subtitle: { fontFamily: 'Cormorant Garamond', fontSize: 28, fontWeight: '500', color: '#e2e8f0' },
-        detail: { fontFamily: 'Crimson Text', fontSize: 22, fontWeight: '400', color: '#cbd5e1' }
+        title: { fontFamily: 'Arial', fontSize: 70, fontWeight: '700', color: '#f8fafc' },
+        subtitle: { fontFamily: 'Arial', fontSize: 28, fontWeight: '500', color: '#e2e8f0' },
+        detail: { fontFamily: 'Arial', fontSize: 22, fontWeight: '400', color: '#cbd5e1' }
       },
       layout: {
         titleY: 0.2,
@@ -110,19 +101,11 @@ const getTemplateByStyle = (style: string, eventType: string) => {
       accent: colors.secondary
     },
     festif: {
-      overlay: {
-        type: 'linear',
-        coords: { x1: 0.2, y1: 0, x2: 0.8, y2: 1 },
-        colorStops: [
-          { offset: 0, color: `rgba(236,72,153,0.8)` },
-          { offset: 0.5, color: 'rgba(147,51,234,0.6)' },
-          { offset: 1, color: 'rgba(59,130,246,0.8)' }
-        ]
-      },
+      overlay: 'rgba(236,72,153,0.7)',
       typography: {
-        title: { fontFamily: 'Fredoka', fontSize: 85, fontWeight: '700', color: '#ffffff' },
-        subtitle: { fontFamily: 'Comfortaa', fontSize: 35, fontWeight: '600', color: '#ffffff' },
-        detail: { fontFamily: 'Poppins', fontSize: 26, fontWeight: '500', color: '#f1f5f9' }
+        title: { fontFamily: 'Arial', fontSize: 85, fontWeight: '700', color: '#ffffff' },
+        subtitle: { fontFamily: 'Arial', fontSize: 35, fontWeight: '600', color: '#ffffff' },
+        detail: { fontFamily: 'Arial', fontSize: 26, fontWeight: '500', color: '#f1f5f9' }
       },
       layout: {
         titleY: 0.12,
@@ -133,19 +116,11 @@ const getTemplateByStyle = (style: string, eventType: string) => {
       accent: '#fbbf24'
     },
     vintage: {
-      overlay: {
-        type: 'linear',
-        coords: { x1: 0, y1: 0, x2: 0, y2: 1 },
-        colorStops: [
-          { offset: 0, color: 'rgba(92,66,46,0.9)' },
-          { offset: 0.5, color: 'rgba(120,85,60,0.7)' },
-          { offset: 1, color: 'rgba(69,48,33,0.95)' }
-        ]
-      },
+      overlay: 'rgba(92,66,46,0.85)',
       typography: {
-        title: { fontFamily: 'Playfair Display', fontSize: 65, fontWeight: '700', color: '#fef3c7' },
-        subtitle: { fontFamily: 'Cormorant Garamond', fontSize: 30, fontWeight: '500', color: '#fde68a' },
-        detail: { fontFamily: 'Crimson Text', fontSize: 24, fontWeight: '400', color: '#fcd34d' }
+        title: { fontFamily: 'Arial', fontSize: 65, fontWeight: '700', color: '#fef3c7' },
+        subtitle: { fontFamily: 'Arial', fontSize: 30, fontWeight: '500', color: '#fde68a' },
+        detail: { fontFamily: 'Arial', fontSize: 24, fontWeight: '400', color: '#fcd34d' }
       },
       layout: {
         titleY: 0.18,
@@ -168,13 +143,14 @@ export const FabricPosterCanvas = ({ posterData, selectedStyle, customText, onGe
   const [isGenerating, setIsGenerating] = useState(false);
   const [history, setHistory] = useState<any[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
+  const [previewMode, setPreviewMode] = useState(false);
 
   // Format definitions
   const formats = {
-    story: { width: 1080, height: 1920, name: "Story Instagram" },
-    feed: { width: 1080, height: 1350, name: "Feed Instagram" },
-    banner: { width: 1920, height: 1080, name: "Bannière Facebook" },
-    print: { width: 2480, height: 3508, name: "A4 Print (300 DPI)" }
+    story: { width: 1080, height: 1920, name: "Story Instagram", icon: "📱" },
+    feed: { width: 1080, height: 1350, name: "Feed Instagram", icon: "📷" },
+    banner: { width: 1920, height: 1080, name: "Bannière Facebook", icon: "🖥️" },
+    print: { width: 2480, height: 3508, name: "A4 Print (300 DPI)", icon: "🖨️" }
   };
 
   const currentFormat = formats[selectedFormat as keyof typeof formats];
@@ -186,8 +162,8 @@ export const FabricPosterCanvas = ({ posterData, selectedStyle, customText, onGe
     console.log('Initializing Fabric Canvas...');
     
     const canvas = new FabricCanvas(canvasRef.current, {
-      width: 800,
-      height: (800 * currentFormat.height) / currentFormat.width,
+      width: 600,
+      height: (600 * currentFormat.height) / currentFormat.width,
       backgroundColor: "#f8fafc",
       preserveObjectStacking: true,
     });
@@ -271,7 +247,7 @@ export const FabricPosterCanvas = ({ posterData, selectedStyle, customText, onGe
     }
 
     setIsGenerating(true);
-    toast("Génération de l'affiche professionnelle...");
+    toast("🎨 Génération de votre affiche professionnelle...");
 
     try {
       // Clear canvas safely
@@ -308,13 +284,13 @@ export const FabricPosterCanvas = ({ posterData, selectedStyle, customText, onGe
         }
       }
 
-      // 2. Add simple overlay instead of gradient for now
+      // 2. Add overlay
       const overlay = new Rect({
         left: 0,
         top: 0,
         width: canvasWidth,
         height: canvasHeight,
-        fill: template.overlay.colorStops[0].color,
+        fill: template.overlay,
         selectable: false
       });
       
@@ -336,8 +312,8 @@ export const FabricPosterCanvas = ({ posterData, selectedStyle, customText, onGe
         top: template.layout.margins + 20,
         originX: 'center',
         originY: 'center',
-        fontFamily: template.typography.detail.fontFamily,
-        fontSize: 18,
+        fontFamily: 'Arial',
+        fontSize: 16,
         fontWeight: '600',
         fill: '#ffffff'
       });
@@ -356,7 +332,7 @@ export const FabricPosterCanvas = ({ posterData, selectedStyle, customText, onGe
         originX: 'center',
         originY: 'top',
         fontFamily: template.typography.title.fontFamily,
-        fontSize: Math.min(template.typography.title.fontSize, canvasWidth / 12),
+        fontSize: Math.min(template.typography.title.fontSize * 0.6, canvasWidth / 15),
         fontWeight: template.typography.title.fontWeight as any,
         fill: template.typography.title.color,
         textAlign: 'center',
@@ -382,11 +358,11 @@ export const FabricPosterCanvas = ({ posterData, selectedStyle, customText, onGe
 
       const dateObj = new Text(dateText.toUpperCase(), {
         left: canvasWidth / 2,
-        top: titleY + template.layout.contentSpacing * 2,
+        top: titleY + template.layout.contentSpacing * 1.5,
         originX: 'center',
         originY: 'top',
         fontFamily: template.typography.subtitle.fontFamily,
-        fontSize: template.typography.subtitle.fontSize,
+        fontSize: template.typography.subtitle.fontSize * 0.6,
         fontWeight: template.typography.subtitle.fontWeight as any,
         fill: template.typography.subtitle.color,
         textAlign: 'center',
@@ -398,11 +374,11 @@ export const FabricPosterCanvas = ({ posterData, selectedStyle, customText, onGe
       // 6. Add location
       const location = new Text(posterData.lieu.split(',')[0].toUpperCase(), {
         left: canvasWidth / 2,
-        top: titleY + template.layout.contentSpacing * 3,
+        top: titleY + template.layout.contentSpacing * 2.2,
         originX: 'center',
         originY: 'top',
         fontFamily: template.typography.detail.fontFamily,
-        fontSize: template.typography.detail.fontSize,
+        fontSize: template.typography.detail.fontSize * 0.6,
         fontWeight: template.typography.detail.fontWeight as any,
         fill: template.typography.detail.color,
         textAlign: 'center',
@@ -413,9 +389,9 @@ export const FabricPosterCanvas = ({ posterData, selectedStyle, customText, onGe
 
       // 7. Add accent line
       const accentLine = new Rect({
-        left: canvasWidth / 2 - 100,
-        top: canvasHeight - template.layout.margins - 60,
-        width: 200,
+        left: canvasWidth / 2 - 80,
+        top: canvasHeight - template.layout.margins - 40,
+        width: 160,
         height: template.layout.accentHeight,
         fill: template.accent,
         originX: 'center',
@@ -427,15 +403,27 @@ export const FabricPosterCanvas = ({ posterData, selectedStyle, customText, onGe
       fabricCanvas.renderAll();
       saveToHistory(fabricCanvas);
       
-      toast.success("Affiche générée avec succès !");
+      toast.success("✨ Affiche générée avec succès !");
       
     } catch (error) {
       console.error('Erreur lors de la génération:', error);
-      toast.error("Erreur lors de la génération de l'affiche");
+      toast.error("❌ Erreur lors de la génération de l'affiche");
     } finally {
       setIsGenerating(false);
     }
   }, [fabricCanvas, posterData, selectedStyle, customText, saveToHistory]);
+
+  // Update canvas size when format changes
+  useEffect(() => {
+    if (fabricCanvas && canvasRef.current) {
+      const newWidth = 600;
+      const newHeight = (600 * currentFormat.height) / currentFormat.width;
+      
+      fabricCanvas.setWidth(newWidth);
+      fabricCanvas.setHeight(newHeight);
+      fabricCanvas.renderAll();
+    }
+  }, [fabricCanvas, currentFormat]);
 
   // Update zoom
   useEffect(() => {
@@ -461,122 +449,250 @@ export const FabricPosterCanvas = ({ posterData, selectedStyle, customText, onGe
     link.href = dataURL;
     link.click();
 
-    toast.success(`Affiche exportée en ${format.toUpperCase()}`);
+    toast.success(`📁 Affiche exportée en ${format.toUpperCase()}`);
   }, [fabricCanvas, posterData.title, currentFormat]);
 
   return (
-    <div className="space-y-6">
-      {/* Toolbar */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Layout className="w-5 h-5" />
-            Éditeur Professionnel
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-wrap gap-4 items-center">
-            {/* Format Selection */}
-            <div className="flex items-center gap-2">
-              <Label className="text-sm">Format:</Label>
-              <Select value={selectedFormat} onValueChange={setSelectedFormat}>
-                <SelectTrigger className="w-40">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {Object.entries(formats).map(([key, format]) => (
-                    <SelectItem key={key} value={key}>
-                      {format.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Zoom Control */}
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" onClick={() => setZoom([Math.max(25, zoom[0] - 25)])}>
-                <ZoomOut className="w-4 h-4" />
-              </Button>
-              <div className="w-20">
-                <Slider
-                  value={zoom}
-                  onValueChange={setZoom}
-                  min={25}
-                  max={200}
-                  step={25}
-                />
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+      {/* Modern Header */}
+      <div className="bg-white/80 backdrop-blur-sm border-b border-slate-200/50 sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-6 py-4">
+          <div className="flex items-center justify-between">
+            {/* Left section */}
+            <div className="flex items-center gap-6">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
+                  <Sparkles className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h1 className="text-xl font-bold text-slate-900">Éditeur Professionnel</h1>
+                  <p className="text-sm text-slate-500">{posterData.title}</p>
+                </div>
               </div>
-              <Button variant="outline" size="sm" onClick={() => setZoom([Math.min(200, zoom[0] + 25)])}>
-                <ZoomIn className="w-4 h-4" />
-              </Button>
-              <span className="text-sm text-muted-foreground">{zoom[0]}%</span>
+              
+              <Separator orientation="vertical" className="h-8" />
+              
+              {/* Format selector */}
+              <div className="flex items-center gap-3">
+                <Label className="text-sm font-medium text-slate-700">Format:</Label>
+                <Select value={selectedFormat} onValueChange={setSelectedFormat}>
+                  <SelectTrigger className="w-48 bg-white/50 border-slate-200">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white/95 backdrop-blur-sm border-slate-200">
+                    {Object.entries(formats).map(([key, format]) => (
+                      <SelectItem key={key} value={key} className="hover:bg-slate-50">
+                        <div className="flex items-center gap-2">
+                          <span>{format.icon}</span>
+                          <span>{format.name}</span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
-            {/* History Controls */}
-            <div className="flex items-center gap-1">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={undo}
-                disabled={historyIndex <= 0}
-              >
-                <Undo className="w-4 h-4" />
-              </Button>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={redo}
-                disabled={historyIndex >= history.length - 1}
-              >
-                <Redo className="w-4 h-4" />
-              </Button>
-            </div>
+            {/* Right section */}
+            <div className="flex items-center gap-3">
+              {/* Zoom controls */}
+              <div className="flex items-center gap-2 bg-white/50 rounded-lg px-3 py-2">
+                <Button variant="ghost" size="sm" onClick={() => setZoom([Math.max(25, zoom[0] - 25)])}>
+                  <ZoomOut className="w-4 h-4" />
+                </Button>
+                <div className="w-20">
+                  <Slider
+                    value={zoom}
+                    onValueChange={setZoom}
+                    min={25}
+                    max={200}
+                    step={25}
+                    className="cursor-pointer"
+                  />
+                </div>
+                <Button variant="ghost" size="sm" onClick={() => setZoom([Math.min(200, zoom[0] + 25)])}>
+                  <ZoomIn className="w-4 h-4" />
+                </Button>
+                <span className="text-sm text-slate-600 min-w-[40px]">{zoom[0]}%</span>
+              </div>
 
-            {/* Actions */}
-            <div className="flex items-center gap-2 ml-auto">
-              <Button 
-                onClick={generatePoster} 
-                disabled={isGenerating}
-                className="gap-2"
-              >
-                {isGenerating ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Palette className="w-4 h-4" />
-                )}
-                Générer
-              </Button>
-              <Button 
-                variant="outline" 
-                onClick={() => exportCanvas('png')}
-                className="gap-2"
-              >
-                <Download className="w-4 h-4" />
-                Exporter
-              </Button>
+              {/* History controls */}
+              <div className="flex items-center gap-1 bg-white/50 rounded-lg p-1">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={undo}
+                  disabled={historyIndex <= 0}
+                  className="hover:bg-white/80"
+                >
+                  <Undo className="w-4 h-4" />
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={redo}
+                  disabled={historyIndex >= history.length - 1}
+                  className="hover:bg-white/80"
+                >
+                  <Redo className="w-4 h-4" />
+                </Button>
+              </div>
+
+              {/* Action buttons */}
+              <div className="flex items-center gap-2">
+                <Button 
+                  variant="outline"
+                  onClick={() => setPreviewMode(!previewMode)}
+                  className="gap-2 bg-white/50 hover:bg-white/80"
+                >
+                  <Eye className="w-4 h-4" />
+                  {previewMode ? 'Éditer' : 'Aperçu'}
+                </Button>
+                
+                <Button 
+                  onClick={generatePoster} 
+                  disabled={isGenerating}
+                  className="gap-2 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white shadow-lg"
+                >
+                  {isGenerating ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Palette className="w-4 h-4" />
+                  )}
+                  {isGenerating ? 'Génération...' : 'Générer'}
+                </Button>
+                
+                <Button 
+                  variant="outline"
+                  onClick={() => exportCanvas('png')}
+                  className="gap-2 bg-green-50 hover:bg-green-100 text-green-700 border-green-200"
+                >
+                  <Download className="w-4 h-4" />
+                  Exporter
+                </Button>
+              </div>
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
-      {/* Canvas */}
-      <Card>
-        <CardContent className="p-6">
-          <div className="flex justify-center">
-            <div className="border rounded-lg shadow-lg overflow-hidden bg-white">
-              <canvas ref={canvasRef} />
-            </div>
+      {/* Main workspace */}
+      <div className="max-w-7xl mx-auto px-6 py-8">
+        <div className="grid lg:grid-cols-4 gap-8">
+          
+          {/* Side panel - Tools */}
+          <div className="lg:col-span-1">
+            <Card className="bg-white/80 backdrop-blur-sm border-slate-200/50 shadow-lg">
+              <CardHeader className="bg-gradient-to-r from-slate-50 to-blue-50">
+                <CardTitle className="flex items-center gap-2 text-slate-800">
+                  <Settings className="w-5 h-5" />
+                  Outils & Paramètres
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6 p-6">
+                
+                {/* Style info */}
+                <div className="space-y-3">
+                  <Label className="text-sm font-medium text-slate-700">Style actuel</Label>
+                  <div className="p-3 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border border-blue-100">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-3 h-3 rounded-full bg-gradient-to-r from-blue-500 to-purple-600"></div>
+                      <span className="font-medium text-sm capitalize">{selectedStyle}</span>
+                    </div>
+                    <p className="text-xs text-slate-600">
+                      Optimisé pour les événements de type "{posterData.type}"
+                    </p>
+                  </div>
+                </div>
+
+                {/* Format info */}
+                <div className="space-y-3">
+                  <Label className="text-sm font-medium text-slate-700">Format de sortie</Label>
+                  <div className="p-3 bg-slate-50 rounded-lg border border-slate-200">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-lg">{currentFormat.icon}</span>
+                      <span className="font-medium text-sm">{currentFormat.name}</span>
+                    </div>
+                    <p className="text-xs text-slate-500">
+                      {currentFormat.width} × {currentFormat.height}px
+                    </p>
+                  </div>
+                </div>
+
+                {/* Quick actions */}
+                <div className="space-y-3">
+                  <Label className="text-sm font-medium text-slate-700">Actions rapides</Label>
+                  <div className="space-y-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="w-full justify-start gap-2 hover:bg-slate-50"
+                      onClick={() => fabricCanvas?.getObjects().forEach(obj => fabricCanvas.remove(obj))}
+                    >
+                      <RotateCcw className="w-4 h-4" />
+                      Vider le canvas
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="w-full justify-start gap-2 hover:bg-slate-50"
+                      onClick={() => setZoom([100])}
+                    >
+                      <Maximize2 className="w-4 h-4" />
+                      Réinitialiser zoom
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Tips */}
+                <div className="space-y-3">
+                  <Label className="text-sm font-medium text-slate-700">💡 Conseils</Label>
+                  <div className="text-xs text-slate-600 space-y-2">
+                    <p>• Utilisez le zoom pour les détails précis</p>
+                    <p>• Les éléments sont déplaçables et redimensionnables</p>
+                    <p>• Ctrl+Z pour annuler, Ctrl+Y pour refaire</p>
+                    <p>• Testez différents formats pour vos besoins</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
-        </CardContent>
-      </Card>
 
-      {/* Format Info */}
-      <div className="flex justify-center">
-        <Badge variant="secondary" className="gap-2">
-          <Layers className="w-3 h-3" />
-          {currentFormat.name} - {currentFormat.width}×{currentFormat.height}px
-        </Badge>
+          {/* Main canvas area */}
+          <div className="lg:col-span-3">
+            <Card className="bg-white/80 backdrop-blur-sm border-slate-200/50 shadow-xl overflow-hidden">
+              <CardContent className="p-8">
+                <div className="flex justify-center">
+                  <div className={`relative rounded-xl shadow-2xl overflow-hidden bg-white ${previewMode ? 'ring-4 ring-blue-500/20' : ''}`}>
+                    <canvas 
+                      ref={canvasRef} 
+                      className="block max-w-full transition-all duration-300 hover:shadow-lg"
+                    />
+                    {previewMode && (
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent pointer-events-none" />
+                    )}
+                  </div>
+                </div>
+                
+                {/* Canvas info */}
+                <div className="flex justify-center mt-6">
+                  <div className="flex items-center gap-4 px-4 py-2 bg-slate-50 rounded-full border border-slate-200">
+                    <Badge variant="secondary" className="gap-2 bg-white">
+                      <Layers className="w-3 h-3" />
+                      {currentFormat.name}
+                    </Badge>
+                    <div className="text-xs text-slate-500">
+                      {currentFormat.width}×{currentFormat.height}px
+                    </div>
+                    <div className="text-xs text-slate-500">
+                      Zoom: {zoom[0]}%
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
       </div>
     </div>
   );
