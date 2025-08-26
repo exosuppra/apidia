@@ -111,10 +111,84 @@ export default function GenerateurAffiches() {
     }
   });
 
+  // Sélection automatique du style selon l'événement
+  const getAutoStyle = (eventType: string) => {
+    const normalizedType = eventType.toLowerCase();
+    
+    // Événements sportifs → Style moderne et dynamique
+    if (normalizedType.includes('sport') || normalizedType.includes('trail') || normalizedType.includes('course') || normalizedType.includes('marathon') || normalizedType.includes('vélo') || normalizedType.includes('randonnée') || normalizedType.includes('running') || normalizedType.includes('cyclisme')) {
+      return { 
+        style: 'moderne', 
+        reason: '🏃 Style moderne pour un événement sportif et dynamique',
+        colors: 'Contrastes élevés et couleurs énergiques'
+      };
+    }
+    
+    // Événements culturels → Style élégant et sophistiqué
+    if (normalizedType.includes('culturel') || normalizedType.includes('festival') || normalizedType.includes('jazz') || normalizedType.includes('concert') || normalizedType.includes('théâtre') || normalizedType.includes('exposition') || normalizedType.includes('art') || normalizedType.includes('musique') || normalizedType.includes('danse') || normalizedType.includes('spectacle')) {
+      return { 
+        style: 'elegant', 
+        reason: '🎭 Style élégant pour un événement culturel et raffiné',
+        colors: 'Tons subtils et typographie sophistiquée'
+      };
+    }
+    
+    // Événements de saison/traditionnels → Style vintage
+    if (normalizedType.includes('noël') || normalizedType.includes('artisan') || normalizedType.includes('traditionnel') || normalizedType.includes('patrimoine') || normalizedType.includes('vintage') || normalizedType.includes('historique')) {
+      return { 
+        style: 'vintage', 
+        reason: '🎨 Style vintage pour un événement traditionnel et authentique',
+        colors: 'Teintes chaleureuses et ambiance nostalgique'
+      };
+    }
+    
+    // Événements festifs/familiaux → Style festif
+    if (normalizedType.includes('festiv') || normalizedType.includes('fête') || normalizedType.includes('carnaval') || normalizedType.includes('animation') || normalizedType.includes('famille') || normalizedType.includes('enfant') || normalizedType.includes('jeu')) {
+      return { 
+        style: 'festif', 
+        reason: '🎉 Style festif pour un événement ludique et coloré',
+        colors: 'Couleurs vives et design joyeux'
+      };
+    }
+    
+    // Événements commerciaux/professionnels → Style moderne
+    if (normalizedType.includes('commercial') || normalizedType.includes('marché') || normalizedType.includes('foire') || normalizedType.includes('salon') || normalizedType.includes('vente') || normalizedType.includes('boutique') || normalizedType.includes('professionnel')) {
+      return { 
+        style: 'moderne', 
+        reason: '💼 Style moderne pour un événement commercial et professionnel',
+        colors: 'Design épuré et lisibilité optimale'
+      };
+    }
+    
+    // Événements gastronomiques → Style élégant
+    if (normalizedType.includes('gastronomie') || normalizedType.includes('cuisine') || normalizedType.includes('vin') || normalizedType.includes('dégustation') || normalizedType.includes('restaurant') || normalizedType.includes('chef')) {
+      return { 
+        style: 'elegant', 
+        reason: '🍷 Style élégant pour un événement gastronomique et raffiné',
+        colors: 'Esthétique gourmande et sophistiquée'
+      };
+    }
+    
+    // Par défaut → Style moderne
+    return { 
+      style: 'moderne', 
+      reason: '✨ Style moderne par défaut - épuré et polyvalent',
+      colors: 'Design contemporain et équilibré'
+    };
+  };
+
   const filteredFiches = mockFiches.filter(fiche => 
     fiche.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
     fiche.type.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  // Auto-sélection du style quand une fiche est choisie
+  useEffect(() => {
+    if (selectedFiche && !selectedStyle) {
+      const autoStyleInfo = getAutoStyle(selectedFiche.type);
+      setSelectedStyle(autoStyleInfo.style);
+    }
+  }, [selectedFiche, selectedStyle]);
 
   // Analyse avancée de l'image pour optimiser la mise en page
   const analyzeImageForLayout = (ctx: CanvasRenderingContext2D, width: number, height: number) => {
@@ -1008,8 +1082,38 @@ export default function GenerateurAffiches() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
+                {/* Auto-sélection du style avec explication */}
+                {selectedFiche && (
+                  <div className="p-4 bg-primary/5 rounded-lg border border-primary/20">
+                    <div className="flex items-start gap-3">
+                      <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <Sparkles className="w-4 h-4 text-primary" />
+                      </div>
+                      <div className="space-y-2 flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-sm">Style sélectionné automatiquement</span>
+                          <Badge variant="secondary" className="text-xs">
+                            {styles.find(s => s.id === selectedStyle)?.name}
+                          </Badge>
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          {(() => {
+                            const autoStyleInfo = getAutoStyle(selectedFiche.type);
+                            return (
+                              <div className="space-y-1">
+                                <p>{autoStyleInfo.reason}</p>
+                                <p className="text-xs">{autoStyleInfo.colors}</p>
+                              </div>
+                            );
+                          })()}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 <div>
-                  <Label>Style visuel</Label>
+                  <Label>Style visuel {selectedFiche ? '(modifiable)' : ''}</Label>
                   <Select value={selectedStyle} onValueChange={setSelectedStyle}>
                     <SelectTrigger>
                       <SelectValue placeholder="Choisir un style" />
