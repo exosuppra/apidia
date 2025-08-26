@@ -90,31 +90,207 @@ export default function GenerateurAffiches() {
     fiche.type.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const generatePosterCanvas = async (
+    fiche: typeof mockFiches[0],
+    style: string,
+    format: string,
+    backgroundImage: string,
+    customText?: string
+  ): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      // Définir les dimensions selon le format
+      const formatDimensions = {
+        a4: { width: 595, height: 842 },
+        a3: { width: 842, height: 595 }, 
+        square: { width: 600, height: 600 },
+        web: { width: 1080, height: 1080 }
+      };
+
+      const { width, height } = formatDimensions[format as keyof typeof formatDimensions] || formatDimensions.a4;
+
+      // Créer le canvas
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+
+      if (!ctx) {
+        reject(new Error('Impossible de créer le contexte Canvas'));
+        return;
+      }
+
+      // Charger l'image de fond
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      
+      img.onload = () => {
+        try {
+          // Dessiner l'image de fond (couvrir tout le canvas)
+          ctx.drawImage(img, 0, 0, width, height);
+
+          // Ajouter une overlay semi-transparente pour la lisibilité
+          ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+          ctx.fillRect(0, 0, width, height);
+
+          // Configuration du style selon le choix
+          const styleConfig = {
+            moderne: {
+              titleFont: `bold ${Math.floor(width * 0.08)}px 'Arial', sans-serif`,
+              subtitleFont: `${Math.floor(width * 0.04)}px 'Arial', sans-serif`,
+              textColor: '#ffffff',
+              accentColor: '#3b82f6'
+            },
+            vintage: {
+              titleFont: `bold ${Math.floor(width * 0.07)}px 'Georgia', serif`,
+              subtitleFont: `${Math.floor(width * 0.035)}px 'Georgia', serif`, 
+              textColor: '#f5f5dc',
+              accentColor: '#d4a574'
+            },
+            festif: {
+              titleFont: `bold ${Math.floor(width * 0.09)}px 'Impact', sans-serif`,
+              subtitleFont: `${Math.floor(width * 0.045)}px 'Arial', sans-serif`,
+              textColor: '#ffffff',
+              accentColor: '#ff6b35'
+            },
+            elegant: {
+              titleFont: `${Math.floor(width * 0.06)}px 'Times New Roman', serif`,
+              subtitleFont: `${Math.floor(width * 0.03)}px 'Times New Roman', serif`,
+              textColor: '#ffffff',
+              accentColor: '#8b7355'
+            }
+          };
+
+          const currentStyle = styleConfig[style as keyof typeof styleConfig] || styleConfig.moderne;
+
+          // Fonction pour dessiner du texte avec contour
+          const drawTextWithOutline = (text: string, x: number, y: number, font: string) => {
+            ctx.font = font;
+            ctx.textAlign = 'center';
+            
+            // Contour noir
+            ctx.strokeStyle = 'rgba(0, 0, 0, 0.8)';
+            ctx.lineWidth = Math.floor(width * 0.005);
+            ctx.strokeText(text, x, y);
+            
+            // Texte principal
+            ctx.fillStyle = currentStyle.textColor;
+            ctx.fillText(text, x, y);
+          };
+
+          const centerX = width / 2;
+          let currentY = height * 0.15;
+
+          // Dessiner le titre
+          const title = fiche.title.toUpperCase();
+          drawTextWithOutline(title, centerX, currentY, currentStyle.titleFont);
+          
+          currentY += height * 0.12;
+
+          // Dessiner le type d'événement
+          ctx.fillStyle = currentStyle.accentColor;
+          ctx.fillRect(centerX - width * 0.15, currentY - height * 0.025, width * 0.3, height * 0.05);
+          
+          ctx.font = currentStyle.subtitleFont;
+          ctx.textAlign = 'center';
+          ctx.fillStyle = '#ffffff';
+          ctx.fillText(fiche.type, centerX, currentY + height * 0.01);
+          
+          currentY += height * 0.1;
+
+          // Dessiner les dates
+          const dateStart = new Date(fiche.dateDebut).toLocaleDateString('fr-FR', { 
+            day: 'numeric', 
+            month: 'long', 
+            year: 'numeric' 
+          });
+          const dateEnd = fiche.dateDebut !== fiche.dateFin 
+            ? ` au ${new Date(fiche.dateFin).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}`
+            : '';
+          
+          drawTextWithOutline(`📅 ${dateStart}${dateEnd}`, centerX, currentY, currentStyle.subtitleFont);
+          currentY += height * 0.08;
+
+          // Dessiner le lieu
+          drawTextWithOutline(`📍 ${fiche.lieu}`, centerX, currentY, currentStyle.subtitleFont);
+          currentY += height * 0.1;
+
+          // Dessiner le texte personnalisé s'il existe
+          if (customText && customText.trim()) {
+            const words = customText.trim().split(' ');
+            const maxWidth = width * 0.8;
+            let line = '';
+            
+            ctx.font = currentStyle.subtitleFont;
+            
+            for (let i = 0; i < words.length; i++) {
+              const testLine = line + words[i] + ' ';
+              const metrics = ctx.measureText(testLine);
+              
+              if (metrics.width > maxWidth && line !== '') {
+                drawTextWithOutline(line, centerX, currentY, currentStyle.subtitleFont);
+                currentY += height * 0.06;
+                line = words[i] + ' ';
+              } else {
+                line = testLine;
+              }
+            }
+            
+            if (line) {
+              drawTextWithOutline(line, centerX, currentY, currentStyle.subtitleFont);
+            }
+          }
+
+          // Convertir le canvas en image
+          const dataUrl = canvas.toDataURL('image/png', 0.9);
+          resolve(dataUrl);
+          
+        } catch (error) {
+          reject(error);
+        }
+      };
+
+      img.onerror = () => {
+        reject(new Error('Impossible de charger l\'image de fond'));
+      };
+
+      img.src = backgroundImage;
+    });
+  };
+
   const handleGenerate = async () => {
     if (!selectedFiche || !selectedStyle || !selectedFormat) {
       toast.error("Veuillez sélectionner une fiche, un style et un format");
       return;
     }
 
-    console.log("Début de la génération d'affiche");
     setIsGenerating(true);
     
     try {
-      // Simulation de la génération d'affiche
-      await new Promise(resolve => setTimeout(resolve, 3000));
+      // Utiliser l'image personnalisée ou celle de la fiche
+      const backgroundImage = customImage || selectedFiche.image;
       
-      // Pour la démo, on utilise une image placeholder plus fiable
-      const imageUrl = "https://picsum.photos/400/600?random=" + Date.now();
-      console.log("URL de l'image générée:", imageUrl);
-      setGeneratedImage(imageUrl);
-      console.log("State generatedImage mis à jour");
+      if (!backgroundImage) {
+        toast.error("Aucune image disponible pour générer l'affiche");
+        return;
+      }
+
+      // Générer l'affiche avec Canvas
+      const generatedUrl = await generatePosterCanvas(
+        selectedFiche,
+        selectedStyle,
+        selectedFormat, 
+        backgroundImage,
+        customText
+      );
+      
+      setGeneratedImage(generatedUrl);
       toast.success("Affiche générée avec succès !");
+      
     } catch (error) {
       console.error("Erreur lors de la génération:", error);
       toast.error("Erreur lors de la génération de l'affiche");
     } finally {
       setIsGenerating(false);
-      console.log("Fin de la génération");
     }
   };
 
