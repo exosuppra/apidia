@@ -117,7 +117,7 @@ const services = [
       {
         icon: <Users className="w-8 h-8" />,
         title: "Gestion de votre fichier clients",
-        description: "Récupérez les informations de vos clients même si vous passez par des plateformes tierces (Booking.com, Airbnb...) et développez vos outils de fidélisation",
+        description: "Récupérez les informations de vos clients même si vous passez par des plateformes tierces (Booking.com, Airbnb...)",
         cta: "Découvrir le CRM",
         price: "25€/mois",
         link: "/crm-simplifie"
