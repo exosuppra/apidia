@@ -629,18 +629,13 @@ export default function GenerateurAffiches() {
             currentY = Math.max(currentY, infoZone.y + infoZone.height * 0.2);
           }
 
-          // Scrim adaptatif pour les informations
-          const scrimIntensity = imageAnalysis.globalContrast > 100 ? 0.6 : 0.3;
-          const scrimGradient = ctx.createLinearGradient(0, currentY - height * 0.02, 0, currentY + height * 0.15);
-          scrimGradient.addColorStop(0, 'rgba(0, 0, 0, 0)');
-          scrimGradient.addColorStop(0.2, isDarkVersion ? `rgba(0, 0, 0, ${scrimIntensity})` : `rgba(255, 255, 255, ${scrimIntensity})`);
-          scrimGradient.addColorStop(0.8, isDarkVersion ? `rgba(0, 0, 0, ${scrimIntensity})` : `rgba(255, 255, 255, ${scrimIntensity})`);
-          scrimGradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
-          
-          ctx.fillStyle = scrimGradient;
-          ctx.fillRect(0, currentY - height * 0.02, width, height * 0.19);
+          // SUPPRESSION DU SCRIM PROBLÉMATIQUE
+          // Le scrim adaptatif créait des bandes visibles - on utilise maintenant uniquement
+          // les ombres de texte renforcées pour assurer la lisibilité
 
-          // Informations avec pictogrammes
+          console.log(`[${formatType}] Scrim supprimé pour éviter les bandes visibles`);
+
+          // Informations avec pictogrammes et ombres renforcées
           const dateStart = new Date(fiche.dateDebut);
           const dateEnd = new Date(fiche.dateFin);
           
@@ -665,32 +660,69 @@ export default function GenerateurAffiches() {
           const iconSize = height * 0.04;
           const dateX = contentArea.x + iconSize + height * 0.02;
 
-          // Icône calendrier
+          // Icône calendrier avec ombres renforcées
           ctx.strokeStyle = currentStyleConfig.textColor;
           ctx.fillStyle = currentStyleConfig.textColor;
           ctx.lineWidth = iconSize * 0.08;
+          
+          // Ombre renforcée pour l'icône
+          ctx.shadowColor = isDarkVersion ? 'rgba(255, 255, 255, 0.8)' : 'rgba(0, 0, 0, 0.9)';
+          ctx.shadowBlur = width * 0.008;
+          ctx.shadowOffsetX = width * 0.002;
+          ctx.shadowOffsetY = width * 0.002;
+          
           ctx.strokeRect(contentArea.x, currentY - iconSize * 0.1, iconSize * 0.8, iconSize * 0.7);
           ctx.fillRect(contentArea.x + iconSize * 0.15, currentY - iconSize * 0.3, iconSize * 0.1, iconSize * 0.4);
           ctx.fillRect(contentArea.x + iconSize * 0.55, currentY - iconSize * 0.3, iconSize * 0.1, iconSize * 0.4);
 
-          ctx.font = currentStyleConfig.subtitleFont;
-          ctx.textAlign = 'left';
-          ctx.shadowColor = currentStyleConfig.textShadow;
-          ctx.shadowBlur = width * 0.006;
-          ctx.fillStyle = currentStyleConfig.textColor;
-          ctx.fillText(dateText, dateX, currentY);
+          // Reset shadow pour éviter les effets sur le texte
           ctx.shadowColor = 'transparent';
           ctx.shadowBlur = 0;
+          ctx.shadowOffsetX = 0;
+          ctx.shadowOffsetY = 0;
+
+          // Texte de date avec ombres très prononcées pour la lisibilité
+          ctx.font = currentStyleConfig.subtitleFont;
+          ctx.textAlign = 'left';
+          
+          // Double ombre pour une lisibilité maximale
+          ctx.shadowColor = isDarkVersion ? 'rgba(255, 255, 255, 0.9)' : 'rgba(0, 0, 0, 0.95)';
+          ctx.shadowBlur = width * 0.012; // Augmenté
+          ctx.shadowOffsetX = width * 0.003; // Augmenté 
+          ctx.shadowOffsetY = width * 0.003; // Augmenté
+          
+          ctx.fillStyle = currentStyleConfig.textColor;
+          ctx.fillText(dateText, dateX, currentY);
+          
+          // Deuxième ombre plus diffuse
+          ctx.shadowColor = isDarkVersion ? 'rgba(255, 255, 255, 0.6)' : 'rgba(0, 0, 0, 0.7)';
+          ctx.shadowBlur = width * 0.018;
+          ctx.shadowOffsetX = 0;
+          ctx.shadowOffsetY = 0;
+          ctx.fillText(dateText, dateX, currentY);
+          
+          // Reset shadow
+          ctx.shadowColor = 'transparent';
+          ctx.shadowBlur = 0;
+          ctx.shadowOffsetX = 0;
+          ctx.shadowOffsetY = 0;
           
           currentY += height * 0.055;
 
-          // Lieu avec icône
+          // Lieu avec icône et ombres renforcées
           const locationLines = wrapText(ctx, fiche.lieu, contentArea.width - iconSize - height * 0.02, currentStyleConfig.detailFont);
           
-          // Icône localisation
+          // Icône localisation avec ombre
           ctx.strokeStyle = currentStyleConfig.textColor;
           ctx.fillStyle = currentStyleConfig.textColor;
           ctx.lineWidth = iconSize * 0.08;
+          
+          // Ombre pour l'icône localisation
+          ctx.shadowColor = isDarkVersion ? 'rgba(255, 255, 255, 0.8)' : 'rgba(0, 0, 0, 0.9)';
+          ctx.shadowBlur = width * 0.008;
+          ctx.shadowOffsetX = width * 0.002;
+          ctx.shadowOffsetY = width * 0.002;
+          
           ctx.beginPath();
           ctx.moveTo(contentArea.x + iconSize * 0.4, currentY + iconSize * 0.6);
           ctx.lineTo(contentArea.x + iconSize * 0.4, currentY + iconSize * 0.2);
@@ -699,21 +731,44 @@ export default function GenerateurAffiches() {
           ctx.beginPath();
           ctx.arc(contentArea.x + iconSize * 0.4, currentY, iconSize * 0.1, 0, Math.PI * 2);
           ctx.fill();
+          
+          // Reset shadow pour icône
+          ctx.shadowColor = 'transparent';
+          ctx.shadowBlur = 0;
+          ctx.shadowOffsetX = 0;
+          ctx.shadowOffsetY = 0;
 
+          // Texte de lieu avec ombres très prononcées
           locationLines.forEach((line, index) => {
             ctx.font = currentStyleConfig.detailFont;
             ctx.textAlign = 'left';
-            ctx.shadowColor = currentStyleConfig.textShadow;
-            ctx.shadowBlur = width * 0.005;
+            
+            // Double ombre pour lisibilité maximale
+            ctx.shadowColor = isDarkVersion ? 'rgba(255, 255, 255, 0.9)' : 'rgba(0, 0, 0, 0.95)';
+            ctx.shadowBlur = width * 0.010;
+            ctx.shadowOffsetX = width * 0.002;
+            ctx.shadowOffsetY = width * 0.002;
+            
             ctx.fillStyle = currentStyleConfig.textColor;
             ctx.fillText(line, dateX, currentY + (index * height * 0.04));
+            
+            // Deuxième ombre diffuse
+            ctx.shadowColor = isDarkVersion ? 'rgba(255, 255, 255, 0.6)' : 'rgba(0, 0, 0, 0.7)';
+            ctx.shadowBlur = width * 0.015;
+            ctx.shadowOffsetX = 0;
+            ctx.shadowOffsetY = 0;
+            ctx.fillText(line, dateX, currentY + (index * height * 0.04));
+            
+            // Reset shadow
             ctx.shadowColor = 'transparent';
             ctx.shadowBlur = 0;
+            ctx.shadowOffsetX = 0;
+            ctx.shadowOffsetY = 0;
           });
           
           currentY += locationLines.length * height * 0.04 + height * 0.04;
 
-          // Texte personnalisé
+          // Texte personnalisé avec ombres renforcées
           if (customText && customText.trim()) {
             currentY += height * 0.03;
             const customLines = wrapText(ctx, customText.trim(), contentArea.width, currentStyleConfig.detailFont);
@@ -721,12 +776,28 @@ export default function GenerateurAffiches() {
             customLines.forEach((line, index) => {
               ctx.font = currentStyleConfig.detailFont;
               ctx.textAlign = 'center';
-              ctx.shadowColor = currentStyleConfig.textShadow;
-              ctx.shadowBlur = width * 0.005;
+              
+              // Double ombre pour lisibilité maximale
+              ctx.shadowColor = isDarkVersion ? 'rgba(255, 255, 255, 0.9)' : 'rgba(0, 0, 0, 0.95)';
+              ctx.shadowBlur = width * 0.010;
+              ctx.shadowOffsetX = width * 0.002;
+              ctx.shadowOffsetY = width * 0.002;
+              
               ctx.fillStyle = currentStyleConfig.textColor;
               ctx.fillText(line, centerX, currentY + (index * height * 0.035));
+              
+              // Deuxième ombre diffuse
+              ctx.shadowColor = isDarkVersion ? 'rgba(255, 255, 255, 0.6)' : 'rgba(0, 0, 0, 0.7)';
+              ctx.shadowBlur = width * 0.015;
+              ctx.shadowOffsetX = 0;
+              ctx.shadowOffsetY = 0;
+              ctx.fillText(line, centerX, currentY + (index * height * 0.035));
+              
+              // Reset shadow
               ctx.shadowColor = 'transparent';
               ctx.shadowBlur = 0;
+              ctx.shadowOffsetX = 0;
+              ctx.shadowOffsetY = 0;
             });
           }
 
