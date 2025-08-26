@@ -68,45 +68,104 @@ const styles = [
   { id: "elegant", name: "Élégant", description: "Sobre et sophistiqué" },
 ];
 
-const formats = [
-  { id: "a4", name: "A4 Portrait", dimensions: "21x29.7cm" },
-  { id: "a3", name: "A3 Paysage", dimensions: "42x29.7cm" },
-  { id: "square", name: "Carré", dimensions: "30x30cm" },
-  { id: "web", name: "Web/Réseaux sociaux", dimensions: "1080x1080px" },
-];
+const formats = {
+  print: {
+    name: "A3 Print (300 DPI)",
+    // A3 à 300 DPI avec 3mm de fond perdu (11.81 x 16.53 inches = 3543 x 4959 px)
+    width: 3543 + 36, // +3mm fond perdu (3mm = ~9px à 300dpi de chaque côté)
+    height: 4959 + 36, // Portrait A3 avec fond perdu
+    dpi: 300,
+    bleed: 36, // 3mm en pixels à 300 DPI
+    cropMarks: true
+  },
+  web: {
+    name: "Web/Réseaux sociaux",
+    formats: {
+      story: { width: 1080, height: 1920, name: "Story Instagram" },
+      feed: { width: 1080, height: 1350, name: "Feed Instagram" },
+      banner: { width: 1920, height: 1080, name: "Bannière Facebook" }
+    }
+  }
+};
 
 export default function GenerateurAffiches() {
   const [selectedFiche, setSelectedFiche] = useState<typeof mockFiches[0] | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedStyle, setSelectedStyle] = useState("");
-  const [selectedFormat, setSelectedFormat] = useState("");
   const [customText, setCustomText] = useState("");
   const [customImage, setCustomImage] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [generatedImage, setGeneratedImage] = useState<string | null>(null);
+  const [generatedImages, setGeneratedImages] = useState<{
+    print: { light: string | null; dark: string | null };
+    web: {
+      story: { light: string | null; dark: string | null };
+      feed: { light: string | null; dark: string | null };
+      banner: { light: string | null; dark: string | null };
+    };
+  }>({
+    print: { light: null, dark: null },
+    web: {
+      story: { light: null, dark: null },
+      feed: { light: null, dark: null },
+      banner: { light: null, dark: null }
+    }
+  });
 
   const filteredFiches = mockFiches.filter(fiche => 
     fiche.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
     fiche.type.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const generatePosterCanvas = async (
+  const generateAllFormats = async (
     fiche: typeof mockFiches[0],
     style: string,
-    format: string,
     backgroundImage: string,
+    isDarkVersion: boolean = false,
+    customText?: string
+  ): Promise<{
+    print: string;
+    story: string;
+    feed: string;
+    banner: string;
+  }> => {
+    const results = {
+      print: "",
+      story: "",
+      feed: "", 
+      banner: ""
+    };
+
+    // Générer A3 Print avec fond perdu et traits de coupe
+    results.print = await generatePosterFormat(fiche, style, 'print', backgroundImage, isDarkVersion, customText);
+    
+    // Générer formats web
+    results.story = await generatePosterFormat(fiche, style, 'story', backgroundImage, isDarkVersion, customText);
+    results.feed = await generatePosterFormat(fiche, style, 'feed', backgroundImage, isDarkVersion, customText);
+    results.banner = await generatePosterFormat(fiche, style, 'banner', backgroundImage, isDarkVersion, customText);
+
+    return results;
+  };
+
+  const generatePosterFormat = async (
+    fiche: typeof mockFiches[0],
+    style: string,
+    formatType: 'print' | 'story' | 'feed' | 'banner',
+    backgroundImage: string,
+    isDarkVersion: boolean = false,
     customText?: string
   ): Promise<string> => {
     return new Promise((resolve, reject) => {
-      // Dimensions haute qualité
-      const formatDimensions = {
-        a4: { width: 1200, height: 1697 },
-        a3: { width: 1697, height: 1200 }, 
-        square: { width: 1600, height: 1600 },
-        web: { width: 1080, height: 1350 }
+      // Définir les dimensions selon le format
+      const dimensions = {
+        print: { width: formats.print.width, height: formats.print.height },
+        story: { width: 1080, height: 1920 },
+        feed: { width: 1080, height: 1350 },
+        banner: { width: 1920, height: 1080 }
       };
 
-      const { width, height } = formatDimensions[format as keyof typeof formatDimensions] || formatDimensions.a4;
+      const { width, height } = dimensions[formatType];
+      const isPrint = formatType === 'print';
+      const bleed = isPrint ? formats.print.bleed : 0;
 
       const canvas = document.createElement('canvas');
       canvas.width = width;
@@ -141,12 +200,11 @@ export default function GenerateurAffiches() {
           
           ctx.drawImage(img, offsetX, offsetY, drawWidth, drawHeight);
 
-          // Analyser la luminosité moyenne de l'image pour adapter l'overlay
+          // Analyser la luminosité
           const imageData = ctx.getImageData(0, 0, width, height);
           let totalBrightness = 0;
           let pixelCount = 0;
           
-          // Échantillonner tous les 10 pixels pour performance
           for (let i = 0; i < imageData.data.length; i += 40) {
             const r = imageData.data[i];
             const g = imageData.data[i + 1];
@@ -157,108 +215,79 @@ export default function GenerateurAffiches() {
           
           const avgBrightness = totalBrightness / pixelCount;
           const isLowQualityOrBadFormat = img.width < 800 || img.height < 600;
-          
-          // Configuration des styles selon la qualité d'image
-          const styleConfig = {
-            moderne: {
-              highQuality: {
-                overlay: avgBrightness > 150 ? 'rgba(15, 23, 42, 0.75)' : 'rgba(255, 255, 255, 0.15)',
-                textShadow: avgBrightness > 150 ? 'rgba(0, 0, 0, 0.9)' : 'rgba(0, 0, 0, 0.7)',
-                accentColor: '#3b82f6',
-                secondaryColor: '#1e40af'
+
+          // Configuration adaptée pour versions claire/foncée
+          const getStyleConfig = () => {
+            const baseConfig = {
+              moderne: {
+                titleFont: `900 ${Math.floor(width * 0.065)}px 'Arial Black', sans-serif`,
+                subtitleFont: `600 ${Math.floor(width * 0.03)}px 'Arial', sans-serif`,
+                detailFont: `400 ${Math.floor(width * 0.025)}px 'Arial', sans-serif`,
               },
-              lowQuality: {
-                overlay: ['rgba(15, 23, 42, 0.95)', 'rgba(30, 64, 175, 0.85)'],
+              vintage: {
+                titleFont: `700 ${Math.floor(width * 0.055)}px 'Georgia', serif`,
+                subtitleFont: `500 ${Math.floor(width * 0.028)}px 'Georgia', serif`,
+                detailFont: `400 ${Math.floor(width * 0.023)}px 'Georgia', serif`,
+              },
+              festif: {
+                titleFont: `900 ${Math.floor(width * 0.07)}px 'Impact', sans-serif`,
+                subtitleFont: `700 ${Math.floor(width * 0.032)}px 'Arial Black', sans-serif`,
+                detailFont: `600 ${Math.floor(width * 0.027)}px 'Arial', sans-serif`,
+              },
+              elegant: {
+                titleFont: `300 ${Math.floor(width * 0.055)}px 'serif'`,
+                subtitleFont: `400 ${Math.floor(width * 0.025)}px 'serif'`,
+                detailFont: `300 ${Math.floor(width * 0.022)}px 'serif'`,
+              }
+            };
+
+            const currentBase = baseConfig[style as keyof typeof baseConfig] || baseConfig.moderne;
+
+            if (isDarkVersion) {
+              return {
+                ...currentBase,
+                overlay: isLowQualityOrBadFormat ? 
+                  ['rgba(15, 23, 42, 0.95)', 'rgba(30, 64, 175, 0.85)'] :
+                  'rgba(15, 23, 42, 0.8)',
                 textShadow: 'rgba(0, 0, 0, 0.9)',
+                textColor: '#ffffff',
                 accentColor: '#60a5fa',
                 secondaryColor: '#3b82f6'
-              },
-              titleFont: `900 ${Math.floor(width * 0.065)}px 'Arial Black', sans-serif`,
-              subtitleFont: `600 ${Math.floor(width * 0.03)}px 'Arial', sans-serif`,
-              detailFont: `400 ${Math.floor(width * 0.025)}px 'Arial', sans-serif`,
-              textColor: '#ffffff'
-            },
-            vintage: {
-              highQuality: {
-                overlay: avgBrightness > 140 ? 'rgba(92, 51, 23, 0.7)' : 'rgba(251, 191, 36, 0.2)',
-                textShadow: avgBrightness > 140 ? 'rgba(0, 0, 0, 0.8)' : 'rgba(92, 51, 23, 0.8)',
-                accentColor: '#d97706',
-                secondaryColor: '#92400e'
-              },
-              lowQuality: {
-                overlay: ['rgba(92, 51, 23, 0.9)', 'rgba(180, 83, 9, 0.8)'],
+              };
+            } else {
+              return {
+                ...currentBase,
+                overlay: isLowQualityOrBadFormat ?
+                  ['rgba(255, 255, 255, 0.9)', 'rgba(248, 250, 252, 0.85)'] :
+                  'rgba(255, 255, 255, 0.75)',
                 textShadow: 'rgba(0, 0, 0, 0.8)',
-                accentColor: '#fbbf24',
-                secondaryColor: '#d97706'
-              },
-              titleFont: `700 ${Math.floor(width * 0.055)}px 'Georgia', serif`,
-              subtitleFont: `500 ${Math.floor(width * 0.028)}px 'Georgia', serif`,
-              detailFont: `400 ${Math.floor(width * 0.023)}px 'Georgia', serif`,
-              textColor: '#fef7cd'
-            },
-            festif: {
-              highQuality: {
-                overlay: avgBrightness > 160 ? 'rgba(190, 24, 93, 0.8)' : 'rgba(251, 191, 36, 0.25)',
-                textShadow: avgBrightness > 160 ? 'rgba(0, 0, 0, 0.9)' : 'rgba(190, 24, 93, 0.8)',
-                accentColor: '#ec4899',
-                secondaryColor: '#be185d'
-              },
-              lowQuality: {
-                overlay: ['rgba(190, 24, 93, 0.9)', 'rgba(245, 101, 101, 0.85)'],
-                textShadow: 'rgba(0, 0, 0, 0.9)',
-                accentColor: '#fbbf24',
-                secondaryColor: '#ec4899'
-              },
-              titleFont: `900 ${Math.floor(width * 0.07)}px 'Impact', sans-serif`,
-              subtitleFont: `700 ${Math.floor(width * 0.032)}px 'Arial Black', sans-serif`,
-              detailFont: `600 ${Math.floor(width * 0.027)}px 'Arial', sans-serif`,
-              textColor: '#ffffff'
-            },
-            elegant: {
-              highQuality: {
-                overlay: avgBrightness > 130 ? 'rgba(17, 24, 39, 0.8)' : 'rgba(212, 175, 55, 0.15)',
-                textShadow: avgBrightness > 130 ? 'rgba(0, 0, 0, 0.8)' : 'rgba(17, 24, 39, 0.9)',
-                accentColor: '#d4af37',
-                secondaryColor: '#9ca3af'
-              },
-              lowQuality: {
-                overlay: ['rgba(17, 24, 39, 0.92)', 'rgba(75, 85, 99, 0.85)'],
-                textShadow: 'rgba(0, 0, 0, 0.8)',
-                accentColor: '#fbbf24',
-                secondaryColor: '#d4af37'
-              },
-              titleFont: `300 ${Math.floor(width * 0.055)}px 'serif'`,
-              subtitleFont: `400 ${Math.floor(width * 0.025)}px 'serif'`,
-              detailFont: `300 ${Math.floor(width * 0.022)}px 'serif'`,
-              textColor: '#f8fafc'
+                textColor: '#1e293b',
+                accentColor: '#3b82f6',
+                secondaryColor: '#1e40af'
+              };
             }
           };
 
-          const currentStyleConfig = styleConfig[style as keyof typeof styleConfig] || styleConfig.moderne;
-          const qualityConfig = isLowQualityOrBadFormat ? 
-            currentStyleConfig.lowQuality : 
-            currentStyleConfig.highQuality;
+          const currentStyleConfig = getStyleConfig();
 
-          // Appliquer l'overlay adaptatif
-          if (Array.isArray(qualityConfig.overlay)) {
-            // Gradient pour images basse qualité
+          // Appliquer l'overlay
+          if (Array.isArray(currentStyleConfig.overlay)) {
             const gradient = ctx.createLinearGradient(0, 0, 0, height);
-            gradient.addColorStop(0, qualityConfig.overlay[0]);
-            gradient.addColorStop(1, qualityConfig.overlay[1]);
+            gradient.addColorStop(0, currentStyleConfig.overlay[0]);
+            gradient.addColorStop(1, currentStyleConfig.overlay[1]);
             ctx.fillStyle = gradient;
             ctx.fillRect(0, 0, width, height);
           } else {
-            // Overlay uniforme pour images haute qualité
-            ctx.fillStyle = qualityConfig.overlay;
+            ctx.fillStyle = currentStyleConfig.overlay;
             ctx.fillRect(0, 0, width, height);
           }
 
-          // Définir les safe areas (grille rigoureuse)
+          // Safe areas avec gestion du fond perdu
           const safeArea = {
-            top: height * 0.1,
-            bottom: height * 0.1,
-            left: width * 0.08,
-            right: width * 0.08
+            top: height * (isPrint ? 0.12 : 0.1) + bleed,
+            bottom: height * (isPrint ? 0.12 : 0.1) + bleed,
+            left: width * 0.08 + bleed,
+            right: width * 0.08 + bleed
           };
           
           const contentArea = {
@@ -269,100 +298,9 @@ export default function GenerateurAffiches() {
           };
 
           const centerX = width / 2;
-
-          // Fonction de dessin de texte sophistiquée
-          const drawProfessionalText = (
-            text: string, 
-            x: number, 
-            y: number, 
-            font: string, 
-            align: CanvasTextAlign = 'center',
-            isTitle: boolean = false
-          ) => {
-            ctx.font = font;
-            ctx.textAlign = align;
-            
-            // Ombre multiple pour effet professionnel
-            if (isTitle) {
-              // Ombre diffuse
-              ctx.shadowColor = qualityConfig.textShadow;
-              ctx.shadowBlur = width * 0.02;
-              ctx.shadowOffsetX = 0;
-              ctx.shadowOffsetY = width * 0.004;
-              
-              ctx.fillStyle = currentStyleConfig.textColor;
-              ctx.fillText(text, x, y);
-              
-              // Ombre nette
-              ctx.shadowBlur = 0;
-              ctx.shadowOffsetX = width * 0.002;
-              ctx.shadowOffsetY = width * 0.002;
-              ctx.fillText(text, x, y);
-            } else {
-              ctx.shadowColor = qualityConfig.textShadow;
-              ctx.shadowBlur = width * 0.008;
-              ctx.shadowOffsetX = width * 0.001;
-              ctx.shadowOffsetY = width * 0.001;
-              
-              ctx.fillStyle = currentStyleConfig.textColor;
-              ctx.fillText(text, x, y);
-            }
-            
-            // Reset
-            ctx.shadowColor = 'transparent';
-            ctx.shadowBlur = 0;
-            ctx.shadowOffsetX = 0;
-            ctx.shadowOffsetY = 0;
-          };
-
-          // Scrim pour améliorer la lisibilité du texte
-          const drawTextScrim = (textY: number, textHeight: number) => {
-            const scrimGradient = ctx.createLinearGradient(0, textY - height * 0.02, 0, textY + textHeight + height * 0.02);
-            scrimGradient.addColorStop(0, 'rgba(0, 0, 0, 0)');
-            scrimGradient.addColorStop(0.2, 'rgba(0, 0, 0, 0.6)');
-            scrimGradient.addColorStop(0.8, 'rgba(0, 0, 0, 0.6)');
-            scrimGradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
-            
-            ctx.fillStyle = scrimGradient;
-            ctx.fillRect(0, textY - height * 0.02, width, textHeight + height * 0.04);
-          };
-
-          // Fonction pour dessiner des pictogrammes simples
-          const drawIcon = (x: number, y: number, size: number, type: 'calendar' | 'location') => {
-            ctx.strokeStyle = currentStyleConfig.textColor;
-            ctx.fillStyle = currentStyleConfig.textColor;
-            ctx.lineWidth = size * 0.08;
-            ctx.lineCap = 'round';
-            ctx.lineJoin = 'round';
-            
-            if (type === 'calendar') {
-              // Icône calendrier
-              ctx.strokeRect(x, y + size * 0.2, size * 0.8, size * 0.7);
-              ctx.fillRect(x + size * 0.15, y, size * 0.1, size * 0.4);
-              ctx.fillRect(x + size * 0.55, y, size * 0.1, size * 0.4);
-              ctx.beginPath();
-              ctx.moveTo(x + size * 0.2, y + size * 0.45);
-              ctx.lineTo(x + size * 0.6, y + size * 0.45);
-              ctx.moveTo(x + size * 0.2, y + size * 0.65);
-              ctx.lineTo(x + size * 0.6, y + size * 0.65);
-              ctx.stroke();
-            } else if (type === 'location') {
-              // Icône localisation
-              ctx.beginPath();
-              ctx.moveTo(x + size * 0.4, y + size * 0.9);
-              ctx.lineTo(x + size * 0.4, y + size * 0.5);
-              ctx.arc(x + size * 0.4, y + size * 0.3, size * 0.25, 0, Math.PI * 2);
-              ctx.stroke();
-              ctx.beginPath();
-              ctx.arc(x + size * 0.4, y + size * 0.3, size * 0.1, 0, Math.PI * 2);
-              ctx.fill();
-            }
-          };
-
-          // Composition graphique professionnelle
           let currentY = contentArea.y + height * 0.08;
 
-          // Badge type avec design élégant
+          // Badge type
           const badgeText = fiche.type.toUpperCase();
           ctx.font = currentStyleConfig.subtitleFont;
           const badgeMetrics = ctx.measureText(badgeText);
@@ -371,17 +309,15 @@ export default function GenerateurAffiches() {
           const badgeHeight = height * 0.04;
           const badgeX = centerX - badgeWidth / 2;
           
-          // Badge avec coins arrondis et gradient
           const badgeGradient = ctx.createLinearGradient(badgeX, currentY, badgeX + badgeWidth, currentY + badgeHeight);
-          badgeGradient.addColorStop(0, qualityConfig.accentColor);
-          badgeGradient.addColorStop(1, qualityConfig.secondaryColor);
+          badgeGradient.addColorStop(0, currentStyleConfig.accentColor);
+          badgeGradient.addColorStop(1, currentStyleConfig.secondaryColor);
           
           ctx.fillStyle = badgeGradient;
           ctx.beginPath();
           ctx.roundRect(badgeX, currentY, badgeWidth, badgeHeight, badgeHeight / 3);
           ctx.fill();
           
-          // Texte badge
           ctx.font = currentStyleConfig.subtitleFont;
           ctx.fillStyle = '#ffffff';
           ctx.textAlign = 'center';
@@ -393,42 +329,38 @@ export default function GenerateurAffiches() {
           
           currentY += badgeHeight + height * 0.08;
 
-          // Titre avec découpe intelligente
+          // Titre
           const maxTitleWidth = contentArea.width;
           const titleLines = wrapText(ctx, fiche.title.toUpperCase(), maxTitleWidth, currentStyleConfig.titleFont);
           
           titleLines.forEach((line, index) => {
-            drawProfessionalText(line, centerX, currentY + (index * height * 0.08), currentStyleConfig.titleFont, 'center', true);
+            ctx.font = currentStyleConfig.titleFont;
+            ctx.textAlign = 'center';
+            ctx.shadowColor = currentStyleConfig.textShadow;
+            ctx.shadowBlur = width * 0.02;
+            ctx.shadowOffsetX = 0;
+            ctx.shadowOffsetY = width * 0.004;
+            ctx.fillStyle = currentStyleConfig.textColor;
+            ctx.fillText(line, centerX, currentY + (index * height * 0.08));
+            ctx.shadowColor = 'transparent';
+            ctx.shadowBlur = 0;
+            ctx.shadowOffsetX = 0;
+            ctx.shadowOffsetY = 0;
           });
           
           currentY += titleLines.length * height * 0.08 + height * 0.06;
 
-          // Élément graphique séparateur
-          const lineLength = width * 0.25;
-          ctx.strokeStyle = qualityConfig.accentColor;
-          ctx.lineWidth = height * 0.003;
-          ctx.globalAlpha = 0.8;
+          // Scrim pour les informations
+          const scrimGradient = ctx.createLinearGradient(0, currentY - height * 0.02, 0, currentY + height * 0.15);
+          scrimGradient.addColorStop(0, 'rgba(0, 0, 0, 0)');
+          scrimGradient.addColorStop(0.2, isDarkVersion ? 'rgba(0, 0, 0, 0.4)' : 'rgba(255, 255, 255, 0.4)');
+          scrimGradient.addColorStop(0.8, isDarkVersion ? 'rgba(0, 0, 0, 0.4)' : 'rgba(255, 255, 255, 0.4)');
+          scrimGradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
           
-          ctx.beginPath();
-          ctx.moveTo(centerX - lineLength/2, currentY);
-          ctx.lineTo(centerX + lineLength/2, currentY);
-          ctx.stroke();
-          
-          // Petits éléments décoratifs
-          for (let i = 0; i < 3; i++) {
-            ctx.beginPath();
-            ctx.arc(centerX - lineLength/2 + (i * lineLength/2), currentY, height * 0.002, 0, Math.PI * 2);
-            ctx.fillStyle = qualityConfig.accentColor;
-            ctx.fill();
-          }
-          
-          ctx.globalAlpha = 1;
-          currentY += height * 0.06;
+          ctx.fillStyle = scrimGradient;
+          ctx.fillRect(0, currentY - height * 0.02, width, height * 0.19);
 
-          // Calculer la zone de texte pour le scrim
-          const textStartY = currentY;
-          
-          // Informations avec hiérarchie visuelle et pictogrammes
+          // Informations avec pictogrammes
           const dateStart = new Date(fiche.dateDebut);
           const dateEnd = new Date(fiche.dateFin);
           
@@ -449,62 +381,59 @@ export default function GenerateurAffiches() {
             dateText += ` - ${endText}`;
           }
 
-          // Mesurer la hauteur totale du texte pour le scrim
+          // Icônes et texte
           const iconSize = height * 0.04;
-          const dateHeight = height * 0.055;
-          const locationLines = wrapText(ctx, fiche.lieu, contentArea.width - iconSize - height * 0.02, currentStyleConfig.detailFont);
-          const locationHeight = locationLines.length * height * 0.04 + height * 0.02;
-          const customTextHeight = customText && customText.trim() ? 
-            wrapText(ctx, customText.trim(), contentArea.width, currentStyleConfig.detailFont).length * height * 0.035 + height * 0.05 : 0;
-          
-          const totalTextHeight = dateHeight + locationHeight + customTextHeight;
-          
-          // Appliquer le scrim pour améliorer la lisibilité
-          drawTextScrim(textStartY, totalTextHeight);
-
-          // Date avec pictogramme et alignement à gauche
           const dateX = contentArea.x + iconSize + height * 0.02;
-          drawIcon(contentArea.x, currentY - iconSize * 0.3, iconSize, 'calendar');
-          
+
+          // Icône calendrier
+          ctx.strokeStyle = currentStyleConfig.textColor;
+          ctx.fillStyle = currentStyleConfig.textColor;
+          ctx.lineWidth = iconSize * 0.08;
+          ctx.strokeRect(contentArea.x, currentY - iconSize * 0.1, iconSize * 0.8, iconSize * 0.7);
+          ctx.fillRect(contentArea.x + iconSize * 0.15, currentY - iconSize * 0.3, iconSize * 0.1, iconSize * 0.4);
+          ctx.fillRect(contentArea.x + iconSize * 0.55, currentY - iconSize * 0.3, iconSize * 0.1, iconSize * 0.4);
+
           ctx.font = currentStyleConfig.subtitleFont;
           ctx.textAlign = 'left';
-          ctx.shadowColor = qualityConfig.textShadow;
+          ctx.shadowColor = currentStyleConfig.textShadow;
           ctx.shadowBlur = width * 0.006;
-          ctx.shadowOffsetX = width * 0.001;
-          ctx.shadowOffsetY = width * 0.001;
           ctx.fillStyle = currentStyleConfig.textColor;
           ctx.fillText(dateText, dateX, currentY);
-          
-          // Reset shadow
           ctx.shadowColor = 'transparent';
           ctx.shadowBlur = 0;
-          ctx.shadowOffsetX = 0;
-          ctx.shadowOffsetY = 0;
           
-          currentY += dateHeight;
+          currentY += height * 0.055;
 
-          // Lieu avec pictogramme et alignement à gauche
-          drawIcon(contentArea.x, currentY - iconSize * 0.3, iconSize, 'location');
+          // Lieu avec icône
+          const locationLines = wrapText(ctx, fiche.lieu, contentArea.width - iconSize - height * 0.02, currentStyleConfig.detailFont);
           
+          // Icône localisation
+          ctx.strokeStyle = currentStyleConfig.textColor;
+          ctx.fillStyle = currentStyleConfig.textColor;
+          ctx.lineWidth = iconSize * 0.08;
+          ctx.beginPath();
+          ctx.moveTo(contentArea.x + iconSize * 0.4, currentY + iconSize * 0.6);
+          ctx.lineTo(contentArea.x + iconSize * 0.4, currentY + iconSize * 0.2);
+          ctx.arc(contentArea.x + iconSize * 0.4, currentY, iconSize * 0.25, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.arc(contentArea.x + iconSize * 0.4, currentY, iconSize * 0.1, 0, Math.PI * 2);
+          ctx.fill();
+
           locationLines.forEach((line, index) => {
             ctx.font = currentStyleConfig.detailFont;
             ctx.textAlign = 'left';
-            ctx.shadowColor = qualityConfig.textShadow;
+            ctx.shadowColor = currentStyleConfig.textShadow;
             ctx.shadowBlur = width * 0.005;
-            ctx.shadowOffsetX = width * 0.001;
-            ctx.shadowOffsetY = width * 0.001;
             ctx.fillStyle = currentStyleConfig.textColor;
             ctx.fillText(line, dateX, currentY + (index * height * 0.04));
-            
-            // Reset shadow
             ctx.shadowColor = 'transparent';
             ctx.shadowBlur = 0;
-            ctx.shadowOffsetX = 0;
-            ctx.shadowOffsetY = 0;
           });
-          currentY += locationHeight;
+          
+          currentY += locationLines.length * height * 0.04 + height * 0.04;
 
-          // Texte personnalisé avec alignement centré si présent
+          // Texte personnalisé
           if (customText && customText.trim()) {
             currentY += height * 0.03;
             const customLines = wrapText(ctx, customText.trim(), contentArea.width, currentStyleConfig.detailFont);
@@ -512,22 +441,50 @@ export default function GenerateurAffiches() {
             customLines.forEach((line, index) => {
               ctx.font = currentStyleConfig.detailFont;
               ctx.textAlign = 'center';
-              ctx.shadowColor = qualityConfig.textShadow;
+              ctx.shadowColor = currentStyleConfig.textShadow;
               ctx.shadowBlur = width * 0.005;
-              ctx.shadowOffsetX = width * 0.001;
-              ctx.shadowOffsetY = width * 0.001;
               ctx.fillStyle = currentStyleConfig.textColor;
               ctx.fillText(line, centerX, currentY + (index * height * 0.035));
-              
-              // Reset shadow
               ctx.shadowColor = 'transparent';
               ctx.shadowBlur = 0;
-              ctx.shadowOffsetX = 0;
-              ctx.shadowOffsetY = 0;
             });
           }
 
-          const dataUrl = canvas.toDataURL('image/png', 0.98);
+          // Traits de coupe pour A3 print
+          if (isPrint) {
+            const cropMarkLength = 20;
+            const cropMarkOffset = 10;
+            
+            ctx.strokeStyle = '#000000';
+            ctx.lineWidth = 1;
+            
+            // Coins supérieurs
+            ctx.beginPath();
+            ctx.moveTo(bleed - cropMarkOffset, bleed);
+            ctx.lineTo(bleed - cropMarkOffset - cropMarkLength, bleed);
+            ctx.moveTo(bleed, bleed - cropMarkOffset);
+            ctx.lineTo(bleed, bleed - cropMarkOffset - cropMarkLength);
+            
+            ctx.moveTo(width - bleed + cropMarkOffset, bleed);
+            ctx.lineTo(width - bleed + cropMarkOffset + cropMarkLength, bleed);
+            ctx.moveTo(width - bleed, bleed - cropMarkOffset);
+            ctx.lineTo(width - bleed, bleed - cropMarkOffset - cropMarkLength);
+            
+            // Coins inférieurs
+            ctx.moveTo(bleed - cropMarkOffset, height - bleed);
+            ctx.lineTo(bleed - cropMarkOffset - cropMarkLength, height - bleed);
+            ctx.moveTo(bleed, height - bleed + cropMarkOffset);
+            ctx.lineTo(bleed, height - bleed + cropMarkOffset + cropMarkLength);
+            
+            ctx.moveTo(width - bleed + cropMarkOffset, height - bleed);
+            ctx.lineTo(width - bleed + cropMarkOffset + cropMarkLength, height - bleed);
+            ctx.moveTo(width - bleed, height - bleed + cropMarkOffset);
+            ctx.lineTo(width - bleed, height - bleed + cropMarkOffset + cropMarkLength);
+            
+            ctx.stroke();
+          }
+
+          const dataUrl = canvas.toDataURL('image/png', isPrint ? 1.0 : 0.95);
           resolve(dataUrl);
           
         } catch (error) {
@@ -535,10 +492,7 @@ export default function GenerateurAffiches() {
         }
       };
 
-      img.onerror = () => {
-        reject(new Error('Impossible de charger l\'image de fond'));
-      };
-
+      img.onerror = () => reject(new Error('Impossible de charger l\'image de fond'));
       img.src = backgroundImage;
     });
   };
@@ -571,8 +525,8 @@ export default function GenerateurAffiches() {
   };
 
   const handleGenerate = async () => {
-    if (!selectedFiche || !selectedStyle || !selectedFormat) {
-      toast.error("Veuillez sélectionner une fiche, un style et un format");
+    if (!selectedFiche || !selectedStyle) {
+      toast.error("Veuillez sélectionner une fiche et un style");
       return;
     }
 
@@ -587,43 +541,55 @@ export default function GenerateurAffiches() {
         return;
       }
 
-      // Générer l'affiche avec Canvas
-      const generatedUrl = await generatePosterCanvas(
-        selectedFiche,
-        selectedStyle,
-        selectedFormat, 
-        backgroundImage,
-        customText
-      );
-      
-      setGeneratedImage(generatedUrl);
-      toast.success("Affiche générée avec succès !");
+      // Générer toutes les versions (claire et foncée) pour tous les formats
+      const [lightVersions, darkVersions] = await Promise.all([
+        generateAllFormats(selectedFiche, selectedStyle, backgroundImage, false, customText),
+        generateAllFormats(selectedFiche, selectedStyle, backgroundImage, true, customText)
+      ]);
+
+      // Mettre à jour l'état avec toutes les versions générées
+      setGeneratedImages({
+        print: { light: lightVersions.print, dark: darkVersions.print },
+        web: {
+          story: { light: lightVersions.story, dark: darkVersions.story },
+          feed: { light: lightVersions.feed, dark: darkVersions.feed },
+          banner: { light: lightVersions.banner, dark: darkVersions.banner }
+        }
+      });
+
+      toast.success("Toutes les affiches ont été générées avec succès !");
       
     } catch (error) {
       console.error("Erreur lors de la génération:", error);
-      toast.error("Erreur lors de la génération de l'affiche");
+      toast.error("Erreur lors de la génération des affiches");
     } finally {
       setIsGenerating(false);
     }
   };
 
-  const handleDownload = () => {
-    if (generatedImage && selectedFiche) {
+  const handleDownload = (imageUrl: string, format: string, version: 'light' | 'dark') => {
+    if (imageUrl && selectedFiche) {
       try {
-        // Créer un élément a temporaire pour le téléchargement
         const link = document.createElement('a');
-        link.href = generatedImage;
-        link.download = `affiche-${selectedFiche.title.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase()}.png`;
+        link.href = imageUrl;
+        link.download = `${selectedFiche.title.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase()}-${format}-${version}.png`;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
         
-        toast.success("Affiche téléchargée avec succès !");
+        toast.success(`Affiche ${format} ${version} téléchargée !`);
       } catch (error) {
         console.error("Erreur lors du téléchargement:", error);
-        toast.error("Erreur lors du téléchargement de l'affiche");
+        toast.error("Erreur lors du téléchargement");
       }
     }
+  };
+
+  const hasGeneratedImages = () => {
+    return generatedImages.print.light || 
+           generatedImages.web.story.light || 
+           generatedImages.web.feed.light || 
+           generatedImages.web.banner.light;
   };
 
   return (
@@ -806,22 +772,34 @@ export default function GenerateurAffiches() {
                 </div>
 
                 <div>
-                  <Label>Format d'affiche</Label>
-                  <Select value={selectedFormat} onValueChange={setSelectedFormat}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Choisir un format" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {formats.map((format) => (
-                        <SelectItem key={format.id} value={format.id}>
-                          <div>
-                            <div className="font-medium">{format.name}</div>
-                            <div className="text-xs text-muted-foreground">{format.dimensions}</div>
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Label>Formats générés automatiquement</Label>
+                  <div className="p-3 bg-muted/30 rounded-lg">
+                    <div className="text-sm space-y-2">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 bg-primary rounded-full" />
+                        <span className="font-medium">A3 Print (300 DPI)</span>
+                        <span className="text-xs text-muted-foreground">- avec fond perdu et traits de coupe</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 bg-primary rounded-full" />
+                        <span className="font-medium">Story Instagram</span>
+                        <span className="text-xs text-muted-foreground">- 1080×1920px</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 bg-primary rounded-full" />
+                        <span className="font-medium">Feed Instagram</span>
+                        <span className="text-xs text-muted-foreground">- 1080×1350px</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 bg-primary rounded-full" />
+                        <span className="font-medium">Bannière Facebook</span>
+                        <span className="text-xs text-muted-foreground">- 1920×1080px</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-2 italic">
+                        Chaque format sera généré en version claire et foncée automatiquement
+                      </p>
+                    </div>
+                  </div>
                 </div>
 
                 <div>
@@ -877,7 +855,7 @@ export default function GenerateurAffiches() {
 
                 <Button 
                   onClick={handleGenerate}
-                  disabled={!selectedFiche || !selectedStyle || !selectedFormat || isGenerating}
+                  disabled={!selectedFiche || !selectedStyle || isGenerating}
                   className="w-full"
                   size="lg"
                 >
@@ -889,7 +867,7 @@ export default function GenerateurAffiches() {
                   ) : (
                     <>
                       <Wand2 className="w-4 h-4 mr-2" />
-                      Générer l'affiche
+                      Générer toutes les affiches
                     </>
                   )}
                 </Button>
@@ -909,38 +887,84 @@ export default function GenerateurAffiches() {
                   Votre affiche générée apparaîtra ici
                 </CardDescription>
               </CardHeader>
-              <CardContent>
-                {generatedImage ? (
-                  <div className="space-y-4">
-                    <div className="relative bg-muted/30 rounded-lg overflow-hidden">
-                      <img 
-                        src={generatedImage}
-                        alt="Affiche générée"
-                        className="w-full h-auto"
-                        onLoad={() => console.log("Image chargée avec succès")}
-                        onError={(e) => console.error("Erreur de chargement d'image:", e)}
-                      />
-                    </div>
-                    <div className="flex gap-2">
-                      <Button onClick={handleDownload} className="flex-1">
-                        <Download className="w-4 h-4 mr-2" />
-                        Télécharger
-                      </Button>
-                      <Button 
-                        variant="outline"
-                        onClick={() => setGeneratedImage(null)}
-                      >
-                        Regénérer
-                      </Button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="text-center py-12 text-muted-foreground">
-                    <ImageIcon className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                    <p>Votre affiche apparaîtra ici une fois générée</p>
-                  </div>
-                )}
-              </CardContent>
+               <CardContent>
+                 {hasGeneratedImages() ? (
+                   <div className="space-y-6">
+                     {/* A3 Print */}
+                     {generatedImages.print.light && (
+                       <div className="space-y-2">
+                         <h4 className="font-medium">A3 Print (300 DPI)</h4>
+                         <div className="grid grid-cols-2 gap-2">
+                           <div className="space-y-2">
+                             <p className="text-xs text-muted-foreground">Version claire</p>
+                             <img src={generatedImages.print.light} alt="A3 Print - Claire" className="w-full rounded border" />
+                              <Button size="sm" onClick={() => handleDownload(generatedImages.print.light!, 'a3-print', 'light')} className="w-full">
+                                <Download className="w-3 h-3 mr-1" />
+                                Télécharger
+                              </Button>
+                            </div>
+                            <div className="space-y-2">
+                              <p className="text-xs text-muted-foreground">Version foncée</p>
+                              <img src={generatedImages.print.dark!} alt="A3 Print - Foncée" className="w-full rounded border" />  
+                              <Button size="sm" onClick={() => handleDownload(generatedImages.print.dark!, 'a3-print', 'dark')} className="w-full">
+                                <Download className="w-3 h-3 mr-1" />
+                                Télécharger
+                              </Button>
+                           </div>
+                         </div>
+                       </div>
+                     )}
+
+                     {/* Formats Web */}
+                     {(generatedImages.web.story.light || generatedImages.web.feed.light || generatedImages.web.banner.light) && (
+                       <div className="space-y-3">
+                         <h4 className="font-medium">Formats Web</h4>
+                         
+                         {/* Story */}
+                         {generatedImages.web.story.light && (
+                           <div className="space-y-2">
+                             <p className="text-sm font-medium">Story Instagram (1080×1920)</p>
+                             <div className="grid grid-cols-2 gap-2">
+                               <div className="space-y-1">
+                                 <img src={generatedImages.web.story.light} alt="Story - Claire" className="w-full rounded border" />
+                                 <Button size="sm" onClick={() => handleDownload(generatedImages.web.story.light!, 'story', 'light')} className="w-full">
+                                   <Download className="w-3 h-3 mr-1" />Claire
+                                 </Button>
+                               </div>
+                               <div className="space-y-1">
+                                 <img src={generatedImages.web.story.dark!} alt="Story - Foncée" className="w-full rounded border" />
+                                 <Button size="sm" onClick={() => handleDownload(generatedImages.web.story.dark!, 'story', 'dark')} className="w-full">
+                                   <Download className="w-3 h-3 mr-1" />Foncée
+                                 </Button>
+                               </div>
+                             </div>
+                           </div>
+                         )}
+                       </div>
+                     )}
+
+                     <Button 
+                       variant="outline"
+                       onClick={() => setGeneratedImages({
+                         print: { light: null, dark: null },
+                         web: {
+                           story: { light: null, dark: null },
+                           feed: { light: null, dark: null },
+                           banner: { light: null, dark: null }
+                         }
+                       })}
+                       className="w-full"
+                     >
+                       Regénérer toutes les affiches
+                     </Button>
+                   </div>
+                 ) : (
+                   <div className="text-center py-12 text-muted-foreground">
+                     <ImageIcon className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                     <p>Vos affiches apparaîtront ici une fois générées</p>
+                   </div>
+                 )}
+               </CardContent>
             </Card>
 
             {/* Conseils */}
