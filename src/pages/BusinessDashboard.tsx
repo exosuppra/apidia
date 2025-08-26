@@ -156,6 +156,8 @@ export default function BusinessDashboard() {
                 refreshToken: event.data.refreshToken ? 'PRÉSENT' : 'ABSENT'
               });
               
+              console.log('🔍 Appel de la fonction store-google-token...');
+              
               // Stocker le token Google pour l'utilisateur actuel
               const storeResult = await supabase.functions.invoke('store-google-token', {
                 body: { 
@@ -164,23 +166,22 @@ export default function BusinessDashboard() {
                 }
               });
               
-              console.log('📥 Résultat store-google-token:', {
-                data: storeResult.data,
-                error: storeResult.error
-              });
+              console.log('📥 Réponse brute de store-google-token:', storeResult);
+              console.log('📥 Data:', storeResult.data);
+              console.log('📥 Error:', storeResult.error);
               
               if (storeResult.error) {
-                console.error('❌ Erreur stockage token:', storeResult.error);
+                console.error('❌ Erreur détaillée:', JSON.stringify(storeResult.error, null, 2));
                 toast({
                   title: "Erreur",
-                  description: `Impossible de sauvegarder le token Google: ${storeResult.error.message}`,
+                  description: `ERREUR STORE-TOKEN: ${storeResult.error.message}`,
                   variant: "destructive",
                 });
               } else {
-                console.log('✅ Token stocké avec succès');
+                console.log('✅ SUCCÈS! Message:', storeResult.data?.message);
                 toast({
                   title: "Succès",
-                  description: "Compte Google lié avec succès !",
+                  description: storeResult.data?.message || "Token stocké !",
                 });
                 // Recharger les établissements
                 loadBusinesses();
