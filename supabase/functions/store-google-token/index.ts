@@ -14,6 +14,9 @@ serve(async (req) => {
   }
 
   try {
+    console.log('🔍 Début de la fonction store-google-token');
+    
+    // Récupérer l'utilisateur depuis l'en-tête d'autorisation pour l'identifier
     const authHeader = req.headers.get('authorization');
     console.log('🔍 Authorization header:', authHeader ? 'PRÉSENT' : 'ABSENT');
     
@@ -21,16 +24,23 @@ serve(async (req) => {
       throw new Error('No authorization header');
     }
 
-    const supabaseClient = createClient(
+    // Créer un client avec la clé de service pour éviter les problèmes d'auth
+    const serviceClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+    );
+    
+    // Client pour récupérer l'utilisateur actuel
+    const userClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
       { global: { headers: { Authorization: authHeader } } }
     );
 
-    console.log('🔍 Supabase client créé, tentative de récupération de l\'utilisateur...');
+    console.log('🔍 Clients Supabase créés, récupération de l\'utilisateur...');
 
     // Get the current user to verify authentication
-    const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
+    const { data: { user }, error: userError } = await userClient.auth.getUser();
     
     console.log('🔍 Résultat getUser:', {
       user: user?.id || 'AUCUN',
@@ -39,10 +49,11 @@ serve(async (req) => {
     
     if (userError || !user) {
       console.error('❌ Erreur d\'authentification:', userError);
-      throw new Error('User not authenticated');
+      throw new Error(`User not authenticated: ${userError?.message}`);
     }
 
-    const { googleToken, refreshToken } = await req.json();
+    const requestBody = await req.json();
+    const { googleToken, refreshToken } = requestBody;
     
     console.log('🔍 Données reçues:', {
       hasGoogleToken: !!googleToken,
@@ -54,14 +65,14 @@ serve(async (req) => {
       throw new Error('Google token is required');
     }
 
-    console.log('🔑 Stockage du token Google pour l\'utilisateur:', user.id);
+    console.log('🔑 Stockage du token pour l\'utilisateur:', user.id);
 
     // Set expiration to 1 hour from now (Google access tokens typically expire in 1 hour)
     const expiresAt = new Date();
     expiresAt.setHours(expiresAt.getHours() + 1);
 
-    // Insert or update the Google token
-    const { data, error } = await supabaseClient
+    // Insert or update the Google token using service client
+    const { data, error } = await serviceClient
       .from('user_google_tokens')
       .upsert({
         user_id: user.id,
@@ -72,6 +83,11 @@ serve(async (req) => {
       }, {
         onConflict: 'user_id'
       });
+
+    console.log('🔍 Résultat upsert:', {
+      data: data ? 'SUCCESS' : 'NULL',
+      error: error?.message || 'AUCUNE'
+    });
 
     if (error) {
       console.error('❌ Erreur lors du stockage du token:', error);
