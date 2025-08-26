@@ -25,7 +25,8 @@ import {
   Image as ImageIcon,
   Palette,
   Type,
-  Layout
+  Layout,
+  RotateCcw
 } from "lucide-react";
 
 // Mock data pour les fiches Apidae (en attendant l'intégration avec l'API)
@@ -76,6 +77,22 @@ export default function GenerateurAffiches() {
   const [customText, setCustomText] = useState("");
   const [customImage, setCustomImage] = useState<string | null>(null);
   const [showEditor, setShowEditor] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generatedPosters, setGeneratedPosters] = useState<{
+    print: string | null;
+    web: {
+      story: string | null;
+      feed: string | null;
+      banner: string | null;
+    };
+  }>({
+    print: null,
+    web: {
+      story: null,
+      feed: null,
+      banner: null
+    }
+  });
 
   // Sélection automatique du style selon l'événement
   const getAutoStyle = (eventType: string) => {
@@ -127,17 +144,271 @@ export default function GenerateurAffiches() {
     }
   }, [selectedFiche, selectedStyle]);
 
+  // Fonction de génération automatique des affiches
+  const generateAllPosters = async () => {
+    if (!selectedFiche || !selectedStyle) {
+      toast.error("Veuillez sélectionner un événement et un style");
+      return;
+    }
+
+    setIsGenerating(true);
+    toast("🎨 Génération automatique de vos affiches...");
+
+    try {
+      // Formats de sortie
+      const formats = {
+        print: { width: 3543, height: 4959, name: "A3 Print 300 DPI", dpi: 300 },
+        story: { width: 1080, height: 1920, name: "Story Instagram" },
+        feed: { width: 1080, height: 1350, name: "Feed Instagram" },
+        banner: { width: 1920, height: 1080, name: "Bannière Facebook" }
+      };
+
+      const results: any = { print: null, web: { story: null, feed: null, banner: null } };
+
+      // Générer chaque format
+      for (const [formatKey, formatConfig] of Object.entries(formats)) {
+        try {
+          const canvas = document.createElement('canvas');
+          canvas.width = formatConfig.width;
+          canvas.height = formatConfig.height;
+          const ctx = canvas.getContext('2d')!;
+
+          // Charger l'image de fond
+          const img = new Image();
+          img.crossOrigin = 'anonymous';
+          
+          await new Promise((resolve, reject) => {
+            img.onload = resolve;
+            img.onerror = reject;
+            img.src = selectedFiche.image;
+          });
+
+          // Dessiner l'image de fond (couvrir tout le canvas)
+          const scaleX = canvas.width / img.width;
+          const scaleY = canvas.height / img.height;
+          const scale = Math.max(scaleX, scaleY);
+          
+          const scaledWidth = img.width * scale;
+          const scaledHeight = img.height * scale;
+          const offsetX = (canvas.width - scaledWidth) / 2;
+          const offsetY = (canvas.height - scaledHeight) / 2;
+          
+          ctx.drawImage(img, offsetX, offsetY, scaledWidth, scaledHeight);
+
+          // Appliquer l'overlay selon le style
+          const template = getTemplateStyle(selectedStyle, selectedFiche.type);
+          
+          // Overlay gradient ou solid
+          if (template.overlay.type === 'gradient' && 'stops' in template.overlay) {
+            const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            template.overlay.stops.forEach(stop => {
+              gradient.addColorStop(stop.offset, stop.color);
+            });
+            ctx.fillStyle = gradient;
+          } else if (template.overlay.type === 'solid' && 'color' in template.overlay) {
+            ctx.fillStyle = template.overlay.color;
+          } else {
+            ctx.fillStyle = 'rgba(0,0,0,0.7)'; // fallback
+          }
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+          // Configuration responsive selon le format
+          const isVertical = canvas.height > canvas.width;
+          const baseSize = Math.min(canvas.width, canvas.height);
+          
+          const layout = {
+            margin: baseSize * 0.08,
+            titleSize: baseSize * (isVertical ? 0.12 : 0.08),
+            subtitleSize: baseSize * (isVertical ? 0.05 : 0.04),
+            detailSize: baseSize * (isVertical ? 0.035 : 0.03),
+            spacing: baseSize * 0.06
+          };
+
+          // Badge type d'événement
+          const badgeY = layout.margin;
+          const badgeHeight = layout.subtitleSize * 1.2;
+          const badgeText = selectedFiche.type.toUpperCase();
+          
+          ctx.font = `600 ${layout.detailSize}px Arial`;
+          const badgeWidth = ctx.measureText(badgeText).width + layout.margin;
+          
+          // Fond du badge
+          ctx.fillStyle = template.accent;
+          ctx.beginPath();
+          ctx.roundRect(layout.margin, badgeY, badgeWidth, badgeHeight, badgeHeight / 3);
+          ctx.fill();
+          
+          // Texte du badge
+          ctx.fillStyle = '#ffffff';
+          ctx.textAlign = 'left';
+          ctx.fillText(badgeText, layout.margin + layout.margin/2, badgeY + badgeHeight * 0.7);
+
+          // Titre principal
+          const titleY = canvas.height * (isVertical ? 0.15 : 0.25);
+          ctx.font = `900 ${layout.titleSize}px Arial`;
+          ctx.fillStyle = template.textColor;
+          ctx.textAlign = 'center';
+          ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
+          ctx.shadowBlur = 12;
+          ctx.shadowOffsetY = 4;
+          
+          // Découper le titre si trop long
+          const title = customText || selectedFiche.title;
+          const maxWidth = canvas.width - layout.margin * 2;
+          const words = title.split(' ');
+          const lines: string[] = [];
+          let currentLine = '';
+          
+          for (const word of words) {
+            const testLine = currentLine + (currentLine ? ' ' : '') + word;
+            if (ctx.measureText(testLine).width <= maxWidth || !currentLine) {
+              currentLine = testLine;
+            } else {
+              lines.push(currentLine);
+              currentLine = word;
+            }
+          }
+          if (currentLine) lines.push(currentLine);
+          
+          lines.forEach((line, index) => {
+            ctx.fillText(line, canvas.width / 2, titleY + index * layout.titleSize * 1.1);
+          });
+
+          // Date
+          const dateText = selectedFiche.dateDebut === selectedFiche.dateFin 
+            ? new Date(selectedFiche.dateDebut).toLocaleDateString('fr-FR', { 
+                weekday: 'long', 
+                day: 'numeric', 
+                month: 'long' 
+              })
+            : `${new Date(selectedFiche.dateDebut).toLocaleDateString('fr-FR')} - ${new Date(selectedFiche.dateFin).toLocaleDateString('fr-FR')}`;
+
+          const dateY = titleY + lines.length * layout.titleSize * 1.1 + layout.spacing;
+          ctx.font = `600 ${layout.subtitleSize}px Arial`;
+          ctx.fillStyle = template.secondaryColor;
+          ctx.fillText(dateText.toUpperCase(), canvas.width / 2, dateY);
+
+          // Lieu
+          const locationY = dateY + layout.spacing;
+          ctx.font = `500 ${layout.detailSize}px Arial`;
+          ctx.fillStyle = template.textColor;
+          const location = selectedFiche.lieu.split(',')[0];
+          ctx.fillText(location.toUpperCase(), canvas.width / 2, locationY);
+
+          // Ligne d'accent en bas
+          const lineY = canvas.height - layout.margin - 20;
+          const lineWidth = canvas.width * 0.3;
+          ctx.fillStyle = template.accent;
+          ctx.fillRect((canvas.width - lineWidth) / 2, lineY, lineWidth, 8);
+
+          // Reset shadow
+          ctx.shadowColor = 'transparent';
+          ctx.shadowBlur = 0;
+          ctx.shadowOffsetY = 0;
+
+          // Convertir en image
+          const dataURL = canvas.toDataURL('image/png', 1.0);
+          
+          if (formatKey === 'print') {
+            results.print = dataURL;
+          } else {
+            results.web[formatKey as keyof typeof results.web] = dataURL;
+          }
+
+          toast(`✅ ${formatConfig.name} généré`);
+          
+        } catch (error) {
+          console.error(`Erreur génération ${formatKey}:`, error);
+          toast.error(`❌ Erreur ${formatKey}`);
+        }
+      }
+
+      setGeneratedPosters(results);
+      toast.success("🎉 Toutes les affiches ont été générées avec succès !");
+      
+    } catch (error) {
+      console.error('Erreur génération globale:', error);
+      toast.error("❌ Erreur lors de la génération");
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  // Configuration des templates selon le style
+  const getTemplateStyle = (style: string, eventType: string) => {
+    const eventLower = eventType.toLowerCase();
+    
+    // Couleurs selon le type d'événement
+    const getEventColors = () => {
+      if (eventLower.includes('sport') || eventLower.includes('trail')) {
+        return { primary: '#f97316', secondary: '#ea580c', accent: '#fb923c' };
+      }
+      if (eventLower.includes('culturel') || eventLower.includes('festival') || eventLower.includes('jazz')) {
+        return { primary: '#8b5cf6', secondary: '#7c3aed', accent: '#a78bfa' };
+      }
+      if (eventLower.includes('commercial') || eventLower.includes('marché')) {
+        return { primary: '#3b82f6', secondary: '#1d4ed8', accent: '#60a5fa' };
+      }
+      if (eventLower.includes('festiv') || eventLower.includes('fête')) {
+        return { primary: '#ec4899', secondary: '#db2777', accent: '#f472b6' };
+      }
+      return { primary: '#6366f1', secondary: '#4f46e5', accent: '#818cf8' };
+    };
+
+    const colors = getEventColors();
+
+    const templates = {
+      moderne: {
+        overlay: {
+          type: 'gradient',
+          stops: [
+            { offset: 0, color: 'rgba(0,0,0,0.7)' },
+            { offset: 0.6, color: 'rgba(0,0,0,0.3)' },
+            { offset: 1, color: 'rgba(0,0,0,0.8)' }
+          ]
+        },
+        textColor: '#ffffff',
+        secondaryColor: '#e2e8f0',
+        accent: colors.primary
+      },
+      elegant: {
+        overlay: {
+          type: 'solid',
+          color: 'rgba(15,23,42,0.75)'
+        },
+        textColor: '#f8fafc',
+        secondaryColor: '#e2e8f0',
+        accent: colors.secondary
+      },
+      festif: {
+        overlay: {
+          type: 'gradient',
+          stops: [
+            { offset: 0, color: 'rgba(236,72,153,0.8)' },
+            { offset: 0.5, color: 'rgba(147,51,234,0.6)' },
+            { offset: 1, color: 'rgba(59,130,246,0.8)' }
+          ]
+        },
+        textColor: '#ffffff',
+        secondaryColor: '#ffffff',
+        accent: '#fbbf24'
+      },
+      vintage: {
+        overlay: {
+          type: 'solid',
+          color: 'rgba(92,66,46,0.85)'
+        },
+        textColor: '#fef3c7',
+        secondaryColor: '#fde68a',
+        accent: '#d97706'
+      }
+    };
+
+    return templates[style as keyof typeof templates] || templates.moderne;
+  };
+
   const handleGenerate = () => {
-    if (!selectedFiche) {
-      toast.error("Veuillez sélectionner un événement");
-      return;
-    }
-    if (!selectedStyle) {
-      toast.error("Veuillez sélectionner un style");
-      return;
-    }
-    setShowEditor(true);
-    toast.success("Éditeur professionnel ouvert !");
+    generateAllPosters();
   };
 
   const getFontStyleForEvent = (eventType: string) => {
@@ -191,37 +462,214 @@ export default function GenerateurAffiches() {
         {/* Main Content */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           
-          {/* Show Editor if activated */}
-          {showEditor && selectedFiche ? (
-            <div className="space-y-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-2xl font-bold text-slate-900 mb-2">
-                    Éditeur Professionnel - {selectedFiche.title}
-                  </h2>
-                  <p className="text-slate-600">
-                    Créez et personnalisez votre affiche avec l'éditeur Fabric.js
-                  </p>
-                </div>
+          {/* Show generated posters if available */}
+          {(generatedPosters.print || Object.values(generatedPosters.web).some(Boolean)) ? (
+            <div className="space-y-8">
+              {/* Header */}
+              <div className="text-center">
+                <h2 className="text-3xl font-bold text-slate-900 mb-4">
+                  🎉 Vos affiches sont prêtes !
+                </h2>
+                <p className="text-slate-600 max-w-2xl mx-auto">
+                  Téléchargez vos affiches en haute qualité pour l'impression et le web
+                </p>
+              </div>
+
+              {/* Generated results */}
+              <div className="grid lg:grid-cols-2 gap-8">
+                
+                {/* Print version */}
+                {generatedPosters.print && (
+                  <Card className="overflow-hidden">
+                    <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50">
+                      <CardTitle className="flex items-center gap-2 text-green-800">
+                        🖨️ Version Impression
+                      </CardTitle>
+                      <CardDescription>
+                        Format A3 - 300 DPI - Haute qualité
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="p-6">
+                      <div className="space-y-4">
+                        <div className="aspect-[3/4] rounded-lg overflow-hidden bg-slate-100 shadow-lg">
+                          <img 
+                            src={generatedPosters.print} 
+                            alt="Affiche impression"
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                        <div className="flex items-center justify-between text-sm text-slate-600">
+                          <span>3543 × 4959 pixels</span>
+                          <Badge variant="secondary">300 DPI</Badge>
+                        </div>
+                        <Button 
+                          onClick={() => {
+                            const link = document.createElement('a');
+                            link.download = `affiche-print-${selectedFiche?.title.replace(/[^a-z0-9]/gi, '-').toLowerCase()}.png`;
+                            link.href = generatedPosters.print!;
+                            link.click();
+                            toast.success("🎉 Affiche téléchargée !");
+                          }}
+                          className="w-full gap-2 bg-green-600 hover:bg-green-700"
+                        >
+                          <Download className="w-4 h-4" />
+                          Télécharger (Print)
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Web versions */}
+                <Card className="overflow-hidden">
+                  <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50">
+                    <CardTitle className="flex items-center gap-2 text-blue-800">
+                      📱 Versions Web & Réseaux sociaux
+                    </CardTitle>
+                    <CardDescription>
+                      Formats optimisés pour Instagram et Facebook
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="p-6">
+                    <div className="space-y-4">
+                      
+                      {/* Story Instagram */}
+                      {generatedPosters.web.story && (
+                        <div className="flex items-center gap-4 p-3 bg-slate-50 rounded-lg">
+                          <div className="w-16 h-28 rounded overflow-hidden bg-white shadow-sm">
+                            <img 
+                              src={generatedPosters.web.story} 
+                              alt="Story Instagram"
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                          <div className="flex-1">
+                            <h4 className="font-medium">📱 Story Instagram</h4>
+                            <p className="text-sm text-slate-600">1080 × 1920 pixels</p>
+                          </div>
+                          <Button 
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              const link = document.createElement('a');
+                              link.download = `story-instagram-${selectedFiche?.title.replace(/[^a-z0-9]/gi, '-').toLowerCase()}.png`;
+                              link.href = generatedPosters.web.story!;
+                              link.click();
+                            }}
+                          >
+                            <Download className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      )}
+
+                      {/* Feed Instagram */}
+                      {generatedPosters.web.feed && (
+                        <div className="flex items-center gap-4 p-3 bg-slate-50 rounded-lg">
+                          <div className="w-16 h-20 rounded overflow-hidden bg-white shadow-sm">
+                            <img 
+                              src={generatedPosters.web.feed} 
+                              alt="Feed Instagram"
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                          <div className="flex-1">
+                            <h4 className="font-medium">📷 Feed Instagram</h4>
+                            <p className="text-sm text-slate-600">1080 × 1350 pixels</p>
+                          </div>
+                          <Button 
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              const link = document.createElement('a');
+                              link.download = `feed-instagram-${selectedFiche?.title.replace(/[^a-z0-9]/gi, '-').toLowerCase()}.png`;
+                              link.href = generatedPosters.web.feed!;
+                              link.click();
+                            }}
+                          >
+                            <Download className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      )}
+
+                      {/* Banner Facebook */}
+                      {generatedPosters.web.banner && (
+                        <div className="flex items-center gap-4 p-3 bg-slate-50 rounded-lg">
+                          <div className="w-16 h-9 rounded overflow-hidden bg-white shadow-sm">
+                            <img 
+                              src={generatedPosters.web.banner} 
+                              alt="Banner Facebook"
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                          <div className="flex-1">
+                            <h4 className="font-medium">🖥️ Bannière Facebook</h4>
+                            <p className="text-sm text-slate-600">1920 × 1080 pixels</p>
+                          </div>
+                          <Button 
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              const link = document.createElement('a');
+                              link.download = `banner-facebook-${selectedFiche?.title.replace(/[^a-z0-9]/gi, '-').toLowerCase()}.png`;
+                              link.href = generatedPosters.web.banner!;
+                              link.click();
+                            }}
+                          >
+                            <Download className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      )}
+
+                      {/* Download all */}
+                      <Button 
+                        onClick={() => {
+                          // Télécharger tous les formats web
+                          Object.entries(generatedPosters.web).forEach(([format, dataURL]) => {
+                            if (dataURL) {
+                              const link = document.createElement('a');
+                              link.download = `${format}-${selectedFiche?.title.replace(/[^a-z0-9]/gi, '-').toLowerCase()}.png`;
+                              link.href = dataURL;
+                              link.click();
+                            }
+                          });
+                          toast.success("📦 Tous les formats web téléchargés !");
+                        }}
+                        className="w-full gap-2"
+                        variant="outline"
+                      >
+                        <Download className="w-4 h-4" />
+                        Télécharger tous les formats web
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Actions */}
+              <div className="flex justify-center gap-4">
                 <Button 
-                  variant="outline" 
-                  onClick={() => setShowEditor(false)}
+                  variant="outline"
+                  onClick={() => {
+                    setGeneratedPosters({ print: null, web: { story: null, feed: null, banner: null } });
+                    setSelectedFiche(null);
+                    setSelectedStyle("");
+                    setCustomText("");
+                  }}
                   className="gap-2"
                 >
-                  <ArrowLeft className="w-4 h-4" />
-                  Retour à la sélection
+                  <RotateCcw className="w-4 h-4" />
+                  Créer une nouvelle affiche
+                </Button>
+                
+                <Button 
+                  onClick={generateAllPosters}
+                  disabled={isGenerating}
+                  className="gap-2"
+                >
+                  <Wand2 className="w-4 h-4" />
+                  Régénérer avec les mêmes paramètres
                 </Button>
               </div>
-              
-              <FabricPosterCanvas
-                posterData={selectedFiche}
-                selectedStyle={selectedStyle}
-                customText={customText}
-                onGenerate={(data) => {
-                  console.log('Generated poster data:', data);
-                  toast.success("Affiche générée avec succès !");
-                }}
-              />
             </div>
           ) : (
             <>
@@ -465,22 +913,31 @@ export default function GenerateurAffiches() {
                   <Card>
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">
-                        <Layout className="w-5 h-5" />
-                        3. Lancer l'éditeur
+                        <Wand2 className="w-5 h-5" />
+                        3. Générer vos affiches
                       </CardTitle>
                       <CardDescription>
-                        Ouvrir l'éditeur professionnel Fabric.js
+                        Génération automatique en A3 300DPI + formats web
                       </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
                       <Button 
                         onClick={handleGenerate}
-                        disabled={!selectedFiche || !selectedStyle}
+                        disabled={!selectedFiche || !selectedStyle || isGenerating}
                         size="lg"
                         className="w-full gap-2"
                       >
-                        <Wand2 className="w-5 h-5" />
-                        Ouvrir l'éditeur professionnel
+                        {isGenerating ? (
+                          <>
+                            <Loader2 className="w-5 h-5 animate-spin" />
+                            Génération en cours...
+                          </>
+                        ) : (
+                          <>
+                            <Wand2 className="w-5 h-5" />
+                            Générer les affiches
+                          </>
+                        )}
                       </Button>
                       
                       {!selectedFiche && (
@@ -495,31 +952,39 @@ export default function GenerateurAffiches() {
                         </p>
                       )}
 
-                      {/* Aperçu des fonctionnalités */}
+                      {/* Aperçu des formats générés */}
                       <div className="space-y-3 pt-4 border-t">
-                        <h4 className="font-medium text-sm">Fonctionnalités de l'éditeur :</h4>
+                        <h4 className="font-medium text-sm">📦 Formats générés automatiquement :</h4>
                         <div className="space-y-2 text-xs text-muted-foreground">
                           <div className="flex items-center gap-2">
                             <div className="w-1.5 h-1.5 bg-green-500 rounded-full" />
-                            Édition interactive en temps réel
+                            <strong>A3 Print</strong> - 3543×4959px à 300 DPI
                           </div>
                           <div className="flex items-center gap-2">
                             <div className="w-1.5 h-1.5 bg-blue-500 rounded-full" />
-                            Templates professionnels 2024-2025
+                            <strong>Story Instagram</strong> - 1080×1920px
                           </div>
                           <div className="flex items-center gap-2">
                             <div className="w-1.5 h-1.5 bg-purple-500 rounded-full" />
-                            Export haute qualité (PNG, PDF)
+                            <strong>Feed Instagram</strong> - 1080×1350px
                           </div>
                           <div className="flex items-center gap-2">
                             <div className="w-1.5 h-1.5 bg-orange-500 rounded-full" />
-                            Historique Annuler/Refaire
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <div className="w-1.5 h-1.5 bg-red-500 rounded-full" />
-                            Formats adaptés (Instagram, Print)
+                            <strong>Bannière Facebook</strong> - 1920×1080px
                           </div>
                         </div>
+                        
+                        {isGenerating && (
+                          <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                            <div className="flex items-center gap-2 text-blue-700">
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                              <span className="text-sm font-medium">Génération en cours...</span>
+                            </div>
+                            <p className="text-xs text-blue-600 mt-1">
+                              Patientez pendant que nous créons vos affiches haute qualité
+                            </p>
+                          </div>
+                        )}
                       </div>
                     </CardContent>
                   </Card>
