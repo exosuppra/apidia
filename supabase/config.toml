@@ -5,3 +5,6 @@ verify_jwt = true
 
 [functions.get-reviews]
 verify_jwt = true
+
+[functions.store-google-token]
+verify_jwt = true

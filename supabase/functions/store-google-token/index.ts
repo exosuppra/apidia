@@ -1,4 +1,3 @@
-import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 
@@ -8,156 +7,124 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  console.log('🚀 === DÉBUT STORE-GOOGLE-TOKEN ===');
-  console.log('Method:', req.method);
-  console.log('URL:', req.url);
+  console.log('🚀 Function called:', req.method, req.url);
   
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    console.log('✅ Réponse CORS OPTIONS');
+    console.log('✅ CORS preflight');
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    console.log('🔍 === ÉTAPE 1: VÉRIFICATION AUTH HEADER ===');
-    const authHeader = req.headers.get('authorization');
-    console.log('Authorization header:', authHeader ? 'PRÉSENT' : 'ABSENT');
+    console.log('🔍 Starting token storage...');
     
+    // Get auth header
+    const authHeader = req.headers.get('authorization');
     if (!authHeader) {
-      console.log('❌ Pas d\'auth header');
-      throw new Error('No authorization header');
+      console.log('❌ No auth header');
+      return new Response(JSON.stringify({ error: 'No authorization header' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
-
-    console.log('🔍 === ÉTAPE 2: CRÉATION CLIENTS SUPABASE ===');
+    
+    console.log('✅ Auth header present');
+    
+    // Create Supabase clients
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     const anonKey = Deno.env.get('SUPABASE_ANON_KEY');
-    const supabaseUrl = Deno.env.get('SUPABASE_URL');
     
-    console.log('Clés disponibles:', {
-      serviceKey: serviceKey ? 'PRÉSENT' : 'ABSENT',
-      anonKey: anonKey ? 'PRÉSENT' : 'ABSENT',
-      supabaseUrl: supabaseUrl ? 'PRÉSENT' : 'ABSENT'
+    console.log('🔍 Environment check:', {
+      url: !!supabaseUrl,
+      serviceKey: !!serviceKey,
+      anonKey: !!anonKey
     });
-
-    // Client pour récupérer l'utilisateur actuel
-    const userClient = createClient(
-      supabaseUrl ?? '',
-      anonKey ?? '',
-      { global: { headers: { Authorization: authHeader } } }
-    );
     
-    // Créer un client avec la clé de service pour éviter les problèmes d'auth
-    const serviceClient = createClient(
-      supabaseUrl ?? '',
-      serviceKey ?? '',
-    );
-
-    console.log('🔍 === ÉTAPE 3: RÉCUPÉRATION UTILISATEUR ===');
+    if (!supabaseUrl || !serviceKey || !anonKey) {
+      console.log('❌ Missing environment variables');
+      return new Response(JSON.stringify({ error: 'Missing environment variables' }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    
+    // User client for auth
+    const userClient = createClient(supabaseUrl, anonKey, {
+      global: { headers: { Authorization: authHeader } }
+    });
+    
+    // Get user
     const { data: { user }, error: userError } = await userClient.auth.getUser();
+    console.log('🔍 User check:', { userId: user?.id, error: userError?.message });
     
-    console.log('Résultat getUser:', {
-      user: user?.id || 'AUCUN',
-      userEmail: user?.email || 'AUCUN',
-      error: userError?.message || 'AUCUNE'
-    });
-    
-    if (userError || !user) {
-      console.error('❌ Erreur authentification:', userError);
-      throw new Error(`User not authenticated: ${userError?.message}`);
+    if (!user) {
+      console.log('❌ No user found');
+      return new Response(JSON.stringify({ error: 'User not authenticated' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
-
-    console.log('🔍 === ÉTAPE 4: LECTURE BODY REQUEST ===');
-    const requestBody = await req.json();
-    console.log('Body reçu:', requestBody);
     
-    const { googleToken, refreshToken } = requestBody;
+    console.log('✅ User authenticated:', user.id);
     
-    console.log('Tokens extraits:', {
-      hasGoogleToken: !!googleToken,
-      googleTokenLength: googleToken?.length || 0,
-      hasRefreshToken: !!refreshToken,
-      refreshTokenLength: refreshToken?.length || 0
-    });
+    // Get request body
+    const body = await req.json();
+    console.log('🔍 Body received:', { hasGoogleToken: !!body.googleToken });
     
-    if (!googleToken) {
-      console.log('❌ Pas de Google token');
-      throw new Error('Google token is required');
+    if (!body.googleToken) {
+      console.log('❌ No Google token in body');
+      return new Response(JSON.stringify({ error: 'No Google token provided' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
-
-    console.log('🔍 === ÉTAPE 5: PRÉPARATION DONNÉES ===');
+    
+    // Service client for database operations
+    const serviceClient = createClient(supabaseUrl, serviceKey);
+    
+    // Create expires_at (1 hour from now)
     const expiresAt = new Date();
     expiresAt.setHours(expiresAt.getHours() + 1);
-    console.log('Expiration calculée:', expiresAt.toISOString());
-
-    console.log('🔍 === ÉTAPE 6: VÉRIFICATION TOKEN EXISTANT ===');
-    const { data: existingToken, error: selectError } = await serviceClient
+    
+    console.log('🔍 Attempting database operation...');
+    
+    // Try to insert/update
+    const { error: dbError } = await serviceClient
       .from('user_google_tokens')
-      .select('id')
-      .eq('user_id', user.id)
-      .single();
-
-    console.log('Résultat vérification:', {
-      existingToken: existingToken ? 'TROUVÉ' : 'AUCUN',
-      selectError: selectError?.message || 'AUCUNE'
-    });
-
-    console.log('🔍 === ÉTAPE 7: OPÉRATION BASE DE DONNÉES ===');
-    let result;
-    if (existingToken) {
-      console.log('🔄 Mise à jour token existant...');
-      result = await serviceClient
-        .from('user_google_tokens')
-        .update({
-          access_token: googleToken,
-          refresh_token: refreshToken || null,
-          expires_at: expiresAt.toISOString(),
-          updated_at: new Date().toISOString()
-        })
-        .eq('user_id', user.id);
-    } else {
-      console.log('➕ Création nouveau token...');
-      result = await serviceClient
-        .from('user_google_tokens')
-        .insert({
-          user_id: user.id,
-          access_token: googleToken,
-          refresh_token: refreshToken || null,
-          expires_at: expiresAt.toISOString(),
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        });
+      .upsert({
+        user_id: user.id,
+        access_token: body.googleToken,
+        refresh_token: body.refreshToken || null,
+        expires_at: expiresAt.toISOString(),
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      });
+    
+    if (dbError) {
+      console.error('❌ Database error:', dbError);
+      return new Response(JSON.stringify({ 
+        error: 'Database error', 
+        details: dbError.message 
+      }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
-
-    const { data, error } = result;
-    console.log('🔍 === ÉTAPE 8: RÉSULTAT OPÉRATION ===');
-    console.log('Résultat:', {
-      data: data ? 'SUCCESS' : 'NULL',
-      error: error?.message || 'AUCUNE'
-    });
-
-    if (error) {
-      console.error('❌ Erreur lors du stockage:', error);
-      throw new Error(`Database error: ${error.message}`);
-    }
-
-    console.log('✅ === SUCCÈS COMPLET ===');
+    
+    console.log('✅ Token stored successfully');
+    
     return new Response(JSON.stringify({ 
-      success: true,
-      message: 'Token Google stocké avec succès'
+      success: true, 
+      message: 'Token stored successfully' 
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
-
-  } catch (error) {
-    console.error('❌ === ERREUR GLOBALE ===');
-    console.error('Type d\'erreur:', error.constructor.name);
-    console.error('Message:', error.message);
-    console.error('Stack:', error.stack);
     
+  } catch (error) {
+    console.error('❌ Global error:', error);
     return new Response(JSON.stringify({ 
-      error: 'Erreur lors du stockage du token Google',
-      details: error.message,
-      type: error.constructor.name 
+      error: 'Internal server error',
+      details: error.message 
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
