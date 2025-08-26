@@ -112,6 +112,33 @@ serve(async (req: Request) => {
         );
       }
       
+      if (businessResponse.status === 403) {
+        console.log('⚠️ APIs non activées, utilisation du mode démo');
+        return new Response(JSON.stringify({ 
+          businesses: [
+            {
+              id: "demo-restaurant",
+              name: "Restaurant Demo - Activez les APIs Google",
+              address: "Activez les APIs dans Google Cloud Console",
+              averageRating: 4.3,
+              totalReviews: 0,
+              unreadReviews: 0,
+            },
+            {
+              id: "demo-hotel", 
+              name: "Hôtel Demo - APIs requises",
+              address: "My Business Account Management API requis",
+              averageRating: 4.1,
+              totalReviews: 0,
+              unreadReviews: 0,
+            }
+          ],
+          message: "Mode démo - Activez les APIs Google My Business pour voir vos vrais établissements"
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      
       throw new Error(`Google API error: ${businessResponse.status} - ${errorText}`);
     }
 
