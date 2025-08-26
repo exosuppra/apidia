@@ -22,7 +22,6 @@ import GenerateurAffiches from "./pages/GenerateurAffiches";
 import CreationAffiches from "./pages/CreationAffiches";
 import BilanSiteWeb from "./pages/BilanSiteWeb";
 import BusinessDashboard from "./pages/BusinessDashboard";
-import GoogleCallback from "./pages/GoogleCallback";
 
 const queryClient = new QueryClient();
 
@@ -66,9 +65,6 @@ const App = () => (
               <Route index element={<Overview />} />
               <Route path="fiches" element={<Fiches />} />
             </Route>
-            
-            {/* Google OAuth callback */}
-            <Route path="/google-callback" element={<GoogleCallback />} />
             
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />

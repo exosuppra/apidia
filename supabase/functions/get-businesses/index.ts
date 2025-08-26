@@ -26,9 +26,8 @@ serve(async (req) => {
     );
 
     // Get the current user to verify authentication
-    const { data: { user }, error: userError } = await supabaseClient.auth.getUser(authHeader.replace('Bearer ', ''));
+    const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
     if (userError || !user) {
-      console.error('Auth error:', userError);
       throw new Error('User not authenticated');
     }
 
@@ -37,11 +36,11 @@ serve(async (req) => {
     // Récupérer le token Google depuis la table user_google_tokens
     const { data: tokenData, error: tokenError } = await supabaseClient
       .from('user_google_tokens')
-      .select('access_token')
+      .select('google_token')
       .eq('user_id', user.id)
       .single();
     
-    if (tokenError || !tokenData?.access_token) {
+    if (tokenError || !tokenData?.google_token) {
       console.error('❌ Token Google non trouvé:', tokenError);
       return new Response(
         JSON.stringify({ 
@@ -52,7 +51,7 @@ serve(async (req) => {
       );
     }
     
-    const googleAccessToken = tokenData.access_token;
+    const googleAccessToken = tokenData.google_token;
     console.log('✅ Token Google trouvé pour l\'utilisateur');
 
     console.log('Using Google access token to fetch businesses');
