@@ -33,11 +33,28 @@ serve(async (req) => {
 
     console.log('Fetching businesses for user:', user.id);
 
-    // Get user's Google access token from our provider_token (this is automatically stored by Supabase when using OAuth)
-    const googleAccessToken = user.user_metadata?.provider_token;
+    // Get user's Google access token from identities
+    console.log('User identities:', user.identities);
+    console.log('User metadata:', user.user_metadata);
+    
+    // Look for Google identity
+    const googleIdentity = user.identities?.find(identity => identity.provider === 'google');
+    let googleAccessToken = null;
+    
+    if (googleIdentity) {
+      // For linked identities, the token might be in different places
+      googleAccessToken = googleIdentity.identity_data?.provider_token || 
+                         user.user_metadata?.provider_token ||
+                         user.user_metadata?.google_access_token;
+    } else {
+      // If no Google identity found, check user metadata
+      googleAccessToken = user.user_metadata?.provider_token;
+    }
+    
+    console.log('Google access token found:', !!googleAccessToken);
     
     if (!googleAccessToken) {
-      throw new Error('No Google access token found. Please re-authenticate with Google.');
+      throw new Error('No Google access token found. Please link your Google account first by clicking "Se connecter avec Google".');
     }
 
     console.log('Using Google access token to fetch businesses');
