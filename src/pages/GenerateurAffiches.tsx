@@ -37,7 +37,7 @@ const mockFiches = [
     dateFin: "2024-06-22",
     lieu: "Esplanade Charles de Gaulle, Montpellier",
     description: "Le plus grand festival de jazz du Sud de la France avec des artistes internationaux. Une semaine de concerts exceptionnels dans un cadre unique.",
-    image: null
+    image: "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400&h=240&fit=crop&crop=center"
   },
   {
     id: "2", 
@@ -47,7 +47,7 @@ const mockFiches = [
     dateFin: "2024-12-24",
     lieu: "Place de la Comédie, Montpellier",
     description: "Marché de Noël traditionnel avec des artisans locaux, produits du terroir et animations pour toute la famille.",
-    image: null
+    image: "https://images.unsplash.com/photo-1512389142860-9c449e58a543?w=400&h=240&fit=crop&crop=center"
   },
   {
     id: "3",
@@ -57,7 +57,7 @@ const mockFiches = [
     dateFin: "2024-09-14",
     lieu: "Domaine viticole de Pic Saint-Loup",
     description: "Course nature de 15km et 25km à travers les vignobles avec dégustation à l'arrivée.",
-    image: null
+    image: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=240&fit=crop&crop=center"
   }
 ];
 
@@ -81,6 +81,7 @@ export default function GenerateurAffiches() {
   const [selectedStyle, setSelectedStyle] = useState("");
   const [selectedFormat, setSelectedFormat] = useState("");
   const [customText, setCustomText] = useState("");
+  const [customImage, setCustomImage] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
 
@@ -206,21 +207,30 @@ export default function GenerateurAffiches() {
                       onClick={() => setSelectedFiche(fiche)}
                     >
                       <CardContent className="p-3">
-                        <div className="space-y-2">
-                          <div className="flex items-start justify-between">
-                            <h4 className="font-medium text-sm">{fiche.title}</h4>
-                            <Badge variant="secondary" className="text-xs">
-                              {fiche.type}
-                            </Badge>
-                          </div>
-                          <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                            <div className="flex items-center gap-1">
-                              <Calendar className="w-3 h-3" />
-                              {new Date(fiche.dateDebut).toLocaleDateString('fr-FR')}
+                        <div className="flex gap-3">
+                          {fiche.image && (
+                            <img 
+                              src={fiche.image} 
+                              alt={fiche.title}
+                              className="w-16 h-10 object-cover rounded flex-shrink-0"
+                            />
+                          )}
+                          <div className="space-y-2 flex-1 min-w-0">
+                            <div className="flex items-start justify-between">
+                              <h4 className="font-medium text-sm truncate">{fiche.title}</h4>
+                              <Badge variant="secondary" className="text-xs ml-2 flex-shrink-0">
+                                {fiche.type}
+                              </Badge>
                             </div>
-                            <div className="flex items-center gap-1">
-                              <MapPin className="w-3 h-3" />
-                              {fiche.lieu.split(',')[0]}
+                            <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                              <div className="flex items-center gap-1">
+                                <Calendar className="w-3 h-3" />
+                                {new Date(fiche.dateDebut).toLocaleDateString('fr-FR')}
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <MapPin className="w-3 h-3" />
+                                {fiche.lieu.split(',')[0]}
+                              </div>
                             </div>
                           </div>
                         </div>
@@ -239,6 +249,15 @@ export default function GenerateurAffiches() {
                   <Badge variant="outline">{selectedFiche.type}</Badge>
                 </CardHeader>
                 <CardContent className="space-y-3">
+                  {selectedFiche.image && (
+                    <div className="w-full h-32 rounded-lg overflow-hidden bg-muted">
+                      <img 
+                        src={selectedFiche.image} 
+                        alt={selectedFiche.title}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  )}
                   <div className="flex items-center gap-2 text-sm">
                     <Calendar className="w-4 h-4 text-muted-foreground" />
                     <span>
@@ -309,6 +328,47 @@ export default function GenerateurAffiches() {
                       ))}
                     </SelectContent>
                   </Select>
+                </div>
+
+                <div>
+                  <Label>Image personnalisée (optionnel)</Label>
+                  <div className="space-y-2">
+                    <Input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          const reader = new FileReader();
+                          reader.onload = (event) => {
+                            setCustomImage(event.target?.result as string);
+                          };
+                          reader.readAsDataURL(file);
+                        }
+                      }}
+                      className="file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
+                    />
+                    {customImage && (
+                      <div className="relative w-full h-20 rounded-lg overflow-hidden bg-muted">
+                        <img 
+                          src={customImage} 
+                          alt="Image personnalisée"
+                          className="w-full h-full object-cover"
+                        />
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setCustomImage(null)}
+                          className="absolute top-1 right-1 h-6 w-6 p-0 bg-background/80 hover:bg-background"
+                        >
+                          ×
+                        </Button>
+                      </div>
+                    )}
+                    <p className="text-xs text-muted-foreground">
+                      Remplacera l'image par défaut de l'événement
+                    </p>
+                  </div>
                 </div>
 
                 <div>
