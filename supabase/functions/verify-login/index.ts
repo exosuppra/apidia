@@ -105,7 +105,7 @@ serve(async (req: Request) => {
       });
     }
 
-    return new Response(JSON.stringify({ ok: true }), {
+    return new Response(JSON.stringify({ success: true, email: match.email }), {
       status: 200,
       headers: { "Content-Type": "application/json", ...corsHeaders },
     });
