@@ -47,15 +47,15 @@ const App = () => (
             <Route path="/admin/fiches" element={<AllFiches />} />
             
             {/* Main business dashboard */}
-            <Route path="/dashboard" element={
+            <Route path="/avis" element={
               <RequireAuth>
                 <BusinessDashboard />
               </RequireAuth>
             } />
             
-            {/* Legacy dashboard routes */}
+            {/* Main dashboard (legacy) */}
             <Route
-              path="/dashboard/legacy"
+              path="/dashboard"
               element={
                 <RequireAuth>
                   <DashboardLayout />

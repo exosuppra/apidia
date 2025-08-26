@@ -24,11 +24,18 @@ export default function Overview() {
             <h1 className="text-3xl font-playfair">Tableau de bord — Aperçu</h1>
             <p className="text-muted-foreground mt-1">Suivez vos indicateurs clés en un coup d'œil.</p>
           </div>
-          <Button asChild>
-            <Link to="/dashboard/fiches" aria-label="Aller à mes fiches">
-              <FileText className="mr-2 h-4 w-4" /> Mes fiches
-            </Link>
-          </Button>
+          <div className="flex gap-2">
+            <Button asChild>
+              <Link to="/avis" aria-label="Gérer les avis Google My Business">
+                <MessageSquare className="mr-2 h-4 w-4" /> Gestion des avis
+              </Link>
+            </Button>
+            <Button asChild variant="outline">
+              <Link to="/dashboard/fiches" aria-label="Aller à mes fiches">
+                <FileText className="mr-2 h-4 w-4" /> Mes fiches
+              </Link>
+            </Button>
+          </div>
         </header>
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

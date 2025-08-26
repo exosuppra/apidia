@@ -98,7 +98,7 @@ export default function BusinessDashboard() {
         <Seo
           title="Dashboard ApidIA | Vos Établissements"
           description="Gérez vos établissements Google My Business et leurs avis depuis ApidIA."
-          canonical={`${window.location.origin}/dashboard`}
+          canonical={`${window.location.origin}/avis`}
         />
         <div className="container mx-auto p-6">
           <div className="mb-8">
@@ -186,7 +186,7 @@ export default function BusinessDashboard() {
       <Seo
         title={`Avis - ${selectedBusiness.name} | ApidIA`}
         description={`Gérez les avis Google My Business de ${selectedBusiness.name} avec ApidIA.`}
-        canonical={`${window.location.origin}/dashboard`}
+        canonical={`${window.location.origin}/avis`}
       />
       <div className="container mx-auto p-6">
         <div className="mb-6">
