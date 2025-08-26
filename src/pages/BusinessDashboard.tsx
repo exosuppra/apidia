@@ -97,15 +97,21 @@ export default function BusinessDashboard() {
     try {
       setGoogleLoading(true);
       
-      console.log('Starting Google OAuth with:', {
-        origin: window.location.origin,
-        redirectTo: `${window.location.origin}/avis`
+      const currentUrl = window.location.origin;
+      console.log('🚀 Configuration OAuth:', {
+        origin: currentUrl,
+        redirectTo: `${currentUrl}/avis`,
+        supabaseUrl: 'https://krmeineyonriifvoexkx.supabase.co'
       });
+      
+      console.log('📋 URIs à vérifier dans Google Cloud:');
+      console.log('• Authorized JavaScript origins:', currentUrl);
+      console.log('• Authorized redirect URIs:', 'https://krmeineyonriifvoexkx.supabase.co/auth/v1/callback');
       
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/avis`,
+          redirectTo: `${currentUrl}/avis`,
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',
@@ -115,15 +121,20 @@ export default function BusinessDashboard() {
       });
 
       if (error) {
-        console.error('Google OAuth error:', error);
+        console.error('❌ Erreur OAuth Google:', error);
+        console.log('💡 Vérifiez que ces URIs sont bien configurées dans Google Cloud Console:');
+        console.log('1. JavaScript origins:', currentUrl);
+        console.log('2. Redirect URIs:', 'https://krmeineyonriifvoexkx.supabase.co/auth/v1/callback');
         toast({
-          title: "Erreur",
-          description: error.message,
+          title: "Erreur OAuth",
+          description: `${error.message} - Vérifiez la console pour plus de détails`,
           variant: "destructive",
         });
+      } else {
+        console.log('✅ Redirection OAuth initiée');
       }
     } catch (error) {
-      console.error('Google OAuth catch error:', error);
+      console.error('❌ Erreur catch OAuth:', error);
       toast({
         title: "Erreur",
         description: "Impossible de se connecter avec Google",
