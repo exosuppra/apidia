@@ -68,7 +68,8 @@ const services = [
         title: "Gestion complète des avis",
         description: "Audit des avis, analyse des verbatims, calcul du NPS et réponses automatiques personnalisées",
         cta: "Activer la gestion avis IA",
-        price: "29€/mois"
+        price: "29€/mois",
+        link: "/gestion-avis"
       },
       {
         icon: <BarChart3 className="w-8 h-8" />,
