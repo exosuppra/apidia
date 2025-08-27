@@ -233,31 +233,30 @@ const GenerationSiteWeb = () => {
                   Système de Réservation Intégré
                 </h2>
                 <p className="text-muted-foreground mb-6 leading-relaxed">
-                  Pour les hébergeurs, nous intégrons un module de disponibilité en temps réel 
-                  permettant à vos clients de vérifier les disponibilités et effectuer leurs réservations 
-                  directement sur votre site.
+                  Pour les hébergeurs, nous intégrons le module de disponibilité Ingénie qui permet 
+                  à vos clients de consulter vos disponibilités en temps réel directement sur votre site.
                 </p>
                 
                 <div className="space-y-4">
                   <div className="flex items-start gap-3">
                     <CheckCircle className="w-5 h-5 text-primary mt-0.5" />
                     <div>
-                      <h4 className="font-semibold">Calendrier en temps réel</h4>
-                      <p className="text-sm text-muted-foreground">Synchronisation automatique des disponibilités</p>
+                      <h4 className="font-semibold">Module Ingénie</h4>
+                      <p className="text-sm text-muted-foreground">Calendrier des disponibilités en temps réel</p>
                     </div>
                   </div>
                   <div className="flex items-start gap-3">
                     <CheckCircle className="w-5 h-5 text-primary mt-0.5" />
                     <div>
-                      <h4 className="font-semibold">Paiement sécurisé</h4>
-                      <p className="text-sm text-muted-foreground">Système de paiement intégré et sécurisé</p>
+                      <h4 className="font-semibold">Affichage des disponibilités</h4>
+                      <p className="text-sm text-muted-foreground">Visualisation claire des périodes libres et occupées</p>
                     </div>
                   </div>
                   <div className="flex items-start gap-3">
                     <CheckCircle className="w-5 h-5 text-primary mt-0.5" />
                     <div>
-                      <h4 className="font-semibold">Gestion automatisée</h4>
-                      <p className="text-sm text-muted-foreground">Confirmations et rappels automatiques</p>
+                      <h4 className="font-semibold">Interface simple</h4>
+                      <p className="text-sm text-muted-foreground">Consultation facile pour vos clients</p>
                     </div>
                   </div>
                 </div>
