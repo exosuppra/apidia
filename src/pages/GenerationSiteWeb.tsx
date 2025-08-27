@@ -110,7 +110,7 @@ const GenerationSiteWeb = () => {
     {
       step: 1,
       title: "Analyse de vos besoins",
-      description: "Étude de votre activité, concurrence et objectifs"
+      description: "Étude de votre activité, concurrence et objectifs à partir des données ApidIA"
     },
     {
       step: 2,
