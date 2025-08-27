@@ -378,7 +378,7 @@ const GestionAvis = () => {
                 </div>
               </div>
               <p className="text-sm text-muted-foreground mt-4">
-                Un NPS de +45 est considéré comme excellent dans le secteur du tourisme
+                Un NPS positif indique que vous avez plus de promoteurs que de détracteurs
               </p>
             </div>
             
