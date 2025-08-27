@@ -55,7 +55,8 @@ const services = [
         title: "Génération de site internet",
         description: "Création de site web avec module de disponibilité intégré pour vos réservations",
         cta: "Créer mon site",
-        price: "Sur devis"
+        price: "Sur devis",
+        link: "/generation-site-web"
       }
     ]
   },

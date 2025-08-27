@@ -25,6 +25,7 @@ import AuditVisibiliteIA from "./pages/AuditVisibiliteIA";
 import BusinessDashboard from "./pages/BusinessDashboard";
 import GoogleCallback from "./pages/GoogleCallback";
 import GestionAvis from "./pages/GestionAvis";
+import GenerationSiteWeb from "./pages/GenerationSiteWeb";
 
 const queryClient = new QueryClient();
 
@@ -45,6 +46,7 @@ const App = () => (
             <Route path="/bilan-site-web" element={<BilanSiteWeb />} />
             <Route path="/audit-visibilite-ia" element={<AuditVisibiliteIA />} />
             <Route path="/gestion-avis" element={<GestionAvis />} />
+            <Route path="/generation-site-web" element={<GenerationSiteWeb />} />
             <Route path="/auth/login" element={<Login />} />
             <Route path="/auth/set-code" element={<SetCode />} />
             <Route path="/admin/login" element={<AdminLogin />} />
