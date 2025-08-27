@@ -39,7 +39,8 @@ const services = [
         title: "Audit visibilité IA",
         description: "L'IA analyse votre présence digitale, détermine vos points faibles et propose des conseils adaptés",
         cta: "Lancer l'audit IA",
-        price: "Gratuit"
+        price: "Gratuit",
+        link: "/audit-visibilite-ia"
       },
       {
         icon: <TrendingUp className="w-8 h-8" />,

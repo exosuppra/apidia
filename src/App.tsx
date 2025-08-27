@@ -21,6 +21,7 @@ import CrmSimplifie from "./pages/CrmSimplifie";
 import GenerateurAffiches from "./pages/GenerateurAffiches";
 import CreationAffiches from "./pages/CreationAffiches";
 import BilanSiteWeb from "./pages/BilanSiteWeb";
+import AuditVisibiliteIA from "./pages/AuditVisibiliteIA";
 import BusinessDashboard from "./pages/BusinessDashboard";
 import GoogleCallback from "./pages/GoogleCallback";
 
@@ -41,6 +42,7 @@ const App = () => (
             <Route path="/creation-affiches" element={<CreationAffiches />} />
             <Route path="/generateur-affiches" element={<GenerateurAffiches />} />
             <Route path="/bilan-site-web" element={<BilanSiteWeb />} />
+            <Route path="/audit-visibilite-ia" element={<AuditVisibiliteIA />} />
             <Route path="/auth/login" element={<Login />} />
             <Route path="/auth/set-code" element={<SetCode />} />
             <Route path="/admin/login" element={<AdminLogin />} />
