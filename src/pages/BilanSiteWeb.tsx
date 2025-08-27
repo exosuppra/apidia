@@ -297,7 +297,7 @@ const BilanSiteWeb = () => {
             <Button size="lg" className="px-8">
               Commander mon bilan - 49€
             </Button>
-            <span className="text-sm text-muted-foreground">Rapport livré sous 24h</span>
+            <span className="text-sm text-muted-foreground">Rapport généré sous 24h</span>
           </div>
 
           <div className="mt-8 text-center">
