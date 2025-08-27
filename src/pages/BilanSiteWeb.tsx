@@ -256,7 +256,7 @@ const BilanSiteWeb = () => {
               </div>
               <h4 className="text-xl font-semibold mb-3">Vous commandez</h4>
               <p className="text-muted-foreground">
-                Renseignez l'URL de votre site et quelques informations sur votre activité
+                Nous utilisons automatiquement les informations de votre fiche Apidia (site web et activité)
               </p>
             </div>
 
