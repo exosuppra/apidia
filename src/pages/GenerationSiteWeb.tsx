@@ -335,20 +335,29 @@ const GenerationSiteWeb = () => {
 
             <div className="mt-12 p-6 bg-gradient-to-r from-primary/5 to-secondary/5 rounded-lg">
               <div className="text-center">
-                <h3 className="text-xl font-semibold mb-3">Qu'est-ce que la GEO et la GSO ?</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+                <h3 className="text-xl font-semibold mb-3">SEO, GEO, GSO : Quelles différences ?</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
                   <div>
-                    <h4 className="font-semibold text-primary mb-2">Generative Engine Optimization (GEO)</h4>
+                    <h4 className="font-semibold text-primary mb-2">🔍 SEO - Search Engine Optimization</h4>
                     <p className="text-sm text-muted-foreground">
-                      Optimisation pour les moteurs de recherche alimentés par l'IA comme ChatGPT, 
-                      Bard et Bing Chat qui génèrent des réponses directes.
+                      Le référencement classique : que votre site apparaisse dans les résultats Google par mots-clés.
+                      <span className="block mt-1 font-medium">Objectif : SEO = je veux que Google me montre</span>
                     </p>
                   </div>
                   <div>
-                    <h4 className="font-semibold text-primary mb-2">Generative Search Optimization (GSO)</h4>
+                    <h4 className="font-semibold text-primary mb-2">🧠 GEO - Generative Engine Optimization</h4>
                     <p className="text-sm text-muted-foreground">
-                      Optimisation pour les nouvelles façons de rechercher : requêtes conversationnelles, 
-                      recherche vocale et questions complexes.
+                      Que votre contenu soit utilisé comme source par les IA (ChatGPT, Perplexity, Mistral). 
+                      Répondre clairement et complètement aux questions.
+                      <span className="block mt-1 font-medium">Objectif : GEO = je veux que ChatGPT me cite</span>
+                    </p>
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-primary mb-2">⚙️ GSO - Generative Search Optimization</h4>
+                    <p className="text-sm text-muted-foreground">
+                      Optimisation pour les IA intégrées aux moteurs (Google AI Overview). 
+                      Que Google IA affiche votre contenu directement, sans clic.
+                      <span className="block mt-1 font-medium">Objectif : GSO = je veux que Google IA m'intègre</span>
                     </p>
                   </div>
                 </div>
