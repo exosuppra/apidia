@@ -68,9 +68,17 @@ export default function Login() {
       }
     } catch (error: any) {
       console.error("First login error:", error);
+      
+      // Message d'erreur plus convivial pour la première connexion
+      let errorMessage = "Identifiant ou email incorrect. Veuillez vérifier vos informations.";
+      
+      if (error.message?.includes("Edge Function returned a non-2xx status code")) {
+        errorMessage = "Identifiant ou email incorrect. Veuillez vérifier vos informations.";
+      }
+      
       toast({
         title: "Erreur de connexion",
-        description: error.message || "Identifiant ou email incorrect",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -110,9 +118,21 @@ export default function Login() {
       }
     } catch (error: any) {
       console.error("Standard login error:", error);
+      
+      // Améliorer les messages d'erreur pour l'utilisateur
+      let errorMessage = "Identifiant, email ou code incorrect. Veuillez vérifier vos informations.";
+      
+      if (error.message?.includes("Edge Function returned a non-2xx status code")) {
+        errorMessage = "Identifiant, email ou code incorrect. Veuillez vérifier vos informations.";
+      } else if (error.message?.includes("Invalid login credentials")) {
+        errorMessage = "Identifiant, email ou code incorrect. Veuillez vérifier vos informations.";
+      } else if (error.message?.includes("Identifiants invalides")) {
+        errorMessage = "Identifiant, email ou code incorrect. Veuillez vérifier vos informations.";
+      }
+      
       toast({
         title: "Erreur de connexion",
-        description: error.message || "Identifiant ou code incorrect",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
