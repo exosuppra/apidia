@@ -14,191 +14,16 @@ export type Database = {
   }
   public: {
     Tables: {
-      admin_actions: {
-        Row: {
-          action_type: Database["public"]["Enums"]["action_type"]
-          admin_email: string
-          created_at: string
-          description: string
-          id: string
-          metadata: Json | null
-          target_id: string | null
-          target_type: string
-        }
-        Insert: {
-          action_type: Database["public"]["Enums"]["action_type"]
-          admin_email: string
-          created_at?: string
-          description: string
-          id?: string
-          metadata?: Json | null
-          target_id?: string | null
-          target_type: string
-        }
-        Update: {
-          action_type?: Database["public"]["Enums"]["action_type"]
-          admin_email?: string
-          created_at?: string
-          description?: string
-          id?: string
-          metadata?: Json | null
-          target_id?: string | null
-          target_type?: string
-        }
-        Relationships: []
-      }
-      admin_users: {
-        Row: {
-          created_at: string
-          email: string
-          id: string
-          password_hash: string
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          email: string
-          id?: string
-          password_hash: string
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          email?: string
-          id?: string
-          password_hash?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      user_google_credentials: {
-        Row: {
-          created_at: string
-          google_client_id: string
-          google_client_secret: string
-          id: string
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          google_client_id: string
-          google_client_secret: string
-          id?: string
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          google_client_id?: string
-          google_client_secret?: string
-          id?: string
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
-      user_google_tokens: {
-        Row: {
-          access_token: string
-          created_at: string
-          expires_at: string
-          id: string
-          refresh_token: string | null
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          access_token: string
-          created_at?: string
-          expires_at: string
-          id?: string
-          refresh_token?: string | null
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          access_token?: string
-          created_at?: string
-          expires_at?: string
-          id?: string
-          refresh_token?: string | null
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
-      user_requests: {
-        Row: {
-          admin_response: string | null
-          created_at: string
-          fiche_id: string | null
-          id: string
-          original_data: Json | null
-          processed_at: string | null
-          processed_by: string | null
-          request_type: string
-          requested_changes: Json
-          status: string
-          updated_at: string
-          user_email: string
-        }
-        Insert: {
-          admin_response?: string | null
-          created_at?: string
-          fiche_id?: string | null
-          id?: string
-          original_data?: Json | null
-          processed_at?: string | null
-          processed_by?: string | null
-          request_type: string
-          requested_changes: Json
-          status?: string
-          updated_at?: string
-          user_email: string
-        }
-        Update: {
-          admin_response?: string | null
-          created_at?: string
-          fiche_id?: string | null
-          id?: string
-          original_data?: Json | null
-          processed_at?: string | null
-          processed_by?: string | null
-          request_type?: string
-          requested_changes?: Json
-          status?: string
-          updated_at?: string
-          user_email?: string
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      generate_openai_image: {
-        Args: { prompt: string }
-        Returns: Json
-      }
-      is_admin: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
-      verify_admin_password: {
-        Args: { input_password: string; stored_hash: string }
-        Returns: boolean
-      }
+      [_ in never]: never
     }
     Enums: {
-      action_type:
-        | "view"
-        | "create"
-        | "update"
-        | "delete"
-        | "approve"
-        | "reject"
+      [_ in never]: never
     }
     CompositeTypes: {
       [_ in never]: never
@@ -325,8 +150,6 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {
-      action_type: ["view", "create", "update", "delete", "approve", "reject"],
-    },
+    Enums: {},
   },
 } as const

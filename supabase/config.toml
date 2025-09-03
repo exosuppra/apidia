@@ -1,10 +1,1 @@
-project_id = "krmeineyonriifvoexkx"
-
-[functions.get-businesses]
-verify_jwt = true
-
-[functions.get-reviews]
-verify_jwt = true
-
-[functions.store-google-token]
-verify_jwt = true
+project_id = "yjkhysvttfayoxczzard"
