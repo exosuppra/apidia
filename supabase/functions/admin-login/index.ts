@@ -12,6 +12,7 @@ interface AdminLoginBody {
 }
 
 serve(async (req: Request) => {
+  // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -26,6 +27,8 @@ serve(async (req: Request) => {
 
     const body = (await req.json()) as AdminLoginBody;
     const { email, password } = body;
+
+    console.log(`Admin login attempt for: ${email}`);
 
     if (!email || !password) {
       return new Response(JSON.stringify({ error: "Email et mot de passe requis" }), {
@@ -45,19 +48,14 @@ serve(async (req: Request) => {
       }
     });
 
-    console.log(`Attempting admin login for email: ${email}`);
-
-    // Check if admin user exists - using maybeSingle to avoid errors when no data found
+    // Check if admin user exists
     const { data: adminUser, error: dbError } = await supabase
       .from("admin_users")
       .select("id, email, password_hash")
       .eq("email", email.toLowerCase().trim())
       .maybeSingle();
 
-    console.log("Admin user query result:", { 
-      adminUser: adminUser ? { id: adminUser.id, email: adminUser.email, hasHash: !!adminUser.password_hash } : null, 
-      error: dbError 
-    });
+    console.log("Admin user lookup:", { found: !!adminUser, error: dbError });
 
     if (dbError) {
       console.error("Database error:", dbError);
@@ -68,7 +66,7 @@ serve(async (req: Request) => {
     }
 
     if (!adminUser) {
-      console.log("Admin user not found for email:", email);
+      console.log("Admin user not found");
       return new Response(JSON.stringify({ error: "Identifiants administrateur invalides" }), {
         status: 401,
         headers: { "Content-Type": "application/json", ...corsHeaders },
@@ -76,19 +74,16 @@ serve(async (req: Request) => {
     }
 
     // Verify password using PostgreSQL's crypt function
-    console.log("Attempting password verification for user:", adminUser.email);
-    console.log("Password hash format:", adminUser.password_hash.substring(0, 10) + "...");
-    
     const { data: passwordCheck, error: pwError } = await supabase
       .rpc("verify_admin_password", {
         input_password: password,
         stored_hash: adminUser.password_hash
       });
 
-    console.log("Password verification result:", { passwordCheck, error: pwError });
+    console.log("Password verification:", { success: passwordCheck, error: pwError });
 
     if (pwError) {
-      console.error("Password verification function error:", pwError);
+      console.error("Password verification error:", pwError);
       return new Response(JSON.stringify({ error: "Erreur de vérification du mot de passe" }), {
         status: 500,
         headers: { "Content-Type": "application/json", ...corsHeaders },
@@ -96,16 +91,16 @@ serve(async (req: Request) => {
     }
 
     if (!passwordCheck) {
-      console.log("Password verification failed for user:", adminUser.email);
+      console.log("Password verification failed");
       return new Response(JSON.stringify({ error: "Identifiants administrateur invalides" }), {
         status: 401,
         headers: { "Content-Type": "application/json", ...corsHeaders },
       });
     }
 
-    console.log("Password verification successful for user:", adminUser.email);
+    console.log("Login successful for:", adminUser.email);
 
-    // Create a session token for the admin (you can customize this)
+    // Create a session token for the admin
     const sessionToken = crypto.randomUUID();
     
     return new Response(JSON.stringify({ 
@@ -121,7 +116,7 @@ serve(async (req: Request) => {
     });
 
   } catch (err: any) {
-    console.error("admin-login error:", err?.message || err);
+    console.error("Admin login error:", err?.message || err);
     return new Response(JSON.stringify({ error: err?.message || "Erreur interne" }), {
       status: 500,
       headers: { "Content-Type": "application/json", ...corsHeaders },
