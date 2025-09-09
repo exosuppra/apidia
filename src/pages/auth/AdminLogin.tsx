@@ -29,11 +29,18 @@ export default function AdminLogin() {
     setIsLoading(true);
 
     try {
+      console.log("Tentative de connexion admin...");
+      
       const { data, error } = await supabase.functions.invoke("admin-login", {
         body: { email, password }
       });
 
-      if (error) throw error;
+      console.log("Réponse de la fonction:", { data, error });
+
+      if (error) {
+        console.error("Erreur de la fonction:", error);
+        throw error;
+      }
 
       if (data.success) {
         // Stocker la session admin
