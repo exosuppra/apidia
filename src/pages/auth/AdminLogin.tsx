@@ -29,34 +29,56 @@ export default function AdminLogin() {
     setIsLoading(true);
 
     try {
-      console.log("Tentative de connexion admin...");
+      console.log("Tentative de connexion admin directe...");
       
-      const { data, error } = await supabase.functions.invoke("admin-login", {
-        body: { email, password }
-      });
+      // Vérification directe en base de données (temporaire pour débugger)
+      const { data: adminUser, error: dbError } = await supabase
+        .from("admin_users")
+        .select("id, email, password_hash")
+        .eq("email", email.toLowerCase().trim())
+        .maybeSingle();
 
-      console.log("Réponse de la fonction:", { data, error });
+      console.log("Utilisateur trouvé:", { found: !!adminUser, error: dbError });
 
-      if (error) {
-        console.error("Erreur de la fonction:", error);
-        throw error;
+      if (dbError) {
+        throw new Error("Erreur de base de données: " + dbError.message);
       }
 
-      if (data.success) {
-        // Stocker la session admin
-        localStorage.setItem("admin_session", JSON.stringify({
-          admin: data.admin,
-          sessionToken: data.sessionToken,
-          loginTime: Date.now()
-        }));
+      if (!adminUser) {
+        throw new Error("Utilisateur admin non trouvé");
+      }
 
-        toast({
-          title: "Connexion réussie",
-          description: "Bienvenue dans l'interface administrateur",
+      // Vérification du mot de passe avec RPC
+      const { data: passwordValid, error: pwError } = await supabase
+        .rpc("verify_admin_password", {
+          input_password: password,
+          stored_hash: adminUser.password_hash
         });
 
-        navigate("/admin/dashboard");
+      console.log("Vérification mot de passe:", { valid: passwordValid, error: pwError });
+
+      if (pwError) {
+        throw new Error("Erreur de vérification: " + pwError.message);
       }
+
+      if (!passwordValid) {
+        throw new Error("Identifiants invalides");
+      }
+
+      // Connexion réussie
+      localStorage.setItem("admin_session", JSON.stringify({
+        admin: { id: adminUser.id, email: adminUser.email },
+        sessionToken: crypto.randomUUID(),
+        loginTime: Date.now()
+      }));
+
+      toast({
+        title: "Connexion réussie",
+        description: "Bienvenue dans l'interface administrateur",
+      });
+
+      navigate("/admin/dashboard");
+
     } catch (error: any) {
       console.error("Erreur de connexion admin:", error);
       toast({
