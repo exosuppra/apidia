@@ -64,7 +64,8 @@ export function CreateTaskDialog({
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [localTags, setLocalTags] = useState<Tag[]>(tags);
-  const [createdTaskId, setCreatedTaskId] = useState<string | null>(null);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [uploadingFiles, setUploadingFiles] = useState(false);
 
   const form = useForm<TaskFormValues>({
     resolver: zodResolver(taskSchema),
@@ -80,6 +81,50 @@ export function CreateTaskDialog({
   useEffect(() => {
     setLocalTags(tags);
   }, [tags]);
+
+  const uploadSelectedFiles = async (taskId: string) => {
+    if (selectedFiles.length === 0) return;
+
+    setUploadingFiles(true);
+    try {
+      for (const file of selectedFiles) {
+        const fileExt = file.name.split(".").pop();
+        const fileName = `${Math.random()}.${fileExt}`;
+        const filePath = `${taskId}/${fileName}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from("task-attachments")
+          .upload(filePath, file);
+
+        if (uploadError) throw uploadError;
+
+        const { error: dbError } = await supabase
+          .from("task_attachments" as any)
+          .insert({
+            task_id: taskId,
+            file_name: file.name,
+            file_path: filePath,
+            file_size: file.size,
+            mime_type: file.type,
+          });
+
+        if (dbError) throw dbError;
+      }
+
+      toast({
+        title: "Fichiers uploadés",
+        description: `${selectedFiles.length} fichier(s) ajouté(s) avec succès.`,
+      });
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Erreur lors de l'upload",
+        description: error.message,
+      });
+    } finally {
+      setUploadingFiles(false);
+    }
+  };
 
   const onSubmit = async (values: TaskFormValues) => {
     setLoading(true);
@@ -102,8 +147,6 @@ export function CreateTaskDialog({
 
       if (error) throw error;
 
-      setCreatedTaskId(task?.id || null);
-
       // Add tags
       if (values.selectedTags && values.selectedTags.length > 0 && task?.id) {
         const taskTags = values.selectedTags.map((tagId) => ({
@@ -118,12 +161,18 @@ export function CreateTaskDialog({
         if (tagsError) throw tagsError;
       }
 
+      // Upload files if any were selected
+      if (selectedFiles.length > 0 && task?.id) {
+        await uploadSelectedFiles(task.id);
+      }
+
       toast({
         title: "Tâche créée",
         description: "La tâche a été créée avec succès.",
       });
 
       form.reset();
+      setSelectedFiles([]);
       onOpenChange(false);
       onSuccess();
     } catch (error: any) {
@@ -288,12 +337,13 @@ export function CreateTaskDialog({
               )}
             />
 
-            {createdTaskId && (
-              <div>
-                <FormLabel>Fichiers joints</FormLabel>
-                <FileUpload taskId={createdTaskId} />
-              </div>
-            )}
+            <div>
+              <FormLabel>Fichiers joints</FormLabel>
+              <FileUpload 
+                previewMode={true} 
+                onFilesSelected={setSelectedFiles}
+              />
+            </div>
 
             <div className="flex justify-end gap-2">
               <Button
@@ -303,8 +353,12 @@ export function CreateTaskDialog({
               >
                 Annuler
               </Button>
-              <Button type="submit" disabled={loading}>
-                {loading ? "Création..." : "Créer"}
+              <Button type="submit" disabled={loading || uploadingFiles}>
+                {loading || uploadingFiles 
+                  ? uploadingFiles 
+                    ? "Upload des fichiers..." 
+                    : "Création..."
+                  : "Créer"}
               </Button>
             </div>
           </form>

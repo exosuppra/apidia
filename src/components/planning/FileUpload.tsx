@@ -9,9 +9,11 @@ interface FileUploadProps {
   taskId?: string;
   onFilesUploaded?: (attachments: TaskAttachment[]) => void;
   existingFiles?: TaskAttachment[];
+  previewMode?: boolean;
+  onFilesSelected?: (files: File[]) => void;
 }
 
-export function FileUpload({ taskId, onFilesUploaded, existingFiles = [] }: FileUploadProps) {
+export function FileUpload({ taskId, onFilesUploaded, existingFiles = [], previewMode = false, onFilesSelected }: FileUploadProps) {
   const [files, setFiles] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
   const [attachments, setAttachments] = useState<TaskAttachment[]>(existingFiles);
@@ -19,7 +21,11 @@ export function FileUpload({ taskId, onFilesUploaded, existingFiles = [] }: File
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
-      setFiles(Array.from(e.target.files));
+      const newFiles = Array.from(e.target.files);
+      setFiles(newFiles);
+      if (previewMode && onFilesSelected) {
+        onFilesSelected(newFiles);
+      }
     }
   };
 
@@ -163,14 +169,16 @@ export function FileUpload({ taskId, onFilesUploaded, existingFiles = [] }: File
               </Button>
             </div>
           ))}
-          <Button
-            type="button"
-            onClick={handleUpload}
-            disabled={uploading || !taskId}
-            size="sm"
-          >
-            {uploading ? "Upload en cours..." : "Upload"}
-          </Button>
+          {!previewMode && (
+            <Button
+              type="button"
+              onClick={handleUpload}
+              disabled={uploading || !taskId}
+              size="sm"
+            >
+              {uploading ? "Upload en cours..." : "Upload"}
+            </Button>
+          )}
         </div>
       )}
 
