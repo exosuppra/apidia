@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import Seo from "@/components/Seo";
-import { Shield, LogOut, Users, FileText, Eye } from "lucide-react";
+import { Shield, LogOut, Users, FileText, Eye, Calendar, CalendarClock } from "lucide-react";
 
 interface AdminSession {
   admin: {
@@ -161,6 +161,40 @@ export default function AdminDashboard() {
                   onClick={() => navigate("/admin/fiches")}
                 >
                   Voir toutes les fiches
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                  Planning éditorial social média
+                </CardTitle>
+                <CalendarClock className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <CardDescription>
+                  Gérer le planning de publication sur les réseaux sociaux
+                </CardDescription>
+                <Button className="w-full mt-4" variant="outline">
+                  Accéder au planning
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                  Générateur de planning
+                </CardTitle>
+                <Calendar className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <CardDescription>
+                  Créer automatiquement des plannings de publication
+                </CardDescription>
+                <Button className="w-full mt-4" variant="outline">
+                  Générer un planning
                 </Button>
               </CardContent>
             </Card>
