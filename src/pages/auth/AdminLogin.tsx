@@ -17,11 +17,25 @@ export default function AdminLogin() {
   const { toast } = useToast();
 
   useEffect(() => {
-    // Vérifier si un admin est déjà connecté
-    const adminSession = localStorage.getItem("admin_session");
-    if (adminSession) {
-      navigate("/admin/dashboard");
-    }
+    // Vérifier si un admin est déjà connecté via Supabase Auth
+    const checkAdminSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        // Vérifier si l'utilisateur a le rôle admin
+        const { data: roles } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', session.user.id)
+          .eq('role', 'admin')
+          .single();
+        
+        if (roles) {
+          navigate("/admin/dashboard");
+        }
+      }
+    };
+    
+    checkAdminSession();
   }, [navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -29,9 +43,33 @@ export default function AdminLogin() {
     setIsLoading(true);
 
     try {
-      // Note: Admin authentication has been disabled for security reasons
-      // This system now requires migration to Supabase Auth with proper roles
-      throw new Error("Le système d'authentification administrateur a été désactivé pour des raisons de sécurité. Veuillez contacter l'administrateur système.");
+      // Connexion via Supabase Auth
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) throw error;
+
+      // Vérifier si l'utilisateur a le rôle admin
+      const { data: roles, error: rolesError } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', data.user.id)
+        .eq('role', 'admin')
+        .single();
+
+      if (rolesError || !roles) {
+        await supabase.auth.signOut();
+        throw new Error("Vous n'avez pas les permissions d'administrateur.");
+      }
+
+      toast({
+        title: "Connexion réussie",
+        description: "Bienvenue dans l'interface d'administration",
+      });
+
+      navigate("/admin/dashboard");
 
     } catch (error: any) {
       toast({
