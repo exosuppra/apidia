@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -34,7 +34,8 @@ import { fr } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { TagSelector } from "./TagSelector";
-import type { Tag } from "@/types/planning";
+import { FileUpload } from "./FileUpload";
+import type { Tag, TaskAttachment } from "@/types/planning";
 
 const taskSchema = z.object({
   title: z.string().min(1, "Le titre est requis"),
@@ -62,6 +63,8 @@ export function CreateTaskDialog({
 }: CreateTaskDialogProps) {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [localTags, setLocalTags] = useState<Tag[]>(tags);
+  const [createdTaskId, setCreatedTaskId] = useState<string | null>(null);
 
   const form = useForm<TaskFormValues>({
     resolver: zodResolver(taskSchema),
@@ -73,6 +76,10 @@ export function CreateTaskDialog({
       selectedTags: [],
     },
   });
+
+  useEffect(() => {
+    setLocalTags(tags);
+  }, [tags]);
 
   const onSubmit = async (values: TaskFormValues) => {
     setLoading(true);
@@ -94,6 +101,8 @@ export function CreateTaskDialog({
         .single() as any;
 
       if (error) throw error;
+
+      setCreatedTaskId(task?.id || null);
 
       // Add tags
       if (values.selectedTags && values.selectedTags.length > 0 && task?.id) {
@@ -268,15 +277,23 @@ export function CreateTaskDialog({
                   <FormLabel>Tags</FormLabel>
                   <FormControl>
                     <TagSelector
-                      tags={tags}
+                      tags={localTags}
                       selectedTags={field.value || []}
                       onChange={field.onChange}
+                      onTagCreated={(newTag) => setLocalTags([...localTags, newTag])}
                     />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
+
+            {createdTaskId && (
+              <div>
+                <FormLabel>Fichiers joints</FormLabel>
+                <FileUpload taskId={createdTaskId} />
+              </div>
+            )}
 
             <div className="flex justify-end gap-2">
               <Button

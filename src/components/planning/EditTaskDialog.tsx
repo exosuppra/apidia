@@ -34,6 +34,7 @@ import { fr } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { TagSelector } from "./TagSelector";
+import { FileUpload } from "./FileUpload";
 import type { Task, Tag } from "@/types/planning";
 
 const taskSchema = z.object({
@@ -64,6 +65,7 @@ export function EditTaskDialog({
 }: EditTaskDialogProps) {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [localTags, setLocalTags] = useState<Tag[]>(allTags);
 
   const form = useForm<TaskFormValues>({
     resolver: zodResolver(taskSchema),
@@ -89,6 +91,10 @@ export function EditTaskDialog({
       });
     }
   }, [open, task, form]);
+
+  useEffect(() => {
+    setLocalTags(allTags);
+  }, [allTags]);
 
   const onSubmit = async (values: TaskFormValues) => {
     setLoading(true);
@@ -282,15 +288,25 @@ export function EditTaskDialog({
                   <FormLabel>Tags</FormLabel>
                   <FormControl>
                     <TagSelector
-                      tags={allTags}
+                      tags={localTags}
                       selectedTags={field.value || []}
                       onChange={field.onChange}
+                      onTagCreated={(newTag) => setLocalTags([...localTags, newTag])}
                     />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
+
+            <div>
+              <FormLabel>Fichiers joints</FormLabel>
+              <FileUpload 
+                taskId={task.id} 
+                existingFiles={task.attachments || []}
+                onFilesUploaded={onSuccess}
+              />
+            </div>
 
             <div className="flex justify-end gap-2">
               <Button

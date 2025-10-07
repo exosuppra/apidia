@@ -5,6 +5,16 @@ export interface Tag {
   created_at: string;
 }
 
+export interface TaskAttachment {
+  id: string;
+  task_id: string;
+  file_name: string;
+  file_path: string;
+  file_size: number;
+  mime_type: string;
+  created_at: string;
+}
+
 export interface Task {
   id: string;
   title: string;
@@ -17,4 +27,5 @@ export interface Task {
   created_at: string;
   updated_at: string;
   tags?: Tag[];
+  attachments?: TaskAttachment[];
 }

@@ -47,13 +47,23 @@ export default function PlanningEditorial() {
 
       if (taskTagsError) throw taskTagsError;
 
-      // Merge task tags
+      // Load task attachments
+      const { data: attachmentsData, error: attachmentsError } = await supabase
+        .from("task_attachments" as any)
+        .select("*");
+
+      if (attachmentsError) throw attachmentsError;
+
+      // Merge task tags and attachments
       const tasksWithTags = (tasksData || []).map((task: any) => ({
         ...task,
         tags: (taskTagsData || [])
           .filter((tt: any) => tt.task_id === task.id)
           .map((tt: any) => (tagsData || []).find((tag: any) => tag.id === tt.tag_id))
           .filter(Boolean),
+        attachments: (attachmentsData || []).filter(
+          (att: any) => att.task_id === task.id
+        ),
       }));
 
       setTasks(tasksWithTags);

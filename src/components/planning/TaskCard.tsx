@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Calendar, MoreVertical, Trash2, Edit2 } from "lucide-react";
+import { Calendar, MoreVertical, Trash2, Edit2, Paperclip } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -125,6 +125,13 @@ export function TaskCard({ task, onRefresh, allTags }: TaskCardProps) {
               </Badge>
             ))}
           </div>
+
+          {task.attachments && task.attachments.length > 0 && (
+            <div className="flex items-center gap-1 text-xs text-muted-foreground mb-3">
+              <Paperclip className="h-3 w-3" />
+              <span>{task.attachments.length} fichier(s) joint(s)</span>
+            </div>
+          )}
 
           <div className="flex items-center justify-between text-xs">
             <Badge variant={getPriorityColor(task.priority)}>
