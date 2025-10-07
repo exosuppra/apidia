@@ -16,26 +16,37 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Set up listener FIRST
+    // Force loading to false after 2 seconds max to prevent infinite loading
+    const timeout = setTimeout(() => {
+      setLoading(false);
+    }, 2000);
+
+    // Set up listener
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, newSession) => {
       setSession(newSession);
       setUser(newSession?.user ?? null);
       setLoading(false);
+      clearTimeout(timeout);
     });
 
-    // Then fetch current session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-    }).catch(() => {
-      // If there's an error, still set loading to false
-      setLoading(false);
-    });
+    // Fetch current session
+    supabase.auth.getSession()
+      .then(({ data: { session } }) => {
+        setSession(session);
+        setUser(session?.user ?? null);
+        setLoading(false);
+        clearTimeout(timeout);
+      })
+      .catch((error) => {
+        console.error("Auth session error:", error);
+        setLoading(false);
+        clearTimeout(timeout);
+      });
 
     return () => {
+      clearTimeout(timeout);
       subscription.unsubscribe();
     };
   }, []);
