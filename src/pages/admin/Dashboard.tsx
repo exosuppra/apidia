@@ -176,7 +176,11 @@ export default function AdminDashboard() {
                 <CardDescription>
                   Gérer le planning de publication sur les réseaux sociaux
                 </CardDescription>
-                <Button className="w-full mt-4" variant="outline">
+                <Button 
+                  className="w-full mt-4" 
+                  variant="outline"
+                  onClick={() => navigate("/admin/planning")}
+                >
                   Accéder au planning
                 </Button>
               </CardContent>
