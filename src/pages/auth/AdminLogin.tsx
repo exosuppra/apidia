@@ -29,58 +29,11 @@ export default function AdminLogin() {
     setIsLoading(true);
 
     try {
-      console.log("Tentative de connexion admin directe...");
-      
-      // Vérification directe en base de données (temporaire pour débugger)
-      const { data: adminUser, error: dbError } = await supabase
-        .from("admin_users")
-        .select("id, email, password_hash")
-        .eq("email", email.toLowerCase().trim())
-        .maybeSingle();
-
-      console.log("Utilisateur trouvé:", { found: !!adminUser, error: dbError });
-
-      if (dbError) {
-        throw new Error("Erreur de base de données: " + dbError.message);
-      }
-
-      if (!adminUser) {
-        throw new Error("Utilisateur admin non trouvé");
-      }
-
-      // Vérification du mot de passe avec RPC
-      const { data: passwordValid, error: pwError } = await supabase
-        .rpc("verify_admin_password", {
-          input_password: password,
-          stored_hash: adminUser.password_hash
-        });
-
-      console.log("Vérification mot de passe:", { valid: passwordValid, error: pwError });
-
-      if (pwError) {
-        throw new Error("Erreur de vérification: " + pwError.message);
-      }
-
-      if (!passwordValid) {
-        throw new Error("Identifiants invalides");
-      }
-
-      // Connexion réussie
-      localStorage.setItem("admin_session", JSON.stringify({
-        admin: { id: adminUser.id, email: adminUser.email },
-        sessionToken: crypto.randomUUID(),
-        loginTime: Date.now()
-      }));
-
-      toast({
-        title: "Connexion réussie",
-        description: "Bienvenue dans l'interface administrateur",
-      });
-
-      navigate("/admin/dashboard");
+      // Note: Admin authentication has been disabled for security reasons
+      // This system now requires migration to Supabase Auth with proper roles
+      throw new Error("Le système d'authentification administrateur a été désactivé pour des raisons de sécurité. Veuillez contacter l'administrateur système.");
 
     } catch (error: any) {
-      console.error("Erreur de connexion admin:", error);
       toast({
         title: "Erreur de connexion",
         description: error.message || "Identifiants invalides",

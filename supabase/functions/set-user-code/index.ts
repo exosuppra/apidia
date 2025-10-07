@@ -12,12 +12,34 @@ interface SetCodeBody {
   code: string;
 }
 
+// Validation constants
+const MAX_ID_LENGTH = 100;
+const MAX_EMAIL_LENGTH = 255;
+const MIN_CODE_LENGTH = 8;
+const MAX_CODE_LENGTH = 200;
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 function normalize(str: string) {
   return (str || "").trim();
 }
 
 function normalizeEmail(str: string) {
   return normalize(str).toLowerCase();
+}
+
+function validateInput(id: string, email: string, code: string): string | null {
+  if (!id || id.length === 0) return "ID manquant";
+  if (id.length > MAX_ID_LENGTH) return `ID trop long (max ${MAX_ID_LENGTH} caractères)`;
+  
+  if (!email || email.length === 0) return "Email manquant";
+  if (email.length > MAX_EMAIL_LENGTH) return `Email trop long (max ${MAX_EMAIL_LENGTH} caractères)`;
+  if (!EMAIL_REGEX.test(email)) return "Format d'email invalide";
+  
+  if (!code || code.length === 0) return "Code manquant";
+  if (code.length < MIN_CODE_LENGTH) return `Code trop court (min ${MIN_CODE_LENGTH} caractères)`;
+  if (code.length > MAX_CODE_LENGTH) return `Code trop long (max ${MAX_CODE_LENGTH} caractères)`;
+  
+  return null;
 }
 
 async function ensureUserExistsInSheet(sheetId: string, serviceAccountJson: string, id: string, email: string) {
@@ -65,18 +87,12 @@ async function ensureUserExistsInSheet(sheetId: string, serviceAccountJson: stri
 }
 
 serve(async (req: Request) => {
-  console.log("=== SET-USER-CODE FUNCTION CALLED ===");
-  
   if (req.method === "OPTIONS") {
-    console.log("Handling OPTIONS request");
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    console.log("Method:", req.method);
-    
     if (req.method !== "POST") {
-      console.log("Invalid method:", req.method);
       return new Response(JSON.stringify({ error: "Method not allowed" }), {
         status: 405,
         headers: { "Content-Type": "application/json", ...corsHeaders },
@@ -84,13 +100,11 @@ serve(async (req: Request) => {
     }
 
     const bodyText = await req.text();
-    console.log("Raw body:", bodyText);
     
     let body: SetCodeBody;
     try {
       body = JSON.parse(bodyText);
     } catch (parseError) {
-      console.error("JSON parse error:", parseError);
       return new Response(JSON.stringify({ error: "Invalid JSON" }), {
         status: 400,
         headers: { "Content-Type": "application/json", ...corsHeaders },
@@ -101,74 +115,50 @@ serve(async (req: Request) => {
     const email = normalize(body?.email);
     const code = normalize(body?.code);
 
-    console.log("Parsed data:", { 
-      id: id || "MISSING", 
-      email: email || "MISSING", 
-      code: code ? "PROVIDED" : "MISSING" 
-    });
-
-    if (!id || !email || !code) {
-      console.log("Missing required fields");
-      return new Response(JSON.stringify({ error: "Missing id, email or code" }), {
+    // Validate input
+    const validationError = validateInput(id, email, code);
+    if (validationError) {
+      return new Response(JSON.stringify({ error: validationError }), {
         status: 400,
         headers: { "Content-Type": "application/json", ...corsHeaders },
       });
     }
 
-    // Vérifier les variables d'environnement
     const MAKE_WEBHOOK_URL = Deno.env.get("MAKE_WEBHOOK_URL");
     const SHEET_ID = Deno.env.get("GOOGLE_SHEETS_ID");
     const SA_JSON = Deno.env.get("GOOGLE_SERVICE_ACCOUNT_JSON");
-    
-    console.log("Environment check:", {
-      hasMakeWebhook: !!MAKE_WEBHOOK_URL,
-      hasSheetId: !!SHEET_ID,
-      hasServiceAccount: !!SA_JSON
-    });
 
     if (!MAKE_WEBHOOK_URL) {
-      console.log("Missing MAKE_WEBHOOK_URL secret");
       return new Response(JSON.stringify({ error: "Configuration manquante: MAKE_WEBHOOK_URL" }), {
         status: 500,
         headers: { "Content-Type": "application/json", ...corsHeaders },
       });
     }
 
-    // Vérification Google Sheet avec logs détaillés
+    // Vérification Google Sheet
     if (SHEET_ID && SA_JSON) {
-      console.log("Checking user existence in Google Sheet...");
       try {
         const exists = await ensureUserExistsInSheet(SHEET_ID, SA_JSON, id, email);
-        console.log("User exists in sheet:", exists);
         if (!exists) {
-          console.log("User not found in sheet with id:", id, "email:", email);
-          // TEMPORAIREMENT: continuer même si pas trouvé, juste logger
-          console.log("WARNING: User not found in sheet but continuing anyway");
+          // Continue anyway but log the warning
+          console.warn("User not found in sheet but continuing");
         }
       } catch (sheetError: any) {
-        console.error("Sheet verification error:", sheetError);
-        console.log("WARNING: Sheet verification failed but continuing anyway");
+        console.warn("Sheet verification failed but continuing:", sheetError?.message);
       }
-    } else {
-      console.log("Skipping sheet verification - missing config");
     }
 
     // Appel du webhook Make
-    console.log("Calling Make webhook...");
     const makePayload = { id, email, code };
-    console.log("Payload:", { id, email, code: "***" });
 
     const resp = await fetch(MAKE_WEBHOOK_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(makePayload),
     });
-
-    console.log("Make webhook status:", resp.status);
     
     if (!resp.ok) {
       const text = await resp.text();
-      console.error("Make webhook error:", resp.status, text);
       return new Response(JSON.stringify({ 
         error: "Erreur webhook Make",
         status: resp.status,
@@ -179,10 +169,6 @@ serve(async (req: Request) => {
       });
     }
 
-    const responseText = await resp.text();
-    console.log("Make webhook success:", responseText);
-
-    console.log("=== SET-USER-CODE SUCCESS ===");
     return new Response(JSON.stringify({ 
       ok: true, 
       message: "Code enregistré avec succès" 
@@ -192,10 +178,9 @@ serve(async (req: Request) => {
     });
 
   } catch (err: any) {
-    console.error("=== SET-USER-CODE FATAL ERROR ===", err);
+    console.error("set-user-code error:", err?.message || err);
     return new Response(JSON.stringify({ 
-      error: "Erreur interne du serveur",
-      details: err?.message || "Erreur inconnue"
+      error: "Erreur interne du serveur"
     }), {
       status: 500,
       headers: { "Content-Type": "application/json", ...corsHeaders },

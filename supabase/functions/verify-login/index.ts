@@ -12,12 +12,32 @@ interface VerifyBody {
   code: string;
 }
 
+// Validation constants
+const MAX_ID_LENGTH = 100;
+const MAX_EMAIL_LENGTH = 255;
+const MAX_CODE_LENGTH = 200;
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 function normalize(str: string) {
   return (str || "").trim();
 }
 
 function normalizeEmail(str: string) {
   return normalize(str).toLowerCase();
+}
+
+function validateInput(id: string, email: string, code: string): string | null {
+  if (!id || id.length === 0) return "ID manquant";
+  if (id.length > MAX_ID_LENGTH) return `ID trop long (max ${MAX_ID_LENGTH} caractères)`;
+  
+  if (!email || email.length === 0) return "Email manquant";
+  if (email.length > MAX_EMAIL_LENGTH) return `Email trop long (max ${MAX_EMAIL_LENGTH} caractères)`;
+  if (!EMAIL_REGEX.test(email)) return "Format d'email invalide";
+  
+  if (!code || code.length === 0) return "Code manquant";
+  if (code.length > MAX_CODE_LENGTH) return `Code trop long (max ${MAX_CODE_LENGTH} caractères)`;
+  
+  return null;
 }
 
 async function findUserWithCode(sheetId: string, serviceAccountJson: string, id: string, email: string, code: string) {
@@ -85,8 +105,10 @@ serve(async (req: Request) => {
     const email = normalize(body?.email);
     const code = normalize(body?.code);
 
-    if (!id || !email || !code) {
-      return new Response(JSON.stringify({ error: "Missing id, email or code" }), {
+    // Validate input
+    const validationError = validateInput(id, email, code);
+    if (validationError) {
+      return new Response(JSON.stringify({ error: validationError }), {
         status: 400,
         headers: { "Content-Type": "application/json", ...corsHeaders },
       });
@@ -111,7 +133,7 @@ serve(async (req: Request) => {
     });
   } catch (err: any) {
     console.error("verify-login error:", err?.message || err);
-    return new Response(JSON.stringify({ error: err?.message || "Internal error" }), {
+    return new Response(JSON.stringify({ error: "Erreur interne du serveur" }), {
       status: 500,
       headers: { "Content-Type": "application/json", ...corsHeaders },
     });

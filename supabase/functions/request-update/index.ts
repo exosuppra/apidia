@@ -12,6 +12,31 @@ interface RequestUpdateBody {
   original?: Record<string, unknown>;
 }
 
+// Validation constants
+const MAX_ID_LENGTH = 100;
+const MAX_EMAIL_LENGTH = 255;
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const MAX_PAYLOAD_SIZE = 10 * 1024 * 1024; // 10MB
+
+function validateInput(id: string, email: string, changes: unknown): string | null {
+  if (!id || id.length === 0) return "ID manquant";
+  if (id.length > MAX_ID_LENGTH) return `ID trop long (max ${MAX_ID_LENGTH} caractères)`;
+  
+  if (!email || email.length === 0) return "Email manquant";
+  if (email.length > MAX_EMAIL_LENGTH) return `Email trop long (max ${MAX_EMAIL_LENGTH} caractères)`;
+  if (!EMAIL_REGEX.test(email)) return "Format d'email invalide";
+  
+  if (!changes || typeof changes !== "object" || Array.isArray(changes)) {
+    return "Changes doit être un objet";
+  }
+  
+  if (Object.keys(changes).length === 0) {
+    return "Aucune modification fournie";
+  }
+  
+  return null;
+}
+
 serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -25,20 +50,24 @@ serve(async (req: Request) => {
       });
     }
 
+    // Check payload size
+    const contentLength = req.headers.get("content-length");
+    if (contentLength && parseInt(contentLength) > MAX_PAYLOAD_SIZE) {
+      return new Response(JSON.stringify({ error: "Payload trop volumineux" }), {
+        status: 413,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
+    }
+
     const body = (await req.json()) as RequestUpdateBody;
     const id = (body?.id || "").toString().trim();
     const email = (body?.email || "").toString().trim().toLowerCase();
     const changes = body?.changes || {};
 
-    if (!id || !email) {
-      return new Response(JSON.stringify({ error: "Missing id or email" }), {
-        status: 400,
-        headers: { "Content-Type": "application/json", ...corsHeaders },
-      });
-    }
-
-    if (!changes || typeof changes !== "object" || Object.keys(changes).length === 0) {
-      return new Response(JSON.stringify({ error: "No changes provided" }), {
+    // Validate input
+    const validationError = validateInput(id, email, changes);
+    if (validationError) {
+      return new Response(JSON.stringify({ error: validationError }), {
         status: 400,
         headers: { "Content-Type": "application/json", ...corsHeaders },
       });
@@ -76,7 +105,7 @@ serve(async (req: Request) => {
     });
   } catch (err: any) {
     console.error("request-update error:", err?.message || err);
-    return new Response(JSON.stringify({ error: err?.message || "Internal error" }), {
+    return new Response(JSON.stringify({ error: "Erreur interne du serveur" }), {
       status: 500,
       headers: { "Content-Type": "application/json", ...corsHeaders },
     });

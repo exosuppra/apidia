@@ -67,8 +67,6 @@ export default function Login() {
         });
       }
     } catch (error: any) {
-      console.error("First login error:", error);
-      
       // Message d'erreur plus convivial pour la première connexion
       let errorMessage = "Identifiant ou email incorrect. Veuillez vérifier vos informations.";
       
@@ -117,8 +115,6 @@ export default function Login() {
         navigate("/dashboard");
       }
     } catch (error: any) {
-      console.error("Standard login error:", error);
-      
       // Améliorer les messages d'erreur pour l'utilisateur
       let errorMessage = "Identifiant, email ou code incorrect. Veuillez vérifier vos informations.";
       
