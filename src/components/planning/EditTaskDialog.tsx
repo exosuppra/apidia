@@ -258,9 +258,9 @@ export function EditTaskDialog({
                         >
                           <CalendarIcon className="mr-2 h-4 w-4" />
                           {field.value ? (
-                            format(field.value, "PPP", { locale: fr })
+                            format(field.value, "PPP 'à' HH:mm", { locale: fr })
                           ) : (
-                            <span>Sélectionner une date</span>
+                            <span>Sélectionner une date et heure</span>
                           )}
                         </Button>
                       </FormControl>
@@ -269,10 +269,52 @@ export function EditTaskDialog({
                       <Calendar
                         mode="single"
                         selected={field.value}
-                        onSelect={field.onChange}
+                        onSelect={(date) => {
+                          if (date) {
+                            const currentDate = field.value || new Date();
+                            date.setHours(currentDate.getHours());
+                            date.setMinutes(currentDate.getMinutes());
+                            field.onChange(date);
+                          } else {
+                            field.onChange(date);
+                          }
+                        }}
                         locale={fr}
                         initialFocus
                       />
+                      {field.value && (
+                        <div className="p-3 border-t">
+                          <div className="flex items-center gap-2">
+                            <Input
+                              type="number"
+                              min="0"
+                              max="23"
+                              placeholder="HH"
+                              value={field.value.getHours()}
+                              onChange={(e) => {
+                                const newDate = new Date(field.value);
+                                newDate.setHours(parseInt(e.target.value) || 0);
+                                field.onChange(newDate);
+                              }}
+                              className="w-20"
+                            />
+                            <span>:</span>
+                            <Input
+                              type="number"
+                              min="0"
+                              max="59"
+                              placeholder="MM"
+                              value={field.value.getMinutes()}
+                              onChange={(e) => {
+                                const newDate = new Date(field.value);
+                                newDate.setMinutes(parseInt(e.target.value) || 0);
+                                field.onChange(newDate);
+                              }}
+                              className="w-20"
+                            />
+                          </div>
+                        </div>
+                      )}
                     </PopoverContent>
                   </Popover>
                   <FormMessage />
