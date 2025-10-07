@@ -144,6 +144,7 @@ export function TagSelector({ tags, selectedTags, onChange, onTagCreated }: TagS
                 {availableTags.map((tag) => (
                   <CommandItem
                     key={tag.id}
+                    value={tag.name}
                     onSelect={() => handleAddTag(tag.id)}
                   >
                     <Badge
