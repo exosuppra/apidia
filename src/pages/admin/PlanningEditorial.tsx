@@ -3,9 +3,10 @@ import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Plus, Tag as TagIcon } from "lucide-react";
+import { ArrowLeft, Plus, Tag as TagIcon, Calendar, LayoutGrid } from "lucide-react";
 import Seo from "@/components/Seo";
 import { TaskColumn } from "@/components/planning/TaskColumn";
+import { CalendarView } from "@/components/planning/CalendarView";
 import { CreateTaskDialog } from "@/components/planning/CreateTaskDialog";
 import { TagManager } from "@/components/planning/TagManager";
 import type { Task, Tag } from "@/types/planning";
@@ -18,6 +19,7 @@ export default function PlanningEditorial() {
   const [tags, setTags] = useState<Tag[]>([]);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isTagManagerOpen, setIsTagManagerOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<"kanban" | "calendar">("calendar");
 
   useEffect(() => {
     loadData();
@@ -120,6 +122,22 @@ export default function PlanningEditorial() {
               <div className="flex gap-2">
                 <Button
                   variant="outline"
+                  onClick={() => setViewMode(viewMode === "kanban" ? "calendar" : "kanban")}
+                >
+                  {viewMode === "kanban" ? (
+                    <>
+                      <Calendar className="h-4 w-4 mr-2" />
+                      Vue calendrier
+                    </>
+                  ) : (
+                    <>
+                      <LayoutGrid className="h-4 w-4 mr-2" />
+                      Vue kanban
+                    </>
+                  )}
+                </Button>
+                <Button
+                  variant="outline"
                   onClick={() => setIsTagManagerOpen(true)}
                 >
                   <TagIcon className="h-4 w-4 mr-2" />
@@ -135,29 +153,33 @@ export default function PlanningEditorial() {
         </div>
 
         <div className="container mx-auto px-4 py-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <TaskColumn
-              title="À faire"
-              tasks={todoTasks}
-              status="todo"
-              onRefresh={loadData}
-              tags={tags}
-            />
-            <TaskColumn
-              title="En cours"
-              tasks={inProgressTasks}
-              status="in_progress"
-              onRefresh={loadData}
-              tags={tags}
-            />
-            <TaskColumn
-              title="Terminé"
-              tasks={doneTasks}
-              status="done"
-              onRefresh={loadData}
-              tags={tags}
-            />
-          </div>
+          {viewMode === "kanban" ? (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <TaskColumn
+                title="À faire"
+                tasks={todoTasks}
+                status="todo"
+                onRefresh={loadData}
+                tags={tags}
+              />
+              <TaskColumn
+                title="En cours"
+                tasks={inProgressTasks}
+                status="in_progress"
+                onRefresh={loadData}
+                tags={tags}
+              />
+              <TaskColumn
+                title="Terminé"
+                tasks={doneTasks}
+                status="done"
+                onRefresh={loadData}
+                tags={tags}
+              />
+            </div>
+          ) : (
+            <CalendarView tasks={tasks} tags={tags} onRefresh={loadData} />
+          )}
         </div>
       </div>
 
