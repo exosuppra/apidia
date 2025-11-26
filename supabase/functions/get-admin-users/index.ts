@@ -29,6 +29,7 @@ serve(async (req: Request) => {
     // Client with user's token to verify they're admin
     const supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } },
+      auth: { persistSession: false }
     });
 
     // Verify user is admin
