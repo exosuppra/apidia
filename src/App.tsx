@@ -16,7 +16,6 @@ import AdminLogin from "./pages/auth/AdminLogin";
 import AdminDashboard from "./pages/admin/Dashboard";
 import AllFiches from "./pages/admin/AllFiches";
 import PlanningEditorial from "./pages/admin/PlanningEditorial";
-import CreateFirstAdmin from "./pages/admin/CreateFirstAdmin";
 import Fiches from "./pages/dashboard/Fiches";
 import Catalogue from "./pages/Catalogue";
 import ApidaeDetails from "./pages/ApidaeDetails";
@@ -53,7 +52,6 @@ const App = () => (
             <Route path="/auth/login" element={<Login />} />
             <Route path="/auth/set-code" element={<SetCode />} />
             <Route path="/admin/login" element={<AdminLogin />} />
-            <Route path="/admin/create-first" element={<CreateFirstAdmin />} />
             <Route path="/admin/dashboard" element={<AdminDashboard />} />
             <Route path="/admin/fiches" element={<AllFiches />} />
             <Route path="/admin/planning" element={<PlanningEditorial />} />
