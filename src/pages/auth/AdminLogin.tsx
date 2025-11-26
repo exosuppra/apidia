@@ -71,9 +71,22 @@ export default function AdminLogin() {
 
       navigate("/admin/dashboard");
     } catch (error: any) {
+      // Traduire les messages d'erreur en français
+      let errorMessage = "Identifiants invalides";
+      
+      if (error.message?.includes("Invalid login credentials")) {
+        errorMessage = "Email ou mot de passe incorrect";
+      } else if (error.message?.includes("Email not confirmed")) {
+        errorMessage = "Veuillez confirmer votre email";
+      } else if (error.message?.includes("User not found")) {
+        errorMessage = "Utilisateur introuvable";
+      } else if (error.message?.includes("permissions d'administrateur")) {
+        errorMessage = error.message;
+      }
+      
       toast({
         title: "Erreur de connexion",
-        description: error.message || "Identifiants invalides",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
