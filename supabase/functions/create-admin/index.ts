@@ -147,7 +147,8 @@ serve(async (req: Request) => {
               email: authData.user.email,
               firstName,
               lastName,
-              createdAt: authData.user.created_at
+              createdAt: authData.user.created_at,
+              temporaryPassword: password
             }
           })
         });
