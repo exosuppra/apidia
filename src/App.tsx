@@ -11,8 +11,10 @@ import Overview from "./pages/dashboard/Overview";
 import AuthProvider from "./context/AuthProvider";
 import RequireAuth from "./components/RequireAuth";
 import RequireAdminAuth from "./components/RequireAdminAuth";
+import RequirePasswordChange from "./components/RequirePasswordChange";
 import Login from "./pages/auth/Login";
 import SetCode from "./pages/auth/SetCode";
+import ChangePassword from "./pages/auth/ChangePassword";
 import AdminLogin from "./pages/auth/AdminLogin";
 import AdminDashboard from "./pages/admin/Dashboard";
 import AllFiches from "./pages/admin/AllFiches";
@@ -53,32 +55,47 @@ const App = () => (
             <Route path="/generation-site-web" element={<GenerationSiteWeb />} />
             <Route path="/auth/login" element={<Login />} />
             <Route path="/auth/set-code" element={<SetCode />} />
+            <Route path="/auth/change-password" element={
+              <RequireAuth>
+                <ChangePassword />
+              </RequireAuth>
+            } />
             <Route path="/admin/login" element={<AdminLogin />} />
             <Route path="/admin/dashboard" element={
               <RequireAdminAuth>
-                <AdminDashboard />
+                <RequirePasswordChange>
+                  <AdminDashboard />
+                </RequirePasswordChange>
               </RequireAdminAuth>
             } />
             <Route path="/admin/users" element={
               <RequireAdminAuth>
-                <UsersManagement />
+                <RequirePasswordChange>
+                  <UsersManagement />
+                </RequirePasswordChange>
               </RequireAdminAuth>
             } />
             <Route path="/admin/fiches" element={
               <RequireAdminAuth>
-                <AllFiches />
+                <RequirePasswordChange>
+                  <AllFiches />
+                </RequirePasswordChange>
               </RequireAdminAuth>
             } />
             <Route path="/admin/planning" element={
               <RequireAdminAuth>
-                <PlanningEditorial />
+                <RequirePasswordChange>
+                  <PlanningEditorial />
+                </RequirePasswordChange>
               </RequireAdminAuth>
             } />
             
             {/* Main business dashboard */}
             <Route path="/avis" element={
               <RequireAuth>
-                <BusinessDashboard />
+                <RequirePasswordChange>
+                  <BusinessDashboard />
+                </RequirePasswordChange>
               </RequireAuth>
             } />
             
@@ -87,7 +104,9 @@ const App = () => (
               path="/dashboard"
               element={
                 <RequireAuth>
-                  <DashboardLayout />
+                  <RequirePasswordChange>
+                    <DashboardLayout />
+                  </RequirePasswordChange>
                 </RequireAuth>
               }
             >

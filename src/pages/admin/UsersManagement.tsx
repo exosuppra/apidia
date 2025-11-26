@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Trash2, Plus, Shield, Eye, FileText, Calendar } from "lucide-react";
+import { Trash2, Plus, Shield, Eye, FileText, Calendar, KeyRound } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import Seo from "@/components/Seo";
@@ -125,6 +125,32 @@ export default function UsersManagement() {
       toast({
         title: "Erreur",
         description: error.message || "Impossible de supprimer l'utilisateur",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleResetPassword = async (userId: string, email: string) => {
+    if (!confirm(`Êtes-vous sûr de vouloir réinitialiser le mot de passe de ${email} ?`)) {
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase.functions.invoke('reset-admin-password', {
+        body: { userId }
+      });
+      
+      if (error) throw error;
+
+      toast({
+        title: "Mot de passe réinitialisé",
+        description: `Nouveau mot de passe temporaire : ${data.temporaryPassword}`,
+        duration: 10000,
+      });
+    } catch (error: any) {
+      toast({
+        title: "Erreur",
+        description: error.message || "Impossible de réinitialiser le mot de passe",
         variant: "destructive",
       });
     }
@@ -292,13 +318,23 @@ export default function UsersManagement() {
                         {user.first_name || user.last_name ? user.email : ''} • Créé le {new Date(user.created_at).toLocaleDateString('fr-FR')}
                       </CardDescription>
                     </div>
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => handleDeleteUser(user.id, user.email)}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleResetPassword(user.id, user.email)}
+                      >
+                        <KeyRound className="w-4 h-4 mr-2" />
+                        Réinitialiser mot de passe
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => handleDeleteUser(user.id, user.email)}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
                   </div>
                 </CardHeader>
                 <CardContent>
