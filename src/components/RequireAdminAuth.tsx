@@ -2,23 +2,28 @@ import { ReactNode, useEffect, useState } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/context/AuthProvider";
 import { supabase } from "@/integrations/supabase/client";
+import type { User } from "@supabase/supabase-js";
 
 export default function RequireAdminAuth({ children }: { children: ReactNode }) {
-  const { user, loading } = useAuth();
+  const { user, loading, isGoogleSheetsUser } = useAuth();
   const location = useLocation();
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
 
   useEffect(() => {
     const checkAdminRole = async () => {
-      if (!user) {
+      // Les utilisateurs Google Sheets ne peuvent jamais être admin
+      if (!user || isGoogleSheetsUser) {
         setIsAdmin(false);
         return;
       }
 
+      // Type guard pour s'assurer que c'est un utilisateur Lovable Cloud
+      const cloudUser = user as User;
+      
       const { data, error } = await supabase
         .from('user_roles')
         .select('role')
-        .eq('user_id', user.id)
+        .eq('user_id', cloudUser.id)
         .eq('role', 'admin')
         .single();
 
@@ -26,7 +31,7 @@ export default function RequireAdminAuth({ children }: { children: ReactNode }) 
     };
 
     checkAdminRole();
-  }, [user]);
+  }, [user, isGoogleSheetsUser]);
 
   if (loading || isAdmin === null) {
     return (

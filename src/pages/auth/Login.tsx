@@ -97,38 +97,20 @@ export default function Login() {
       }
 
       if (data.success) {
-        // Essayer de se connecter avec l'email trouvé
-        const { error: signInError } = await supabase.auth.signInWithPassword({
+        // Créer une session locale pour l'utilisateur Google Sheets
+        const sessionData = {
+          id: values.id.trim(),
           email: data.email,
-          password: values.code.trim(),
+          type: 'google_sheets',
+          timestamp: new Date().toISOString(),
+        };
+        
+        localStorage.setItem('google_sheets_session', JSON.stringify(sessionData));
+        
+        toast({
+          title: "Connexion réussie",
+          description: "Bienvenue !",
         });
-
-        // Si l'utilisateur n'existe pas, créer son compte automatiquement
-        if (signInError && signInError.message.includes("Invalid login credentials")) {
-          const { error: signUpError } = await supabase.auth.signUp({
-            email: data.email,
-            password: values.code.trim(),
-            options: {
-              emailRedirectTo: `${window.location.origin}/dashboard`,
-            },
-          });
-
-          if (signUpError) {
-            throw signUpError;
-          }
-
-          toast({
-            title: "Compte créé",
-            description: "Votre compte a été créé et vous êtes maintenant connecté.",
-          });
-        } else if (signInError) {
-          throw signInError;
-        } else {
-          toast({
-            title: "Connexion réussie",
-            description: "Bienvenue !",
-          });
-        }
 
         navigate("/dashboard");
       }

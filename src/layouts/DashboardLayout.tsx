@@ -4,18 +4,28 @@ import { Outlet, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
+import { useAuth } from "@/context/AuthProvider";
 
 export default function DashboardLayout() {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { isGoogleSheetsUser } = useAuth();
 
   const handleSignOut = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-      toast({ title: "Erreur de déconnexion", description: error.message, variant: "destructive" });
-    } else {
+    if (isGoogleSheetsUser) {
+      // Déconnexion pour utilisateur Google Sheets
+      localStorage.removeItem('google_sheets_session');
       toast({ title: "Déconnecté", description: "À bientôt." });
       navigate("/auth/login", { replace: true });
+    } else {
+      // Déconnexion pour utilisateur Lovable Cloud
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        toast({ title: "Erreur de déconnexion", description: error.message, variant: "destructive" });
+      } else {
+        toast({ title: "Déconnecté", description: "À bientôt." });
+        navigate("/auth/login", { replace: true });
+      }
     }
   };
 
