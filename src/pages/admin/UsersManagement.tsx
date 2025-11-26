@@ -109,7 +109,9 @@ export default function UsersManagement() {
     }
 
     try {
-      const { error } = await supabase.auth.admin.deleteUser(userId);
+      const { error } = await supabase.functions.invoke('delete-admin', {
+        body: { userId }
+      });
       
       if (error) throw error;
 
