@@ -12,7 +12,6 @@ interface CreateAdminBody {
   firstName?: string;
   lastName?: string;
   permissions?: string[];
-  secret?: string;
 }
 
 serve(async (req: Request) => {
@@ -29,20 +28,11 @@ serve(async (req: Request) => {
     }
 
     const body = (await req.json()) as CreateAdminBody;
-    const { email, password, firstName, lastName, permissions, secret } = body;
+    const { email, password, firstName, lastName, permissions } = body;
 
     if (!email || !password) {
       return new Response(JSON.stringify({ error: "Email et mot de passe requis" }), {
         status: 400,
-        headers: { "Content-Type": "application/json", ...corsHeaders },
-      });
-    }
-
-    // Simple protection
-    const expectedSecret = Deno.env.get("ADMIN_CREATION_SECRET") || "create-admin-2024";
-    if (secret !== expectedSecret) {
-      return new Response(JSON.stringify({ error: "Secret invalide" }), {
-        status: 401,
         headers: { "Content-Type": "application/json", ...corsHeaders },
       });
     }
