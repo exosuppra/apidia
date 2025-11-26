@@ -35,7 +35,7 @@ serve(async (req: Request) => {
       });
     }
 
-    // Simple protection - you can make this more secure
+    // Simple protection
     const expectedSecret = Deno.env.get("ADMIN_CREATION_SECRET") || "create-admin-2024";
     if (secret !== expectedSecret) {
       return new Response(JSON.stringify({ error: "Secret invalide" }), {
@@ -57,89 +57,58 @@ serve(async (req: Request) => {
 
     console.log(`Creating admin user for email: ${email}`);
 
-    // Check if admin already exists
-    const { data: existingAdmin } = await supabase
-      .from("admin_users")
-      .select("email")
-      .eq("email", email.toLowerCase().trim())
-      .single();
+    // Create user via Supabase Auth
+    const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+      email: email.toLowerCase().trim(),
+      password: password,
+      email_confirm: true
+    });
 
-    if (existingAdmin) {
-      return new Response(JSON.stringify({ error: "Un administrateur avec cet email existe déjà" }), {
+    if (authError) {
+      console.error("Auth creation error:", authError);
+      return new Response(JSON.stringify({ error: `Erreur lors de la création de l'utilisateur: ${authError.message}` }), {
         status: 400,
         headers: { "Content-Type": "application/json", ...corsHeaders },
       });
     }
 
-    // Hash password using PostgreSQL's crypt function
-    const { data: hashedPassword, error: hashError } = await supabase
-      .rpc("crypt", {
-        password: password,
-        salt: await supabase.rpc("gen_salt", { type: "bf" }).then(r => r.data)
-      });
-
-    if (hashError || !hashedPassword) {
-      console.error("Password hashing error:", hashError);
-      
-      // Fallback: use a simple hash (not recommended for production)
-      const encoder = new TextEncoder();
-      const data = encoder.encode(password + email);
-      const hashBuffer = await crypto.subtle.digest("SHA-256", data);
-      const hashArray = Array.from(new Uint8Array(hashBuffer));
-      const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-      
-      // Insert admin user with simple hash
-      const { data: adminUser, error: insertError } = await supabase
-        .from("admin_users")
-        .insert({
-          email: email.toLowerCase().trim(),
-          password_hash: `simple:${hashHex}`
-        })
-        .select()
-        .single();
-
-      if (insertError) {
-        console.error("Insert error:", insertError);
-        return new Response(JSON.stringify({ error: "Erreur lors de la création de l'administrateur" }), {
-          status: 500,
-          headers: { "Content-Type": "application/json", ...corsHeaders },
-        });
-      }
-
-      return new Response(JSON.stringify({ 
-        success: true, 
-        message: "Administrateur créé avec succès (hash simple)",
-        admin: { id: adminUser.id, email: adminUser.email }
-      }), {
-        status: 200,
-        headers: { "Content-Type": "application/json", ...corsHeaders },
-      });
-    }
-
-    // Insert admin user with proper hash
-    const { data: adminUser, error: insertError } = await supabase
-      .from("admin_users")
-      .insert({
-        email: email.toLowerCase().trim(),
-        password_hash: hashedPassword
-      })
-      .select()
-      .single();
-
-    if (insertError) {
-      console.error("Insert error:", insertError);
-      return new Response(JSON.stringify({ error: "Erreur lors de la création de l'administrateur" }), {
+    if (!authData.user) {
+      return new Response(JSON.stringify({ error: "Aucun utilisateur créé" }), {
         status: 500,
         headers: { "Content-Type": "application/json", ...corsHeaders },
       });
     }
 
-    console.log("Admin user created successfully:", adminUser.email);
+    console.log("Auth user created:", authData.user.id);
+
+    // Add admin role to user_roles table
+    const { error: roleError } = await supabase
+      .from("user_roles")
+      .insert({
+        user_id: authData.user.id,
+        role: "admin"
+      });
+
+    if (roleError) {
+      console.error("Role insertion error:", roleError);
+      // Try to clean up the created user
+      await supabase.auth.admin.deleteUser(authData.user.id);
+      
+      return new Response(JSON.stringify({ error: `Erreur lors de l'attribution du rôle: ${roleError.message}` }), {
+        status: 500,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
+    }
+
+    console.log("Admin role assigned successfully");
 
     return new Response(JSON.stringify({ 
       success: true, 
       message: "Administrateur créé avec succès",
-      admin: { id: adminUser.id, email: adminUser.email }
+      admin: { 
+        id: authData.user.id, 
+        email: authData.user.email 
+      }
     }), {
       status: 200,
       headers: { "Content-Type": "application/json", ...corsHeaders },
