@@ -57,8 +57,22 @@ export default function ChangePassword() {
 
       if (profileError) throw profileError;
 
+      // Check if user is admin to redirect to correct dashboard
+      const { data: roleData } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', user.id)
+        .eq('role', 'admin')
+        .maybeSingle();
+
       toast.success("Mot de passe modifié avec succès");
-      navigate("/dashboard");
+      
+      // Redirect to appropriate dashboard
+      if (roleData) {
+        navigate("/admin/dashboard");
+      } else {
+        navigate("/dashboard");
+      }
     } catch (error: any) {
       console.error("Error changing password:", error);
       toast.error(error.message || "Erreur lors du changement de mot de passe");
