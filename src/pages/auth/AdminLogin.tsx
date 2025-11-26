@@ -13,7 +13,6 @@ export default function AdminLogin() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [isSignUp, setIsSignUp] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -44,55 +43,37 @@ export default function AdminLogin() {
     setIsLoading(true);
 
     try {
-      if (isSignUp) {
-        // Inscription
-        const { data, error } = await supabase.auth.signUp({
-          email,
-          password,
-        });
+      // Connexion via Supabase Auth
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-        if (error) throw error;
+      if (error) throw error;
 
-        toast({
-          title: "Compte créé",
-          description: "Votre compte administrateur a été créé. Veuillez communiquer votre email pour obtenir les permissions d'administration.",
-        });
+      // Vérifier si l'utilisateur a le rôle admin
+      const { data: roles, error: rolesError } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', data.user.id)
+        .eq('role', 'admin')
+        .single();
 
-        setIsSignUp(false);
-        setPassword("");
-      } else {
-        // Connexion via Supabase Auth
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
-
-        if (error) throw error;
-
-        // Vérifier si l'utilisateur a le rôle admin
-        const { data: roles, error: rolesError } = await supabase
-          .from('user_roles')
-          .select('role')
-          .eq('user_id', data.user.id)
-          .eq('role', 'admin')
-          .single();
-
-        if (rolesError || !roles) {
-          await supabase.auth.signOut();
-          throw new Error("Vous n'avez pas les permissions d'administrateur.");
-        }
-
-        toast({
-          title: "Connexion réussie",
-          description: "Bienvenue dans l'interface d'administration",
-        });
-
-        navigate("/admin/dashboard");
+      if (rolesError || !roles) {
+        await supabase.auth.signOut();
+        throw new Error("Vous n'avez pas les permissions d'administrateur.");
       }
+
+      toast({
+        title: "Connexion réussie",
+        description: "Bienvenue dans l'interface d'administration",
+      });
+
+      navigate("/admin/dashboard");
     } catch (error: any) {
       toast({
-        title: isSignUp ? "Erreur d'inscription" : "Erreur de connexion",
-        description: error.message || (isSignUp ? "Impossible de créer le compte" : "Identifiants invalides"),
+        title: "Erreur de connexion",
+        description: error.message || "Identifiants invalides",
         variant: "destructive",
       });
     } finally {
@@ -119,9 +100,7 @@ export default function AdminLogin() {
             </div>
             <CardTitle className="text-2xl">Administration</CardTitle>
             <CardDescription>
-              {isSignUp 
-                ? "Créez votre compte administrateur" 
-                : "Connectez-vous avec vos identifiants administrateur"}
+              Connectez-vous avec vos identifiants administrateur
             </CardDescription>
           </CardHeader>
           
@@ -156,20 +135,7 @@ export default function AdminLogin() {
                 className="w-full" 
                 disabled={isLoading}
               >
-                {isLoading 
-                  ? (isSignUp ? "Création..." : "Connexion...") 
-                  : (isSignUp ? "Créer le compte" : "Se connecter")}
-              </Button>
-              
-              <Button
-                type="button"
-                variant="ghost"
-                className="w-full"
-                onClick={() => setIsSignUp(!isSignUp)}
-              >
-                {isSignUp 
-                  ? "Déjà un compte ? Se connecter" 
-                  : "Créer un compte administrateur"}
+                {isLoading ? "Connexion..." : "Se connecter"}
               </Button>
             </form>
           </CardContent>
