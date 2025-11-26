@@ -60,12 +60,18 @@ async function findUserWithCode(sheetId: string, serviceAccountJson: string, id:
   });
 
   const rows = resp.data.values || [];
+  console.log(`📊 Found ${rows.length} rows in sheet`);
+  
   if (rows.length === 0) return null;
 
   const header = rows[0].map((h: string) => h.toString().trim().toLowerCase());
+  console.log(`📋 Headers found:`, header);
+  
   const idIdx = header.findIndex((h: string) => ["id", "user_id", "identifiant"].includes(h));
   const emailIdx = header.findIndex((h: string) => ["email", "e-mail", "mail"].includes(h));
   const codeIdx = header.findIndex((h: string) => ["code", "password", "motdepasse"].includes(h));
+
+  console.log(`🔍 Column indices - ID: ${idIdx}, Email: ${emailIdx}, Code: ${codeIdx}`);
 
   if (idIdx === -1 || emailIdx === -1 || codeIdx === -1) {
     throw new Error("Sheet headers must include 'id', 'email' and 'code' (case-insensitive)");
@@ -75,15 +81,23 @@ async function findUserWithCode(sheetId: string, serviceAccountJson: string, id:
   const wantedEmail = normalizeEmail(email);
   const wantedCode = normalize(code);
 
+  console.log(`🎯 Looking for - ID: "${wantedId}", Email: "${wantedEmail}", Code: "${wantedCode}"`);
+
   for (let i = 1; i < rows.length; i++) {
     const row = rows[i];
     const rowId = normalize(row[idIdx] ?? "");
     const rowEmail = normalizeEmail(row[emailIdx] ?? "");
     const rowCode = normalize(row[codeIdx] ?? "");
+    
+    console.log(`📝 Row ${i} - ID: "${rowId}", Email: "${rowEmail}", Code: "${rowCode}"`);
+    
     if (rowId && rowEmail && rowCode && rowId === wantedId && rowEmail === wantedEmail && rowCode === wantedCode) {
+      console.log(`✅ Match found at row ${i}!`);
       return { id: rowId, email: rowEmail };
     }
   }
+  
+  console.log(`❌ No match found after checking ${rows.length - 1} rows`);
   return null;
 }
 
