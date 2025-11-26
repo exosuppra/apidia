@@ -199,6 +199,81 @@ export type Database = {
         }
         Relationships: []
       }
+      user_action_logs: {
+        Row: {
+          action_details: Json | null
+          action_type: string
+          created_at: string
+          id: string
+          ip_address: string | null
+          user_agent: string | null
+          user_email: string
+          user_id_sheet: string | null
+        }
+        Insert: {
+          action_details?: Json | null
+          action_type: string
+          created_at?: string
+          id?: string
+          ip_address?: string | null
+          user_agent?: string | null
+          user_email: string
+          user_id_sheet?: string | null
+        }
+        Update: {
+          action_details?: Json | null
+          action_type?: string
+          created_at?: string
+          id?: string
+          ip_address?: string | null
+          user_agent?: string | null
+          user_email?: string
+          user_id_sheet?: string | null
+        }
+        Relationships: []
+      }
+      user_requests: {
+        Row: {
+          admin_notes: string | null
+          created_at: string
+          fiche_id: string
+          id: string
+          original_data: Json | null
+          processed_at: string | null
+          processed_by: string | null
+          requested_changes: Json
+          status: string
+          user_email: string
+          user_id_sheet: string | null
+        }
+        Insert: {
+          admin_notes?: string | null
+          created_at?: string
+          fiche_id: string
+          id?: string
+          original_data?: Json | null
+          processed_at?: string | null
+          processed_by?: string | null
+          requested_changes: Json
+          status?: string
+          user_email: string
+          user_id_sheet?: string | null
+        }
+        Update: {
+          admin_notes?: string | null
+          created_at?: string
+          fiche_id?: string
+          id?: string
+          original_data?: Json | null
+          processed_at?: string | null
+          processed_by?: string | null
+          requested_changes?: Json
+          status?: string
+          user_email?: string
+          user_id_sheet?: string | null
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string

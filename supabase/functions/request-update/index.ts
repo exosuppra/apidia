@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -73,33 +74,45 @@ serve(async (req: Request) => {
       });
     }
 
-    const MAKE_UPDATE_WEBHOOK_URL = Deno.env.get("MAKE_UPDATE_WEBHOOK_URL") || Deno.env.get("MAKE_WEBHOOK_URL");
-    if (!MAKE_UPDATE_WEBHOOK_URL) {
-      throw new Error("Missing MAKE_UPDATE_WEBHOOK_URL or MAKE_WEBHOOK_URL secret");
+    // Initialize Supabase client
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Store request in database
+    const { data: requestData, error: requestError } = await supabase
+      .from('user_requests')
+      .insert({
+        user_email: email,
+        fiche_id: id,
+        original_data: body?.original || null,
+        requested_changes: changes,
+        status: 'pending',
+      })
+      .select()
+      .single();
+
+    if (requestError) {
+      console.error('Error storing request:', requestError);
+      throw requestError;
     }
 
-    const payload = {
-      action: "update_fiche",
-      id,
-      email,
-      changes,
-      original: body?.original || null,
-      requested_at: new Date().toISOString(),
-      requested_by: email,
-    };
+    // Log the action
+    await supabase
+      .from('user_action_logs')
+      .insert({
+        user_email: email,
+        action_type: 'request_update',
+        action_details: { fiche_id: id, request_id: requestData.id },
+        ip_address: req.headers.get('x-forwarded-for'),
+        user_agent: req.headers.get('user-agent'),
+      });
 
-    const resp = await fetch(MAKE_UPDATE_WEBHOOK_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-
-    if (!resp.ok) {
-      const text = await resp.text();
-      throw new Error(`Make webhook failed: ${resp.status} ${text}`);
-    }
-
-    return new Response(JSON.stringify({ ok: true }), {
+    return new Response(JSON.stringify({ 
+      ok: true, 
+      request_id: requestData.id,
+      message: "Demande enregistrée et en attente de validation" 
+    }), {
       status: 200,
       headers: { "Content-Type": "application/json", ...corsHeaders },
     });
