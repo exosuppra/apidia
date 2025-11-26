@@ -75,7 +75,19 @@ export default function ChangePassword() {
       }
     } catch (error: any) {
       console.error("Error changing password:", error);
-      toast.error(error.message || "Erreur lors du changement de mot de passe");
+      
+      // Traduire les messages d'erreur en français
+      let errorMessage = "Erreur lors du changement de mot de passe";
+      
+      if (error.message?.includes("New password should be different")) {
+        errorMessage = "Le nouveau mot de passe doit être différent de l'ancien";
+      } else if (error.message?.includes("Password should be at least")) {
+        errorMessage = "Le mot de passe doit contenir au moins 6 caractères";
+      } else if (error.message?.includes("not authorized")) {
+        errorMessage = "Vous n'êtes pas autorisé à effectuer cette action";
+      }
+      
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
