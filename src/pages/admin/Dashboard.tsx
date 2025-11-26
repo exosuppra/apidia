@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,24 @@ export default function AdminDashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [permissions, setPermissions] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchPermissions = async () => {
+      if (!user) return;
+
+      const { data } = await supabase
+        .from('admin_permissions')
+        .select('page_key')
+        .eq('user_id', user.id);
+
+      setPermissions(data?.map(p => p.page_key) || []);
+      setLoading(false);
+    };
+
+    fetchPermissions();
+  }, [user]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -21,6 +39,16 @@ export default function AdminDashboard() {
     });
     navigate("/admin/login");
   };
+
+  const hasPermission = (pageKey: string) => permissions.includes(pageKey);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen grid place-items-center">
+        <div className="text-sm text-muted-foreground">Chargement…</div>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -53,43 +81,47 @@ export default function AdminDashboard() {
 
           {/* Dashboard Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Gestion des utilisateurs
-                </CardTitle>
-                <Users className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <CardDescription>
-                  Gérer les comptes utilisateurs et leurs permissions
-                </CardDescription>
-                <Button 
-                  className="w-full mt-4" 
-                  variant="outline"
-                  onClick={() => navigate("/admin/users")}
-                >
-                  Accéder
-                </Button>
-              </CardContent>
-            </Card>
+            {hasPermission('users') && (
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">
+                    Gestion des utilisateurs
+                  </CardTitle>
+                  <Users className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <CardDescription>
+                    Gérer les comptes utilisateurs et leurs permissions
+                  </CardDescription>
+                  <Button 
+                    className="w-full mt-4" 
+                    variant="outline"
+                    onClick={() => navigate("/admin/users")}
+                  >
+                    Accéder
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
 
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Demandes utilisateurs
-                </CardTitle>
-                <FileText className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <CardDescription>
-                  Traiter les demandes de modification des fiches
-                </CardDescription>
-                <Button className="w-full mt-4" variant="outline">
-                  Voir les demandes
-                </Button>
-              </CardContent>
-            </Card>
+            {hasPermission('requests') && (
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">
+                    Demandes utilisateurs
+                  </CardTitle>
+                  <FileText className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <CardDescription>
+                    Traiter les demandes de modification des fiches
+                  </CardDescription>
+                  <Button className="w-full mt-4" variant="outline">
+                    Voir les demandes
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -108,47 +140,51 @@ export default function AdminDashboard() {
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Toutes les fiches
-                </CardTitle>
-                <Eye className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <CardDescription>
-                  Voir toutes les fiches du Google Sheet (sauf SOURCING)
-                </CardDescription>
-                <Button 
-                  className="w-full mt-4" 
-                  variant="outline"
-                  onClick={() => navigate("/admin/fiches")}
-                >
-                  Voir toutes les fiches
-                </Button>
-              </CardContent>
-            </Card>
+            {hasPermission('fiches') && (
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">
+                    Toutes les fiches
+                  </CardTitle>
+                  <Eye className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <CardDescription>
+                    Voir toutes les fiches du Google Sheet (sauf SOURCING)
+                  </CardDescription>
+                  <Button 
+                    className="w-full mt-4" 
+                    variant="outline"
+                    onClick={() => navigate("/admin/fiches")}
+                  >
+                    Voir toutes les fiches
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
 
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Planning éditorial social média
-                </CardTitle>
-                <CalendarClock className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <CardDescription>
-                  Gérer le planning de publication sur les réseaux sociaux
-                </CardDescription>
-                <Button 
-                  className="w-full mt-4" 
-                  variant="outline"
-                  onClick={() => navigate("/admin/planning")}
-                >
-                  Accéder au planning
-                </Button>
-              </CardContent>
-            </Card>
+            {hasPermission('planning') && (
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">
+                    Planning éditorial social média
+                  </CardTitle>
+                  <CalendarClock className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <CardDescription>
+                    Gérer le planning de publication sur les réseaux sociaux
+                  </CardDescription>
+                  <Button 
+                    className="w-full mt-4" 
+                    variant="outline"
+                    onClick={() => navigate("/admin/planning")}
+                  >
+                    Accéder au planning
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
