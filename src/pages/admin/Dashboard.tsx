@@ -116,7 +116,11 @@ export default function AdminDashboard() {
                   <CardDescription>
                     Traiter les demandes de modification des fiches
                   </CardDescription>
-                  <Button className="w-full mt-4" variant="outline">
+                  <Button 
+                    className="w-full mt-4" 
+                    variant="outline"
+                    onClick={() => navigate("/admin/requests")}
+                  >
                     Voir les demandes
                   </Button>
                 </CardContent>
@@ -126,16 +130,20 @@ export default function AdminDashboard() {
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">
-                  Statistiques
+                  Historique des actions
                 </CardTitle>
                 <Shield className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
                 <CardDescription>
-                  Voir les statistiques d'utilisation de la plateforme
+                  Voir l'historique des actions des utilisateurs
                 </CardDescription>
-                <Button className="w-full mt-4" variant="outline">
-                  Consulter
+                <Button 
+                  className="w-full mt-4" 
+                  variant="outline"
+                  onClick={() => navigate("/admin/logs")}
+                >
+                  Consulter l'historique
                 </Button>
               </CardContent>
             </Card>
