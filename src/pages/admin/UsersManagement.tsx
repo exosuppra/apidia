@@ -35,39 +35,11 @@ export default function UsersManagement() {
 
   const fetchAdminUsers = async () => {
     try {
-      // Get all admin users
-      const { data: roleData, error: roleError } = await supabase
-        .from('user_roles')
-        .select('user_id')
-        .eq('role', 'admin');
+      const { data, error } = await supabase.functions.invoke('get-admin-users');
 
-      if (roleError) throw roleError;
+      if (error) throw error;
 
-      const userIds = roleData.map(r => r.user_id);
-
-      // Get user details and permissions
-      const usersWithPermissions = await Promise.all(
-        userIds.map(async (userId) => {
-          const { data: { user }, error } = await supabase.auth.admin.getUserById(userId);
-          
-          if (error || !user) return null;
-
-          // Get permissions
-          const { data: perms } = await supabase
-            .from('admin_permissions')
-            .select('page_key')
-            .eq('user_id', userId);
-
-          return {
-            id: user.id,
-            email: user.email || '',
-            created_at: user.created_at,
-            permissions: perms?.map(p => p.page_key) || []
-          };
-        })
-      );
-
-      setUsers(usersWithPermissions.filter(u => u !== null) as AdminUser[]);
+      setUsers(data.users || []);
     } catch (error: any) {
       toast({
         title: "Erreur",
