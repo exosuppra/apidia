@@ -5,9 +5,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Trash2, Plus, Shield, Eye, FileText, Calendar, KeyRound } from "lucide-react";
+import { Trash2, Plus, Shield, Eye, FileText, Calendar, KeyRound, ArrowLeft } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
+import { useNavigate } from "react-router-dom";
 import Seo from "@/components/Seo";
 
 interface AdminUser {
@@ -36,6 +37,7 @@ export default function UsersManagement() {
   const [selectedPermissions, setSelectedPermissions] = useState<string[]>([]);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const fetchAdminUsers = async () => {
     try {
@@ -206,9 +208,19 @@ export default function UsersManagement() {
       <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/5 p-6">
         <div className="container mx-auto">
           <div className="flex items-center justify-between mb-6">
-            <div>
-              <h1 className="text-3xl font-bold">Gestion des utilisateurs</h1>
-              <p className="text-muted-foreground">Gérer les comptes administrateurs et leurs permissions</p>
+            <div className="flex items-center gap-4">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate('/admin/dashboard')}
+              >
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Retour au dashboard
+              </Button>
+              <div>
+                <h1 className="text-3xl font-bold">Gestion des utilisateurs</h1>
+                <p className="text-muted-foreground">Gérer les comptes administrateurs et leurs permissions</p>
+              </div>
             </div>
             
             <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
