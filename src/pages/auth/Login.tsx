@@ -97,20 +97,38 @@ export default function Login() {
       }
 
       if (data.success) {
-        // Connecter l'utilisateur avec l'email trouvé
+        // Essayer de se connecter avec l'email trouvé
         const { error: signInError } = await supabase.auth.signInWithPassword({
           email: data.email,
           password: values.code.trim(),
         });
 
-        if (signInError) {
-          throw signInError;
-        }
+        // Si l'utilisateur n'existe pas, créer son compte automatiquement
+        if (signInError && signInError.message.includes("Invalid login credentials")) {
+          const { error: signUpError } = await supabase.auth.signUp({
+            email: data.email,
+            password: values.code.trim(),
+            options: {
+              emailRedirectTo: `${window.location.origin}/dashboard`,
+            },
+          });
 
-        toast({
-          title: "Connexion réussie",
-          description: "Bienvenue !",
-        });
+          if (signUpError) {
+            throw signUpError;
+          }
+
+          toast({
+            title: "Compte créé",
+            description: "Votre compte a été créé et vous êtes maintenant connecté.",
+          });
+        } else if (signInError) {
+          throw signInError;
+        } else {
+          toast({
+            title: "Connexion réussie",
+            description: "Bienvenue !",
+          });
+        }
 
         navigate("/dashboard");
       }
