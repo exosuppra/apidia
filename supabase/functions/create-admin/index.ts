@@ -142,6 +142,32 @@ serve(async (req: Request) => {
       }
     }
 
+    // Call Make webhook
+    const makeWebhookUrl = Deno.env.get("MAKE_WEBHOOK_URL");
+    if (makeWebhookUrl) {
+      try {
+        console.log("Calling Make webhook for new admin user");
+        await fetch(makeWebhookUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            event: "admin_user_created",
+            user: {
+              id: authData.user.id,
+              email: authData.user.email,
+              firstName,
+              lastName,
+              createdAt: authData.user.created_at
+            }
+          })
+        });
+        console.log("Make webhook called successfully");
+      } catch (webhookError) {
+        console.error("Failed to call Make webhook:", webhookError);
+        // Continue even if webhook fails
+      }
+    }
+
     return new Response(JSON.stringify({ 
       success: true, 
       message: "Administrateur créé avec succès",
