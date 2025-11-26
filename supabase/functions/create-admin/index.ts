@@ -9,6 +9,9 @@ const corsHeaders = {
 interface CreateAdminBody {
   email: string;
   password: string;
+  firstName?: string;
+  lastName?: string;
+  permissions?: string[];
   secret?: string;
 }
 
@@ -26,7 +29,7 @@ serve(async (req: Request) => {
     }
 
     const body = (await req.json()) as CreateAdminBody;
-    const { email, password, secret } = body;
+    const { email, password, firstName, lastName, permissions, secret } = body;
 
     if (!email || !password) {
       return new Response(JSON.stringify({ error: "Email et mot de passe requis" }), {
@@ -101,6 +104,43 @@ serve(async (req: Request) => {
     }
 
     console.log("Admin role assigned successfully");
+
+    // Create profile with first and last name
+    if (firstName || lastName) {
+      const { error: profileError } = await supabase
+        .from("profiles")
+        .insert({
+          id: authData.user.id,
+          first_name: firstName,
+          last_name: lastName
+        });
+
+      if (profileError) {
+        console.error("Profile creation error:", profileError);
+        // Continue even if profile creation fails
+      } else {
+        console.log("Profile created successfully");
+      }
+    }
+
+    // Add permissions if provided
+    if (permissions && permissions.length > 0) {
+      const { error: permError } = await supabase
+        .from("admin_permissions")
+        .insert(
+          permissions.map(page_key => ({
+            user_id: authData.user.id,
+            page_key
+          }))
+        );
+
+      if (permError) {
+        console.error("Permissions insertion error:", permError);
+        // Continue even if permissions fail
+      } else {
+        console.log("Permissions assigned successfully");
+      }
+    }
 
     return new Response(JSON.stringify({ 
       success: true, 

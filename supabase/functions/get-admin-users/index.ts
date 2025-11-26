@@ -90,10 +90,19 @@ serve(async (req: Request) => {
           .select('page_key')
           .eq('user_id', userId);
 
+        // Get profile
+        const { data: profile } = await supabaseAdmin
+          .from('profiles')
+          .select('first_name, last_name')
+          .eq('id', userId)
+          .single();
+
         return {
           id: adminUser.id,
           email: adminUser.email || '',
           created_at: adminUser.created_at,
+          first_name: profile?.first_name,
+          last_name: profile?.last_name,
           permissions: perms?.map(p => p.page_key) || []
         };
       })
