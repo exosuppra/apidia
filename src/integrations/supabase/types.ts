@@ -14,6 +14,27 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_permissions: {
+        Row: {
+          created_at: string
+          id: string
+          page_key: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          page_key: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          page_key?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       tags: {
         Row: {
           color: string
@@ -177,6 +198,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      has_page_permission: {
+        Args: { _page_key: string; _user_id: string }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

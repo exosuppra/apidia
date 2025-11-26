@@ -17,6 +17,7 @@ import AdminLogin from "./pages/auth/AdminLogin";
 import AdminDashboard from "./pages/admin/Dashboard";
 import AllFiches from "./pages/admin/AllFiches";
 import PlanningEditorial from "./pages/admin/PlanningEditorial";
+import UsersManagement from "./pages/admin/UsersManagement";
 import Fiches from "./pages/dashboard/Fiches";
 import Catalogue from "./pages/Catalogue";
 import ApidaeDetails from "./pages/ApidaeDetails";
@@ -56,6 +57,11 @@ const App = () => (
             <Route path="/admin/dashboard" element={
               <RequireAdminAuth>
                 <AdminDashboard />
+              </RequireAdminAuth>
+            } />
+            <Route path="/admin/users" element={
+              <RequireAdminAuth>
+                <UsersManagement />
               </RequireAdminAuth>
             } />
             <Route path="/admin/fiches" element={

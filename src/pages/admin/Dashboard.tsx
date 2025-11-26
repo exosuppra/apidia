@@ -64,7 +64,11 @@ export default function AdminDashboard() {
                 <CardDescription>
                   Gérer les comptes utilisateurs et leurs permissions
                 </CardDescription>
-                <Button className="w-full mt-4" variant="outline">
+                <Button 
+                  className="w-full mt-4" 
+                  variant="outline"
+                  onClick={() => navigate("/admin/users")}
+                >
                   Accéder
                 </Button>
               </CardContent>
