@@ -2,9 +2,10 @@ import { ReactNode, useEffect, useState } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/context/AuthProvider";
 import { supabase } from "@/integrations/supabase/client";
+import type { User } from "@supabase/supabase-js";
 
 export default function RequirePasswordChange({ children }: { children: ReactNode }) {
-  const { user, loading } = useAuth();
+  const { user, loading, isGoogleSheetsUser } = useAuth();
   const location = useLocation();
   const [mustChangePassword, setMustChangePassword] = useState<boolean | null>(null);
   const [checking, setChecking] = useState(true);
@@ -16,10 +17,20 @@ export default function RequirePasswordChange({ children }: { children: ReactNod
         return;
       }
 
+      // Les utilisateurs Google Sheets n'ont pas besoin de changer de mot de passe
+      if (isGoogleSheetsUser) {
+        setMustChangePassword(false);
+        setChecking(false);
+        return;
+      }
+
+      // Type guard pour s'assurer que c'est un utilisateur Lovable Cloud
+      const cloudUser = user as User;
+
       const { data, error } = await supabase
         .from('profiles')
         .select('must_change_password')
-        .eq('id', user.id)
+        .eq('id', cloudUser.id)
         .maybeSingle();
 
       if (error) {
@@ -33,7 +44,7 @@ export default function RequirePasswordChange({ children }: { children: ReactNod
     };
 
     checkPasswordChangeRequired();
-  }, [user]);
+  }, [user, isGoogleSheetsUser]);
 
   if (loading || checking) {
     return (
