@@ -1,66 +1,26 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 import Seo from "@/components/Seo";
 import { Shield, LogOut, Users, FileText, Eye, Calendar, CalendarClock } from "lucide-react";
-
-interface AdminSession {
-  admin: {
-    id: string;
-    email: string;
-  };
-  sessionToken: string;
-  loginTime: number;
-}
+import { useAuth } from "@/context/AuthProvider";
 
 export default function AdminDashboard() {
-  const [adminSession, setAdminSession] = useState<AdminSession | null>(null);
+  const { user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  useEffect(() => {
-    const sessionData = localStorage.getItem("admin_session");
-    if (!sessionData) {
-      navigate("/admin/login");
-      return;
-    }
-
-    try {
-      const session = JSON.parse(sessionData) as AdminSession;
-      
-      // Vérifier si la session n'est pas trop ancienne (24h)
-      const maxAge = 24 * 60 * 60 * 1000; // 24 heures
-      if (Date.now() - session.loginTime > maxAge) {
-        localStorage.removeItem("admin_session");
-        navigate("/admin/login");
-        return;
-      }
-
-      setAdminSession(session);
-    } catch (error) {
-      localStorage.removeItem("admin_session");
-      navigate("/admin/login");
-    }
-  }, [navigate]);
-
-  const handleLogout = () => {
-    localStorage.removeItem("admin_session");
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
     toast({
       title: "Déconnexion",
       description: "Vous avez été déconnecté avec succès",
     });
     navigate("/admin/login");
   };
-
-  if (!adminSession) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-sm text-muted-foreground">Chargement...</div>
-      </div>
-    );
-  }
 
   return (
     <>
@@ -80,7 +40,7 @@ export default function AdminDashboard() {
               <div>
                 <h1 className="text-2xl font-bold">Administration</h1>
                 <p className="text-sm text-muted-foreground">
-                  Connecté en tant que {adminSession.admin.email}
+                  Connecté en tant que {user?.email}
                 </p>
               </div>
             </div>

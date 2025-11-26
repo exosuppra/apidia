@@ -10,6 +10,7 @@ import DashboardLayout from "./layouts/DashboardLayout";
 import Overview from "./pages/dashboard/Overview";
 import AuthProvider from "./context/AuthProvider";
 import RequireAuth from "./components/RequireAuth";
+import RequireAdminAuth from "./components/RequireAdminAuth";
 import Login from "./pages/auth/Login";
 import SetCode from "./pages/auth/SetCode";
 import AdminLogin from "./pages/auth/AdminLogin";
@@ -52,9 +53,21 @@ const App = () => (
             <Route path="/auth/login" element={<Login />} />
             <Route path="/auth/set-code" element={<SetCode />} />
             <Route path="/admin/login" element={<AdminLogin />} />
-            <Route path="/admin/dashboard" element={<AdminDashboard />} />
-            <Route path="/admin/fiches" element={<AllFiches />} />
-            <Route path="/admin/planning" element={<PlanningEditorial />} />
+            <Route path="/admin/dashboard" element={
+              <RequireAdminAuth>
+                <AdminDashboard />
+              </RequireAdminAuth>
+            } />
+            <Route path="/admin/fiches" element={
+              <RequireAdminAuth>
+                <AllFiches />
+              </RequireAdminAuth>
+            } />
+            <Route path="/admin/planning" element={
+              <RequireAdminAuth>
+                <PlanningEditorial />
+              </RequireAdminAuth>
+            } />
             
             {/* Main business dashboard */}
             <Route path="/avis" element={
