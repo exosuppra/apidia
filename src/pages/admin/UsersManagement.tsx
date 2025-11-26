@@ -13,6 +13,8 @@ import Seo from "@/components/Seo";
 interface AdminUser {
   id: string;
   email: string;
+  first_name?: string;
+  last_name?: string;
   created_at: string;
   permissions: string[];
 }
@@ -29,6 +31,8 @@ export default function UsersManagement() {
   const [loading, setLoading] = useState(true);
   const [newUserEmail, setNewUserEmail] = useState("");
   const [newUserPassword, setNewUserPassword] = useState("");
+  const [newUserFirstName, setNewUserFirstName] = useState("");
+  const [newUserLastName, setNewUserLastName] = useState("");
   const [selectedPermissions, setSelectedPermissions] = useState<string[]>([]);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const { toast } = useToast();
@@ -66,36 +70,17 @@ export default function UsersManagement() {
     }
 
     try {
-      // Create user
-      const { data: { user }, error: createError } = await supabase.auth.admin.createUser({
-        email: newUserEmail,
-        password: newUserPassword,
-        email_confirm: true
+      const { data, error } = await supabase.functions.invoke('create-admin', {
+        body: { 
+          email: newUserEmail, 
+          password: newUserPassword,
+          firstName: newUserFirstName,
+          lastName: newUserLastName,
+          permissions: selectedPermissions
+        }
       });
 
-      if (createError) throw createError;
-      if (!user) throw new Error("Utilisateur non créé");
-
-      // Add admin role
-      const { error: roleError } = await supabase
-        .from('user_roles')
-        .insert({ user_id: user.id, role: 'admin' });
-
-      if (roleError) throw roleError;
-
-      // Add permissions
-      if (selectedPermissions.length > 0) {
-        const { error: permError } = await supabase
-          .from('admin_permissions')
-          .insert(
-            selectedPermissions.map(page_key => ({
-              user_id: user.id,
-              page_key
-            }))
-          );
-
-        if (permError) throw permError;
-      }
+      if (error) throw error;
 
       toast({
         title: "Succès",
@@ -104,6 +89,8 @@ export default function UsersManagement() {
 
       setNewUserEmail("");
       setNewUserPassword("");
+      setNewUserFirstName("");
+      setNewUserLastName("");
       setSelectedPermissions([]);
       setIsCreateDialogOpen(false);
       fetchAdminUsers();
@@ -213,6 +200,28 @@ export default function UsersManagement() {
                 
                 <div className="space-y-4">
                   <div className="space-y-2">
+                    <Label htmlFor="firstName">Prénom</Label>
+                    <Input
+                      id="firstName"
+                      type="text"
+                      value={newUserFirstName}
+                      onChange={(e) => setNewUserFirstName(e.target.value)}
+                      placeholder="Jean"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="lastName">Nom</Label>
+                    <Input
+                      id="lastName"
+                      type="text"
+                      value={newUserLastName}
+                      onChange={(e) => setNewUserLastName(e.target.value)}
+                      placeholder="Dupont"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
                     <Label htmlFor="email">Email</Label>
                     <Input
                       id="email"
@@ -272,9 +281,13 @@ export default function UsersManagement() {
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <div>
-                      <CardTitle>{user.email}</CardTitle>
+                      <CardTitle>
+                        {user.first_name || user.last_name 
+                          ? `${user.first_name || ''} ${user.last_name || ''}`.trim()
+                          : user.email}
+                      </CardTitle>
                       <CardDescription>
-                        Créé le {new Date(user.created_at).toLocaleDateString('fr-FR')}
+                        {user.first_name || user.last_name ? user.email : ''} • Créé le {new Date(user.created_at).toLocaleDateString('fr-FR')}
                       </CardDescription>
                     </div>
                     <Button
