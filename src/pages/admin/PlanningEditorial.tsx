@@ -169,8 +169,8 @@ export default function PlanningEditorial() {
       />
 
       <div className="min-h-screen bg-background">
-        <div className="border-b bg-card">
-          <div className="container mx-auto px-4 py-4">
+        <div className="border-b bg-card transition-all duration-300">
+          <div className="container mx-auto px-4 py-4 animate-fade-in">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <Button
@@ -224,6 +224,7 @@ export default function PlanningEditorial() {
                   <Button
                     variant="outline"
                     onClick={() => setViewMode(viewMode === "kanban" ? "calendar" : "kanban")}
+                    className="transition-all hover:scale-105"
                   >
                     {viewMode === "kanban" ? (
                       <>
@@ -240,11 +241,16 @@ export default function PlanningEditorial() {
                   <Button
                     variant="outline"
                     onClick={() => setIsTagManagerOpen(true)}
+                    className="transition-all hover:scale-105"
                   >
                     <TagIcon className="h-4 w-4 mr-2" />
                     Tags
                   </Button>
-                  <Button onClick={() => setIsCreateDialogOpen(true)} disabled={!selectedPlanningId}>
+                  <Button 
+                    onClick={() => setIsCreateDialogOpen(true)} 
+                    disabled={!selectedPlanningId}
+                    className="transition-all hover:scale-105"
+                  >
                     <Plus className="h-4 w-4 mr-2" />
                     Nouvelle tâche
                   </Button>
@@ -256,7 +262,7 @@ export default function PlanningEditorial() {
 
         <div className="container mx-auto px-4 py-6">
           {viewMode === "kanban" ? (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-fade-in">
               <TaskColumn
                 title="À faire"
                 tasks={todoTasks}

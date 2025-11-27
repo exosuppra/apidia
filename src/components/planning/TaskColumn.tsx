@@ -25,14 +25,14 @@ export function TaskColumn({ title, tasks, status, onRefresh, tags }: TaskColumn
   };
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-4 animate-fade-in">
       <div className="flex items-center justify-between">
         <h2 className="font-semibold text-lg">{title}</h2>
-        <span className="text-sm text-muted-foreground">
+        <span className="text-sm text-muted-foreground px-2 py-1 bg-background rounded-full transition-all">
           {tasks.length}
         </span>
       </div>
-      <div className={`rounded-lg p-4 min-h-[400px] ${getBgColor()}`}>
+      <div className={`rounded-lg p-4 min-h-[400px] transition-colors duration-300 ${getBgColor()}`}>
         <div className="space-y-3">
           {tasks.map((task) => (
             <TaskCard

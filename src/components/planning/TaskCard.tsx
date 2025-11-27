@@ -77,24 +77,32 @@ export function TaskCard({ task, onRefresh, allTags }: TaskCardProps) {
 
   return (
     <>
-      <Card className="hover:shadow-md transition-shadow">
-        <CardContent className="p-4">
+      <Card className="hover:shadow-lg transition-all duration-300 hover:scale-[1.02] cursor-pointer animate-fade-in">
+        <CardContent className="p-4 transition-all">
           <div className="flex items-start justify-between mb-2">
-            <h3 className="font-medium text-sm">{task.title}</h3>
+            <h3 
+              className="font-medium text-sm cursor-pointer hover:text-primary transition-colors"
+              onClick={() => setIsEditDialogOpen(true)}
+            >
+              {task.title}
+            </h3>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8">
+                <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-accent transition-all">
                   <MoreVertical className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => setIsEditDialogOpen(true)}>
+              <DropdownMenuContent align="end" className="animate-scale-in">
+                <DropdownMenuItem 
+                  onClick={() => setIsEditDialogOpen(true)}
+                  className="transition-colors hover:bg-accent"
+                >
                   <Edit2 className="h-4 w-4 mr-2" />
                   Modifier
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={handleDelete}
-                  className="text-destructive"
+                  className="text-destructive transition-colors hover:bg-destructive/10"
                 >
                   <Trash2 className="h-4 w-4 mr-2" />
                   Supprimer
