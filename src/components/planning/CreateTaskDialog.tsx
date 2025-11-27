@@ -199,13 +199,14 @@ export function CreateTaskDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
+      <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
+        <DialogHeader className="flex-shrink-0">
           <DialogTitle>Nouvelle tâche</DialogTitle>
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-4 overflow-hidden">
+            <div className="overflow-y-auto pr-2 space-y-4 flex-1 min-h-0">
             <FormField
               control={form.control}
               name="title"
@@ -390,15 +391,16 @@ export function CreateTaskDialog({
               )}
             />
 
-            <div>
-              <FormLabel>Fichiers joints</FormLabel>
-              <FileUpload 
-                previewMode={true} 
-                onFilesSelected={setSelectedFiles}
-              />
+              <div>
+                <FormLabel>Fichiers joints</FormLabel>
+                <FileUpload 
+                  previewMode={true} 
+                  onFilesSelected={setSelectedFiles}
+                />
+              </div>
             </div>
 
-            <div className="flex justify-end gap-2">
+            <div className="flex justify-end gap-2 pt-4 border-t flex-shrink-0">
               <Button
                 type="button"
                 variant="outline"

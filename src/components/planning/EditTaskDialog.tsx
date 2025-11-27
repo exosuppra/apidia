@@ -150,13 +150,14 @@ export function EditTaskDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
+      <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
+        <DialogHeader className="flex-shrink-0">
           <DialogTitle>Modifier la tâche</DialogTitle>
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-4 overflow-hidden">
+            <div className="overflow-y-auto pr-2 space-y-4 flex-1 min-h-0">
             <FormField
               control={form.control}
               name="title"
@@ -341,16 +342,17 @@ export function EditTaskDialog({
               )}
             />
 
-            <div>
-              <FormLabel>Fichiers joints</FormLabel>
-              <FileUpload 
-                taskId={task.id} 
-                existingFiles={task.attachments || []}
-                onFilesUploaded={onSuccess}
-              />
+              <div>
+                <FormLabel>Fichiers joints</FormLabel>
+                <FileUpload 
+                  taskId={task.id} 
+                  existingFiles={task.attachments || []}
+                  onFilesUploaded={onSuccess}
+                />
+              </div>
             </div>
 
-            <div className="flex justify-end gap-2">
+            <div className="flex justify-end gap-2 pt-4 border-t flex-shrink-0">
               <Button
                 type="button"
                 variant="outline"
