@@ -9,6 +9,7 @@ import Seo from "@/components/Seo";
 import { TaskColumn } from "@/components/planning/TaskColumn";
 import { CalendarView } from "@/components/planning/CalendarView";
 import { CreateTaskDialog } from "@/components/planning/CreateTaskDialog";
+import { EditTaskDialog } from "@/components/planning/EditTaskDialog";
 import { TagManager } from "@/components/planning/TagManager";
 import { PlanningSelector } from "@/components/planning/PlanningSelector";
 import type { Task, Tag, EditorialPlanning } from "@/types/planning";
@@ -22,6 +23,8 @@ export default function PlanningEditorial() {
   const [plannings, setPlannings] = useState<EditorialPlanning[]>([]);
   const [selectedPlanningId, setSelectedPlanningId] = useState<string | null>(null);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [isTagManagerOpen, setIsTagManagerOpen] = useState(false);
   const [viewMode, setViewMode] = useState<"kanban" | "calendar">("calendar");
   const [prefilledDate, setPrefilledDate] = useState<Date | null>(null);
@@ -132,6 +135,18 @@ export default function PlanningEditorial() {
     setIsCreateDialogOpen(open);
     if (!open) {
       setPrefilledDate(null);
+    }
+  };
+
+  const handleTaskClick = (task: Task) => {
+    setSelectedTask(task);
+    setIsEditDialogOpen(true);
+  };
+
+  const handleEditDialogClose = (open: boolean) => {
+    setIsEditDialogOpen(open);
+    if (!open) {
+      setSelectedTask(null);
     }
   };
 
@@ -302,6 +317,7 @@ export default function PlanningEditorial() {
               tags={tags} 
               onRefresh={loadData}
               onDateDoubleClick={handleDateDoubleClick}
+              onTaskClick={handleTaskClick}
             />
           )}
         </div>
@@ -315,6 +331,16 @@ export default function PlanningEditorial() {
         planningId={selectedPlanningId}
         prefilledDate={prefilledDate}
       />
+
+      {selectedTask && (
+        <EditTaskDialog
+          open={isEditDialogOpen}
+          onOpenChange={handleEditDialogClose}
+          task={selectedTask}
+          onSuccess={loadData}
+          allTags={tags}
+        />
+      )}
 
       <TagManager
         open={isTagManagerOpen}

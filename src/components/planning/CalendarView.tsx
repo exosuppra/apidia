@@ -12,9 +12,10 @@ interface CalendarViewProps {
   tags: Tag[];
   onRefresh: () => void;
   onDateDoubleClick?: (date: Date) => void;
+  onTaskClick?: (task: Task) => void;
 }
 
-export function CalendarView({ tasks, tags, onRefresh, onDateDoubleClick }: CalendarViewProps) {
+export function CalendarView({ tasks, tags, onRefresh, onDateDoubleClick, onTaskClick }: CalendarViewProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
 
   const monthStart = startOfMonth(currentDate);
@@ -104,6 +105,10 @@ export function CalendarView({ tasks, tags, onRefresh, onDateDoubleClick }: Cale
                       color: "white",
                     }}
                     title={task.title}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onTaskClick?.(task);
+                    }}
                   >
                     {task.title}
                   </div>
