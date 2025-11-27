@@ -9,6 +9,16 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Form,
   FormControl,
   FormField,
@@ -28,7 +38,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
@@ -65,6 +75,8 @@ export function EditTaskDialog({
 }: EditTaskDialogProps) {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [localTags, setLocalTags] = useState<Tag[]>(allTags);
 
   const form = useForm<TaskFormValues>({
@@ -95,6 +107,58 @@ export function EditTaskDialog({
   useEffect(() => {
     setLocalTags(allTags);
   }, [allTags]);
+
+  const handleDelete = async () => {
+    setDeleting(true);
+    try {
+      // Delete attachments from storage
+      if (task.attachments && task.attachments.length > 0) {
+        const filePaths = task.attachments.map(a => a.file_path);
+        const { error: storageError } = await supabase.storage
+          .from("task-attachments")
+          .remove(filePaths);
+        
+        if (storageError) console.error("Error deleting files:", storageError);
+      }
+
+      // Delete task_attachments records
+      await supabase
+        .from("task_attachments" as any)
+        .delete()
+        .eq("task_id", task.id);
+
+      // Delete task_tags
+      await supabase
+        .from("task_tags" as any)
+        .delete()
+        .eq("task_id", task.id);
+
+      // Delete the task
+      const { error } = await supabase
+        .from("tasks" as any)
+        .delete()
+        .eq("id", task.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Tâche supprimée",
+        description: "La tâche a été supprimée avec succès.",
+      });
+
+      setShowDeleteDialog(false);
+      onOpenChange(false);
+      onSuccess();
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: error.message,
+      });
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   const onSubmit = async (values: TaskFormValues) => {
     setLoading(true);
@@ -352,21 +416,54 @@ export function EditTaskDialog({
               </div>
             </div>
 
-            <div className="flex justify-end gap-2 pt-4 border-t flex-shrink-0">
+            <div className="flex justify-between gap-2 pt-4 border-t flex-shrink-0">
               <Button
                 type="button"
-                variant="outline"
-                onClick={() => onOpenChange(false)}
+                variant="destructive"
+                onClick={() => setShowDeleteDialog(true)}
+                disabled={loading || deleting}
               >
-                Annuler
+                <Trash2 className="h-4 w-4 mr-2" />
+                Supprimer
               </Button>
-              <Button type="submit" disabled={loading}>
-                {loading ? "Mise à jour..." : "Mettre à jour"}
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => onOpenChange(false)}
+                  disabled={loading || deleting}
+                >
+                  Annuler
+                </Button>
+                <Button type="submit" disabled={loading || deleting}>
+                  {loading ? "Mise à jour..." : "Mettre à jour"}
+                </Button>
+              </div>
             </div>
           </form>
         </Form>
       </DialogContent>
+
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
+            <AlertDialogDescription>
+              Êtes-vous sûr de vouloir supprimer cette tâche ? Cette action est irréversible et supprimera également tous les fichiers joints.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={deleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting ? "Suppression..." : "Supprimer"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 }
