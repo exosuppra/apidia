@@ -11,9 +11,10 @@ interface CalendarViewProps {
   tasks: Task[];
   tags: Tag[];
   onRefresh: () => void;
+  onDateDoubleClick?: (date: Date) => void;
 }
 
-export function CalendarView({ tasks, tags, onRefresh }: CalendarViewProps) {
+export function CalendarView({ tasks, tags, onRefresh, onDateDoubleClick }: CalendarViewProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
 
   const monthStart = startOfMonth(currentDate);
@@ -71,9 +72,10 @@ export function CalendarView({ tasks, tags, onRefresh }: CalendarViewProps) {
           return (
             <Card
               key={index}
-              className={`min-h-[120px] p-2 ${
+              className={`min-h-[120px] p-2 cursor-pointer transition-colors hover:bg-accent/50 ${
                 !isCurrentMonth ? "bg-muted/30 text-muted-foreground" : ""
               } ${isToday ? "border-primary border-2" : ""}`}
+              onDoubleClick={() => onDateDoubleClick?.(day)}
             >
               <div className="text-sm font-semibold mb-2">
                 {format(day, "d")}
