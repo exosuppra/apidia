@@ -35,6 +35,33 @@ export type Database = {
         }
         Relationships: []
       }
+      editorial_plannings: {
+        Row: {
+          created_at: string
+          created_by: string
+          description: string | null
+          id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          description?: string | null
+          id?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
@@ -168,6 +195,7 @@ export type Database = {
           description: string | null
           due_date: string | null
           id: string
+          planning_id: string | null
           priority: string
           status: string
           title: string
@@ -180,6 +208,7 @@ export type Database = {
           description?: string | null
           due_date?: string | null
           id?: string
+          planning_id?: string | null
           priority?: string
           status?: string
           title: string
@@ -192,12 +221,21 @@ export type Database = {
           description?: string | null
           due_date?: string | null
           id?: string
+          planning_id?: string | null
           priority?: string
           status?: string
           title?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "tasks_planning_id_fkey"
+            columns: ["planning_id"]
+            isOneToOne: false
+            referencedRelation: "editorial_plannings"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_action_logs: {
         Row: {

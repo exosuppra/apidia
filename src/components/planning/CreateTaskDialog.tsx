@@ -53,6 +53,7 @@ interface CreateTaskDialogProps {
   onOpenChange: (open: boolean) => void;
   onSuccess: () => void;
   tags: Tag[];
+  planningId: string | null;
 }
 
 export function CreateTaskDialog({
@@ -60,6 +61,7 @@ export function CreateTaskDialog({
   onOpenChange,
   onSuccess,
   tags,
+  planningId,
 }: CreateTaskDialogProps) {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
@@ -141,6 +143,7 @@ export function CreateTaskDialog({
           priority: values.priority,
           due_date: values.due_date?.toISOString() || null,
           created_by: user.id,
+          planning_id: planningId,
         })
         .select()
         .single() as any;

@@ -9,7 +9,8 @@ import { TaskColumn } from "@/components/planning/TaskColumn";
 import { CalendarView } from "@/components/planning/CalendarView";
 import { CreateTaskDialog } from "@/components/planning/CreateTaskDialog";
 import { TagManager } from "@/components/planning/TagManager";
-import type { Task, Tag } from "@/types/planning";
+import { PlanningSelector } from "@/components/planning/PlanningSelector";
+import type { Task, Tag, EditorialPlanning } from "@/types/planning";
 
 export default function PlanningEditorial() {
   const navigate = useNavigate();
@@ -17,6 +18,8 @@ export default function PlanningEditorial() {
   const [loading, setLoading] = useState(true);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [tags, setTags] = useState<Tag[]>([]);
+  const [plannings, setPlannings] = useState<EditorialPlanning[]>([]);
+  const [selectedPlanningId, setSelectedPlanningId] = useState<string | null>(null);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isTagManagerOpen, setIsTagManagerOpen] = useState(false);
   const [viewMode, setViewMode] = useState<"kanban" | "calendar">("calendar");
@@ -27,7 +30,43 @@ export default function PlanningEditorial() {
 
   const loadData = async () => {
     try {
-      // Load tasks
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) throw new Error("Non authentifié");
+
+      // Load plannings
+      const { data: planningsData, error: planningsError } = await supabase
+        .from("editorial_plannings")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (planningsError) throw planningsError;
+
+      // If no plannings exist, create a default one
+      if (!planningsData || planningsData.length === 0) {
+        const { data: newPlanning, error: createError } = await supabase
+          .from("editorial_plannings")
+          .insert({
+            title: "Mon planning éditorial",
+            description: "Planning principal",
+            created_by: user.id,
+          })
+          .select()
+          .single();
+
+        if (createError) throw createError;
+        setPlannings([newPlanning as any]);
+        setSelectedPlanningId(newPlanning.id);
+      } else {
+        setPlannings(planningsData as any);
+        // Select the first planning if none is selected
+        if (!selectedPlanningId) {
+          setSelectedPlanningId(planningsData[0].id);
+        }
+      }
+
+      // Load tasks (will be filtered by planning in UI)
       const { data: tasksData, error: tasksError } = await supabase
         .from("tasks" as any)
         .select("*")
@@ -81,9 +120,11 @@ export default function PlanningEditorial() {
     }
   };
 
-  const todoTasks = tasks.filter((t) => t.status === "todo");
-  const inProgressTasks = tasks.filter((t) => t.status === "in_progress");
-  const doneTasks = tasks.filter((t) => t.status === "done");
+  // Filter tasks by selected planning
+  const filteredTasks = tasks.filter((t) => t.planning_id === selectedPlanningId);
+  const todoTasks = filteredTasks.filter((t) => t.status === "todo");
+  const inProgressTasks = filteredTasks.filter((t) => t.status === "in_progress");
+  const doneTasks = filteredTasks.filter((t) => t.status === "done");
 
   if (loading) {
     return (
@@ -119,34 +160,42 @@ export default function PlanningEditorial() {
                   </p>
                 </div>
               </div>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  onClick={() => setViewMode(viewMode === "kanban" ? "calendar" : "kanban")}
-                >
-                  {viewMode === "kanban" ? (
-                    <>
-                      <Calendar className="h-4 w-4 mr-2" />
-                      Vue calendrier
-                    </>
-                  ) : (
-                    <>
-                      <LayoutGrid className="h-4 w-4 mr-2" />
-                      Vue kanban
-                    </>
-                  )}
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => setIsTagManagerOpen(true)}
-                >
-                  <TagIcon className="h-4 w-4 mr-2" />
-                  Tags
-                </Button>
-                <Button onClick={() => setIsCreateDialogOpen(true)}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Nouvelle tâche
-                </Button>
+              <div className="flex gap-2 items-center">
+                <PlanningSelector
+                  plannings={plannings}
+                  selectedPlanningId={selectedPlanningId}
+                  onPlanningChange={setSelectedPlanningId}
+                  onRefresh={loadData}
+                />
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => setViewMode(viewMode === "kanban" ? "calendar" : "kanban")}
+                  >
+                    {viewMode === "kanban" ? (
+                      <>
+                        <Calendar className="h-4 w-4 mr-2" />
+                        Vue calendrier
+                      </>
+                    ) : (
+                      <>
+                        <LayoutGrid className="h-4 w-4 mr-2" />
+                        Vue kanban
+                      </>
+                    )}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => setIsTagManagerOpen(true)}
+                  >
+                    <TagIcon className="h-4 w-4 mr-2" />
+                    Tags
+                  </Button>
+                  <Button onClick={() => setIsCreateDialogOpen(true)} disabled={!selectedPlanningId}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Nouvelle tâche
+                  </Button>
+                </div>
               </div>
             </div>
           </div>
@@ -178,7 +227,7 @@ export default function PlanningEditorial() {
               />
             </div>
           ) : (
-            <CalendarView tasks={tasks} tags={tags} onRefresh={loadData} />
+            <CalendarView tasks={filteredTasks} tags={tags} onRefresh={loadData} />
           )}
         </div>
       </div>
@@ -188,6 +237,7 @@ export default function PlanningEditorial() {
         onOpenChange={setIsCreateDialogOpen}
         onSuccess={loadData}
         tags={tags}
+        planningId={selectedPlanningId}
       />
 
       <TagManager
