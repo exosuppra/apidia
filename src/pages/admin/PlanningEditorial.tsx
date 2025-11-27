@@ -3,7 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Plus, Tag as TagIcon, Calendar, LayoutGrid } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { ArrowLeft, Plus, Tag as TagIcon, Calendar, LayoutGrid, Search } from "lucide-react";
 import Seo from "@/components/Seo";
 import { TaskColumn } from "@/components/planning/TaskColumn";
 import { CalendarView } from "@/components/planning/CalendarView";
@@ -24,6 +25,7 @@ export default function PlanningEditorial() {
   const [isTagManagerOpen, setIsTagManagerOpen] = useState(false);
   const [viewMode, setViewMode] = useState<"kanban" | "calendar">("calendar");
   const [prefilledDate, setPrefilledDate] = useState<Date | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
     loadData();
@@ -133,8 +135,20 @@ export default function PlanningEditorial() {
     }
   };
 
-  // Filter tasks by selected planning
-  const filteredTasks = tasks.filter((t) => t.planning_id === selectedPlanningId);
+  // Filter tasks by selected planning and search term
+  const filteredTasks = tasks.filter((t) => {
+    if (t.planning_id !== selectedPlanningId) return false;
+    
+    if (searchTerm) {
+      const search = searchTerm.toLowerCase();
+      const matchesTitle = t.title.toLowerCase().includes(search);
+      const matchesDescription = t.description?.toLowerCase().includes(search);
+      return matchesTitle || matchesDescription;
+    }
+    
+    return true;
+  });
+  
   const todoTasks = filteredTasks.filter((t) => t.status === "todo");
   const inProgressTasks = filteredTasks.filter((t) => t.status === "in_progress");
   const doneTasks = filteredTasks.filter((t) => t.status === "done");
@@ -174,6 +188,15 @@ export default function PlanningEditorial() {
                 </div>
               </div>
               <div className="flex gap-2 items-center">
+                <div className="relative w-64">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Rechercher une tâche..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-9"
+                  />
+                </div>
                 <PlanningSelector
                   plannings={plannings}
                   selectedPlanningId={selectedPlanningId}
