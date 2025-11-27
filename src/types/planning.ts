@@ -15,6 +15,15 @@ export interface TaskAttachment {
   created_at: string;
 }
 
+export interface EditorialPlanning {
+  id: string;
+  title: string;
+  description: string | null;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface Task {
   id: string;
   title: string;
@@ -24,6 +33,7 @@ export interface Task {
   due_date: string | null;
   assigned_to: string | null;
   created_by: string;
+  planning_id: string | null;
   created_at: string;
   updated_at: string;
   tags?: Tag[];
