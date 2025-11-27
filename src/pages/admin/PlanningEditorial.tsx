@@ -170,13 +170,15 @@ export default function PlanningEditorial() {
 
       <div className="min-h-screen bg-background">
         <div className="border-b bg-card transition-all duration-300">
-          <div className="container mx-auto px-4 py-4 animate-fade-in">
+          <div className="container mx-auto px-4 py-6 animate-fade-in space-y-4">
+            {/* Ligne 1: Titre et bouton retour */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <Button
                   variant="ghost"
                   size="icon"
                   onClick={() => navigate("/admin/dashboard")}
+                  className="transition-all hover:scale-105"
                 >
                   <ArrowLeft className="h-4 w-4" />
                 </Button>
@@ -187,74 +189,83 @@ export default function PlanningEditorial() {
                   </p>
                 </div>
               </div>
-              <div className="flex gap-2 items-center">
-                <div className="flex items-center gap-2">
-                  <div className="relative w-64">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      placeholder="Rechercher une tâche..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-9 pr-9"
-                    />
-                    {searchTerm && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
-                        onClick={() => setSearchTerm("")}
-                      >
-                        <X className="h-3 w-3" />
-                      </Button>
-                    )}
-                  </div>
-                  {searchTerm && (
-                    <span className="text-sm text-muted-foreground whitespace-nowrap">
-                      {filteredTasks.length} résultat{filteredTasks.length > 1 ? "s" : ""}
-                    </span>
+              
+              {/* Actions principales à droite */}
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setViewMode(viewMode === "kanban" ? "calendar" : "kanban")}
+                  className="transition-all hover:scale-105"
+                >
+                  {viewMode === "kanban" ? (
+                    <>
+                      <Calendar className="h-4 w-4 mr-2" />
+                      Calendrier
+                    </>
+                  ) : (
+                    <>
+                      <LayoutGrid className="h-4 w-4 mr-2" />
+                      Kanban
+                    </>
                   )}
-                </div>
+                </Button>
+                <Button 
+                  onClick={() => setIsCreateDialogOpen(true)} 
+                  disabled={!selectedPlanningId}
+                  className="transition-all hover:scale-105"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Nouvelle tâche
+                </Button>
+              </div>
+            </div>
+
+            {/* Ligne 2: Sélecteur de planning, recherche et filtres */}
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
                 <PlanningSelector
                   plannings={plannings}
                   selectedPlanningId={selectedPlanningId}
                   onPlanningChange={setSelectedPlanningId}
                   onRefresh={loadData}
                 />
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    onClick={() => setViewMode(viewMode === "kanban" ? "calendar" : "kanban")}
-                    className="transition-all hover:scale-105"
-                  >
-                    {viewMode === "kanban" ? (
-                      <>
-                        <Calendar className="h-4 w-4 mr-2" />
-                        Vue calendrier
-                      </>
-                    ) : (
-                      <>
-                        <LayoutGrid className="h-4 w-4 mr-2" />
-                        Vue kanban
-                      </>
-                    )}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() => setIsTagManagerOpen(true)}
-                    className="transition-all hover:scale-105"
-                  >
-                    <TagIcon className="h-4 w-4 mr-2" />
-                    Tags
-                  </Button>
-                  <Button 
-                    onClick={() => setIsCreateDialogOpen(true)} 
-                    disabled={!selectedPlanningId}
-                    className="transition-all hover:scale-105"
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Nouvelle tâche
-                  </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsTagManagerOpen(true)}
+                  className="transition-all hover:scale-105"
+                >
+                  <TagIcon className="h-4 w-4 mr-2" />
+                  Gérer les tags
+                </Button>
+              </div>
+
+              {/* Barre de recherche */}
+              <div className="flex items-center gap-2 flex-1 max-w-md">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Rechercher une tâche..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-9 pr-9"
+                  />
+                  {searchTerm && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
+                      onClick={() => setSearchTerm("")}
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  )}
                 </div>
+                {searchTerm && (
+                  <span className="text-sm text-muted-foreground whitespace-nowrap">
+                    {filteredTasks.length} résultat{filteredTasks.length > 1 ? "s" : ""}
+                  </span>
+                )}
               </div>
             </div>
           </div>
