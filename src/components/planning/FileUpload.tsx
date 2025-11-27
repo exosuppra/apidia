@@ -156,13 +156,13 @@ export function FileUpload({ taskId, onFilesUploaded, existingFiles = [], previe
         <div className="space-y-2">
           <p className="text-sm font-medium">Fichiers à uploader :</p>
           {files.map((file, index) => (
-            <div key={index} className="flex items-center justify-between p-2 bg-muted rounded-md">
-              <span className="text-sm truncate flex-1">{file.name}</span>
+            <div key={index} className="flex items-center justify-between gap-2 p-2 bg-muted rounded-md min-w-0">
+              <span className="text-sm truncate flex-1 min-w-0 break-all" title={file.name}>{file.name}</span>
               <Button
                 type="button"
                 variant="ghost"
                 size="icon"
-                className="h-6 w-6"
+                className="h-6 w-6 flex-shrink-0"
                 onClick={() => handleRemoveFile(index)}
               >
                 <X className="h-4 w-4" />
@@ -186,21 +186,22 @@ export function FileUpload({ taskId, onFilesUploaded, existingFiles = [], previe
         <div className="space-y-2">
           <p className="text-sm font-medium">Fichiers joints :</p>
           {attachments.map((attachment) => (
-            <div key={attachment.id} className="flex items-center justify-between p-2 bg-muted rounded-md">
+            <div key={attachment.id} className="flex items-center justify-between gap-2 p-2 bg-muted rounded-md min-w-0">
               <a
                 href={getFileUrl(attachment.file_path)}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-sm truncate flex-1 flex items-center gap-2 hover:underline"
+                className="text-sm truncate flex-1 min-w-0 flex items-center gap-2 hover:underline break-all"
+                title={attachment.file_name}
               >
-                {getFileIcon(attachment.mime_type)}
-                {attachment.file_name}
+                <span className="flex-shrink-0">{getFileIcon(attachment.mime_type)}</span>
+                <span className="truncate">{attachment.file_name}</span>
               </a>
               <Button
                 type="button"
                 variant="ghost"
                 size="icon"
-                className="h-6 w-6"
+                className="h-6 w-6 flex-shrink-0"
                 onClick={() => handleDeleteAttachment(attachment)}
               >
                 <X className="h-4 w-4" />
