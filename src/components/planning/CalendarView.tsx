@@ -36,20 +36,34 @@ export function CalendarView({ tasks, tags, onRefresh, onDateDoubleClick }: Cale
   const today = () => setCurrentDate(new Date());
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 animate-fade-in">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="icon" onClick={prevMonth}>
+          <Button 
+            variant="outline" 
+            size="icon" 
+            onClick={prevMonth}
+            className="transition-all hover:scale-110"
+          >
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          <h2 className="text-xl font-semibold min-w-[200px] text-center">
+          <h2 className="text-xl font-semibold min-w-[200px] text-center transition-all">
             {format(currentDate, "MMMM yyyy", { locale: fr })}
           </h2>
-          <Button variant="outline" size="icon" onClick={nextMonth}>
+          <Button 
+            variant="outline" 
+            size="icon" 
+            onClick={nextMonth}
+            className="transition-all hover:scale-110"
+          >
             <ChevronRight className="h-4 w-4" />
           </Button>
         </div>
-        <Button variant="outline" onClick={today}>
+        <Button 
+          variant="outline" 
+          onClick={today}
+          className="transition-all hover:scale-105"
+        >
           Aujourd'hui
         </Button>
       </div>
@@ -72,9 +86,9 @@ export function CalendarView({ tasks, tags, onRefresh, onDateDoubleClick }: Cale
           return (
             <Card
               key={index}
-              className={`min-h-[120px] p-2 cursor-pointer transition-colors hover:bg-accent/50 ${
+              className={`min-h-[120px] p-2 cursor-pointer transition-all duration-300 hover:bg-accent/50 hover:shadow-md hover:scale-[1.02] ${
                 !isCurrentMonth ? "bg-muted/30 text-muted-foreground" : ""
-              } ${isToday ? "border-primary border-2" : ""}`}
+              } ${isToday ? "border-primary border-2 animate-pulse" : ""}`}
               onDoubleClick={() => onDateDoubleClick?.(day)}
             >
               <div className="text-sm font-semibold mb-2">
@@ -84,7 +98,7 @@ export function CalendarView({ tasks, tags, onRefresh, onDateDoubleClick }: Cale
                 {dayTasks.map((task) => (
                   <div
                     key={task.id}
-                    className="text-xs p-1 rounded truncate cursor-pointer hover:opacity-80"
+                    className="text-xs p-1 rounded truncate cursor-pointer hover:opacity-80 transition-all duration-200 hover:scale-105 hover:shadow-sm animate-fade-in"
                     style={{
                       backgroundColor: task.tags?.[0]?.color || "#3b82f6",
                       color: "white",
