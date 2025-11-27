@@ -4,7 +4,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, Plus, Tag as TagIcon, Calendar, LayoutGrid, Search } from "lucide-react";
+import { ArrowLeft, Plus, Tag as TagIcon, Calendar, LayoutGrid, Search, X } from "lucide-react";
 import Seo from "@/components/Seo";
 import { TaskColumn } from "@/components/planning/TaskColumn";
 import { CalendarView } from "@/components/planning/CalendarView";
@@ -188,14 +188,31 @@ export default function PlanningEditorial() {
                 </div>
               </div>
               <div className="flex gap-2 items-center">
-                <div className="relative w-64">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Rechercher une tâche..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-9"
-                  />
+                <div className="flex items-center gap-2">
+                  <div className="relative w-64">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Rechercher une tâche..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="pl-9 pr-9"
+                    />
+                    {searchTerm && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
+                        onClick={() => setSearchTerm("")}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    )}
+                  </div>
+                  {searchTerm && (
+                    <span className="text-sm text-muted-foreground whitespace-nowrap">
+                      {filteredTasks.length} résultat{filteredTasks.length > 1 ? "s" : ""}
+                    </span>
+                  )}
                 </div>
                 <PlanningSelector
                   plannings={plannings}
