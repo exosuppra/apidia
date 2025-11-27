@@ -23,6 +23,7 @@ export default function PlanningEditorial() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isTagManagerOpen, setIsTagManagerOpen] = useState(false);
   const [viewMode, setViewMode] = useState<"kanban" | "calendar">("calendar");
+  const [prefilledDate, setPrefilledDate] = useState<Date | null>(null);
 
   useEffect(() => {
     loadData();
@@ -117,6 +118,18 @@ export default function PlanningEditorial() {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDateDoubleClick = (date: Date) => {
+    setPrefilledDate(date);
+    setIsCreateDialogOpen(true);
+  };
+
+  const handleCreateDialogClose = (open: boolean) => {
+    setIsCreateDialogOpen(open);
+    if (!open) {
+      setPrefilledDate(null);
     }
   };
 
@@ -227,17 +240,23 @@ export default function PlanningEditorial() {
               />
             </div>
           ) : (
-            <CalendarView tasks={filteredTasks} tags={tags} onRefresh={loadData} />
+            <CalendarView 
+              tasks={filteredTasks} 
+              tags={tags} 
+              onRefresh={loadData}
+              onDateDoubleClick={handleDateDoubleClick}
+            />
           )}
         </div>
       </div>
 
       <CreateTaskDialog
         open={isCreateDialogOpen}
-        onOpenChange={setIsCreateDialogOpen}
+        onOpenChange={handleCreateDialogClose}
         onSuccess={loadData}
         tags={tags}
         planningId={selectedPlanningId}
+        prefilledDate={prefilledDate}
       />
 
       <TagManager

@@ -54,6 +54,7 @@ interface CreateTaskDialogProps {
   onSuccess: () => void;
   tags: Tag[];
   planningId: string | null;
+  prefilledDate?: Date | null;
 }
 
 export function CreateTaskDialog({
@@ -62,6 +63,7 @@ export function CreateTaskDialog({
   onSuccess,
   tags,
   planningId,
+  prefilledDate,
 }: CreateTaskDialogProps) {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
@@ -83,6 +85,12 @@ export function CreateTaskDialog({
   useEffect(() => {
     setLocalTags(tags);
   }, [tags]);
+
+  useEffect(() => {
+    if (open && prefilledDate) {
+      form.setValue("due_date", prefilledDate);
+    }
+  }, [open, prefilledDate, form]);
 
   const uploadSelectedFiles = async (taskId: string) => {
     if (selectedFiles.length === 0) return;
