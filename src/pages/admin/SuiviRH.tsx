@@ -121,11 +121,13 @@ export default function SuiviRH() {
     const grouped: Record<string, number> = {};
     filteredData.forEach((e) => {
       if (e.projet) {
-        grouped[e.projet] = (grouped[e.projet] || 0) + e.valorisation;
+        const heures = e.heures_recherche_ot + e.heures_recherche_maison;
+        grouped[e.projet] = (grouped[e.projet] || 0) + heures;
       }
     });
     return Object.entries(grouped)
-      .map(([name, heures]) => ({ name, heures }))
+      .map(([name, heures]) => ({ name, heures: Math.round(heures * 10) / 10 }))
+      .filter((d) => d.heures > 0)
       .sort((a, b) => b.heures - a.heures)
       .slice(0, 10);
   }, [filteredData]);
