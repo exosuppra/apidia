@@ -44,10 +44,11 @@ serve(async (req: Request) => {
       });
     }
 
-    const SHEET_ID = Deno.env.get("GOOGLE_SHEETS_ID");
+    // Use the dedicated RH Google Sheet
+    const SHEET_ID = Deno.env.get("GOOGLE_SHEETS_RH_ID");
     const SA_JSON = Deno.env.get("GOOGLE_SERVICE_ACCOUNT_JSON");
     
-    if (!SHEET_ID) throw new Error("Missing GOOGLE_SHEETS_ID secret");
+    if (!SHEET_ID) throw new Error("Missing GOOGLE_SHEETS_RH_ID secret");
     if (!SA_JSON) throw new Error("Missing GOOGLE_SERVICE_ACCOUNT_JSON secret");
 
     const sa = JSON.parse(SA_JSON || "{}");
@@ -63,23 +64,40 @@ serve(async (req: Request) => {
 
     const sheets = google.sheets({ version: "v4", auth });
     
-    // Read specifically from "Feuille 2"
-    const sheetName = "Feuille 2";
-    const sheetRange = `${sheetName}!A1:ZZ1000`;
+    // Try multiple sheet names to find the RH data
+    const possibleSheetNames = ["Feuille 2", "Feuille2", "Sheet2", "Sheet 2", "Feuille 1", "Feuille1", "Sheet1", "Sheet 1"];
+    let sheetName = "";
+    let sheetRange = "";
     
-    console.log(`Reading RH data from sheet: ${sheetRange}`);
+    // Try to find a valid sheet
+    let rows: string[][] = [];
     
-    const resp = await sheets.spreadsheets.values.get({
-      spreadsheetId: SHEET_ID,
-      range: sheetRange,
-      majorDimension: "ROWS",
-    });
-    
-    const rows = resp.data.values || [];
+    for (const name of possibleSheetNames) {
+      try {
+        sheetName = name;
+        sheetRange = `${name}!A1:ZZ1000`;
+        console.log(`Trying to read RH data from sheet: ${sheetRange}`);
+        
+        const resp = await sheets.spreadsheets.values.get({
+          spreadsheetId: SHEET_ID,
+          range: sheetRange,
+          majorDimension: "ROWS",
+        });
+        
+        rows = resp.data.values || [];
+        if (rows.length > 0) {
+          console.log(`SUCCESS: Found sheet "${name}" with ${rows.length} rows`);
+          break;
+        }
+      } catch (sheetError: any) {
+        console.log(`Sheet "${name}" not found, trying next...`);
+        continue;
+      }
+    }
     
     if (rows.length === 0) {
-      console.log("No data found in Feuille 2");
-      return new Response(JSON.stringify({ data: [] }), {
+      console.log("No data found in any sheet");
+      return new Response(JSON.stringify({ data: [], message: "Aucune donnée trouvée. Vérifiez le nom de l'onglet." }), {
         status: 200,
         headers: { "Content-Type": "application/json", ...corsHeaders },
       });
