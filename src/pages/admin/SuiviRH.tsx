@@ -139,25 +139,49 @@ export default function SuiviRH() {
     ].filter((d) => d.value > 0);
   }, [kpis]);
 
+  // Parse French date like "10 juin 2025" to Date object
+  const parseFrenchDate = (dateStr: string): Date | null => {
+    if (!dateStr) return null;
+    const months: Record<string, number> = {
+      janvier: 0, février: 1, mars: 2, avril: 3, mai: 4, juin: 5,
+      juillet: 6, août: 7, septembre: 8, octobre: 9, novembre: 10, décembre: 11
+    };
+    const match = dateStr.match(/(\d{1,2})\s+(\w+)\s+(\d{4})/);
+    if (match) {
+      const day = parseInt(match[1], 10);
+      const month = months[match[2].toLowerCase()];
+      const year = parseInt(match[3], 10);
+      if (month !== undefined) {
+        return new Date(year, month, day);
+      }
+    }
+    return null;
+  };
+
   const evolutionParDate = useMemo(() => {
-    const grouped: Record<string, { ot: number; maison: number }> = {};
+    const grouped: Record<string, { ot: number; maison: number; dateObj: Date }> = {};
     filteredData.forEach((e) => {
       if (e.date) {
-        if (!grouped[e.date]) {
-          grouped[e.date] = { ot: 0, maison: 0 };
+        const dateObj = parseFrenchDate(e.date);
+        if (dateObj) {
+          const key = dateObj.toISOString().split("T")[0]; // YYYY-MM-DD
+          if (!grouped[key]) {
+            grouped[key] = { ot: 0, maison: 0, dateObj };
+          }
+          grouped[key].ot += e.heures_recherche_ot;
+          grouped[key].maison += e.heures_recherche_maison;
         }
-        grouped[e.date].ot += e.heures_recherche_ot;
-        grouped[e.date].maison += e.heures_recherche_maison;
       }
     });
     return Object.entries(grouped)
-      .map(([date, values]) => ({
-        date,
-        ot: values.ot,
-        maison: values.maison,
-        total: values.ot + values.maison,
+      .map(([key, values]) => ({
+        date: values.dateObj.toLocaleDateString("fr-FR", { day: "2-digit", month: "short" }),
+        sortKey: key,
+        ot: Math.round(values.ot * 10) / 10,
+        maison: Math.round(values.maison * 10) / 10,
+        total: Math.round((values.ot + values.maison) * 10) / 10,
       }))
-      .sort((a, b) => a.date.localeCompare(b.date));
+      .sort((a, b) => a.sortKey.localeCompare(b.sortKey));
   }, [filteredData]);
 
   if (isLoading) {
