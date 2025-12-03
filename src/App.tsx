@@ -22,6 +22,7 @@ import PlanningEditorial from "./pages/admin/PlanningEditorial";
 import UsersManagement from "./pages/admin/UsersManagement";
 import UserRequests from "./pages/admin/UserRequests";
 import UserActionLogs from "./pages/admin/UserActionLogs";
+import SuiviRH from "./pages/admin/SuiviRH";
 import Fiches from "./pages/dashboard/Fiches";
 import Catalogue from "./pages/Catalogue";
 import ApidaeDetails from "./pages/ApidaeDetails";
@@ -102,6 +103,13 @@ const App = () => (
               <RequireAdminAuth>
                 <RequirePasswordChange>
                   <UserActionLogs />
+                </RequirePasswordChange>
+              </RequireAdminAuth>
+            } />
+            <Route path="/admin/rh" element={
+              <RequireAdminAuth>
+                <RequirePasswordChange>
+                  <SuiviRH />
                 </RequirePasswordChange>
               </RequireAdminAuth>
             } />

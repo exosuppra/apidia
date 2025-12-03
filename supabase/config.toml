@@ -2,3 +2,6 @@ project_id = "uxrsffoesdnlnusvhmeu"
 
 [functions.create-admin]
 verify_jwt = false
+
+[functions.get-rh-data]
+verify_jwt = false

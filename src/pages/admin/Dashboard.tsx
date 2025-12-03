@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import Seo from "@/components/Seo";
-import { Shield, LogOut, Users, FileText, Eye, Calendar, CalendarClock } from "lucide-react";
+import { Shield, LogOut, Users, FileText, Eye, Calendar, CalendarClock, Clock } from "lucide-react";
 import { useAuth } from "@/context/AuthProvider";
 
 export default function AdminDashboard() {
@@ -189,6 +189,29 @@ export default function AdminDashboard() {
                     onClick={() => navigate("/admin/planning")}
                   >
                     Accéder au planning
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+
+            {hasPermission('rh') && (
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">
+                    Suivi RH - Projets IA
+                  </CardTitle>
+                  <Clock className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <CardDescription>
+                    Suivi des heures de travail et valorisation des projets IA
+                  </CardDescription>
+                  <Button 
+                    className="w-full mt-4" 
+                    variant="outline"
+                    onClick={() => navigate("/admin/rh")}
+                  >
+                    Accéder au suivi RH
                   </Button>
                 </CardContent>
               </Card>
