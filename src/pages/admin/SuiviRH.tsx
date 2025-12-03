@@ -23,6 +23,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
+import {
   ArrowLeft,
   Clock,
   Briefcase,
@@ -61,11 +69,14 @@ interface RHEntry {
 
 const COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899", "#06b6d4"];
 
+const ITEMS_PER_PAGE = 20;
+
 export default function SuiviRH() {
   const navigate = useNavigate();
   const [dateStart, setDateStart] = useState("");
   const [dateEnd, setDateEnd] = useState("");
   const [projetFilter, setProjetFilter] = useState("all");
+  const [currentPage, setCurrentPage] = useState(1);
 
   const { data: rhData, isLoading, error } = useQuery({
     queryKey: ["rh-data"],
@@ -195,6 +206,13 @@ export default function SuiviRH() {
       return dateB.getTime() - dateA.getTime();
     });
   }, [filteredData]);
+
+  // Paginated data
+  const totalPages = Math.ceil(sortedTableData.length / ITEMS_PER_PAGE);
+  const paginatedData = useMemo(() => {
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    return sortedTableData.slice(start, start + ITEMS_PER_PAGE);
+  }, [sortedTableData, currentPage]);
 
   if (isLoading) {
     return (
@@ -493,9 +511,11 @@ export default function SuiviRH() {
           {/* Detailed table */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Détail des entrées</CardTitle>
+              <CardTitle className="text-base">
+                Détail des entrées ({sortedTableData.length} entrées)
+              </CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-4">
               <div className="rounded-md border">
                 <Table>
                   <TableHeader>
@@ -510,7 +530,7 @@ export default function SuiviRH() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {sortedTableData.length === 0 ? (
+                    {paginatedData.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
                           Aucune donnée à afficher
@@ -518,7 +538,7 @@ export default function SuiviRH() {
                       </TableRow>
                     ) : (
                       <>
-                        {sortedTableData.map((entry, idx) => (
+                        {paginatedData.map((entry, idx) => (
                           <TableRow key={idx}>
                             <TableCell className="font-medium">{entry.date}</TableCell>
                             <TableCell>{entry.projet}</TableCell>
@@ -563,6 +583,49 @@ export default function SuiviRH() {
                   </TableBody>
                 </Table>
               </div>
+              
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <Pagination>
+                  <PaginationContent>
+                    <PaginationItem>
+                      <PaginationPrevious
+                        onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                        className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                      />
+                    </PaginationItem>
+                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                      let pageNum: number;
+                      if (totalPages <= 5) {
+                        pageNum = i + 1;
+                      } else if (currentPage <= 3) {
+                        pageNum = i + 1;
+                      } else if (currentPage >= totalPages - 2) {
+                        pageNum = totalPages - 4 + i;
+                      } else {
+                        pageNum = currentPage - 2 + i;
+                      }
+                      return (
+                        <PaginationItem key={pageNum}>
+                          <PaginationLink
+                            onClick={() => setCurrentPage(pageNum)}
+                            isActive={currentPage === pageNum}
+                            className="cursor-pointer"
+                          >
+                            {pageNum}
+                          </PaginationLink>
+                        </PaginationItem>
+                      );
+                    })}
+                    <PaginationItem>
+                      <PaginationNext
+                        onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                        className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                      />
+                    </PaginationItem>
+                  </PaginationContent>
+                </Pagination>
+              )}
             </CardContent>
           </Card>
         </div>
