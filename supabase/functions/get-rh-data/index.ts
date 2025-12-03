@@ -31,6 +31,47 @@ function parseDate(value: string): string {
   return value.trim();
 }
 
+// Parse time range like "Du 20 juin 2025 à 11h30 au 20 juin 2025 à 14h30" and calculate hours
+function parseTimeRangeToHours(value: string): number {
+  if (!value || value.trim() === "") return 0;
+  
+  // Try to extract two times from the string
+  // Pattern: look for times like "11h30", "14h00", "9h", etc.
+  const timePattern = /(\d{1,2})h(\d{2})?/gi;
+  const matches = [...value.matchAll(timePattern)];
+  
+  if (matches.length >= 2) {
+    // Extract start and end times
+    const startHour = parseInt(matches[0][1], 10);
+    const startMin = matches[0][2] ? parseInt(matches[0][2], 10) : 0;
+    const endHour = parseInt(matches[1][1], 10);
+    const endMin = matches[1][2] ? parseInt(matches[1][2], 10) : 0;
+    
+    const startMinutes = startHour * 60 + startMin;
+    const endMinutes = endHour * 60 + endMin;
+    
+    let diffMinutes = endMinutes - startMinutes;
+    // Handle overnight work (e.g., 22h to 6h)
+    if (diffMinutes < 0) {
+      diffMinutes += 24 * 60;
+    }
+    
+    const hours = diffMinutes / 60;
+    console.log(`Parsed time range "${value}" -> ${startHour}h${startMin} to ${endHour}h${endMin} = ${hours.toFixed(2)}h`);
+    return Math.round(hours * 100) / 100; // Round to 2 decimals
+  }
+  
+  // If no time range found, try to parse as a simple number
+  return parseNumber(value);
+}
+
+// Check if a cell contains a time range (has "Du" and "au" or time patterns)
+function hasTimeRange(value: string): boolean {
+  if (!value || value.trim() === "") return false;
+  const lower = value.toLowerCase();
+  return (lower.includes("du") && lower.includes("au")) || /\d{1,2}h\d{0,2}/i.test(value);
+}
+
 serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -142,16 +183,24 @@ serve(async (req: Request) => {
       const projet = projetIdx >= 0 ? (row[projetIdx] || "").trim() : "";
       const valorisation = valorisationIdx >= 0 ? parseNumber(row[valorisationIdx] || "") : 0;
       
+      // Parse OT and Maison time ranges
+      const otValue = heuresOTIdx >= 0 ? (row[heuresOTIdx] || "") : "";
+      const maisonValue = heuresMaisonIdx >= 0 ? (row[heuresMaisonIdx] || "") : "";
+      
+      // Calculate hours from time ranges
+      const heuresOT = parseTimeRangeToHours(otValue);
+      const heuresMaison = parseTimeRangeToHours(maisonValue);
+      
       // Skip rows without meaningful data
-      if (!date && !projet && valorisation === 0) continue;
+      if (!date && !projet && valorisation === 0 && heuresOT === 0 && heuresMaison === 0) continue;
       
       data.push({
         date,
         projet,
         tache: tacheIdx >= 0 ? (row[tacheIdx] || "").trim() : "",
         titre: titreIdx >= 0 ? (row[titreIdx] || "").trim() : "",
-        heures_recherche_ot: heuresOTIdx >= 0 ? parseNumber(row[heuresOTIdx] || "") : 0,
-        heures_recherche_maison: heuresMaisonIdx >= 0 ? parseNumber(row[heuresMaisonIdx] || "") : 0,
+        heures_recherche_ot: heuresOT,
+        heures_recherche_maison: heuresMaison,
         temps_travail: tempsTravailIdx >= 0 ? (row[tempsTravailIdx] || "").trim() : "",
         valorisation,
       });
