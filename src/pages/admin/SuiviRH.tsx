@@ -184,6 +184,18 @@ export default function SuiviRH() {
       .sort((a, b) => a.sortKey.localeCompare(b.sortKey));
   }, [filteredData]);
 
+  // Sorted data for table (descending by date)
+  const sortedTableData = useMemo(() => {
+    return [...filteredData].sort((a, b) => {
+      const dateA = parseFrenchDate(a.date);
+      const dateB = parseFrenchDate(b.date);
+      if (!dateA && !dateB) return 0;
+      if (!dateA) return 1;
+      if (!dateB) return -1;
+      return dateB.getTime() - dateA.getTime();
+    });
+  }, [filteredData]);
+
   if (isLoading) {
     return (
       <div className="min-h-screen grid place-items-center bg-background">
@@ -498,7 +510,7 @@ export default function SuiviRH() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredData.length === 0 ? (
+                    {sortedTableData.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
                           Aucune donnée à afficher
@@ -506,7 +518,7 @@ export default function SuiviRH() {
                       </TableRow>
                     ) : (
                       <>
-                        {filteredData.map((entry, idx) => (
+                        {sortedTableData.map((entry, idx) => (
                           <TableRow key={idx}>
                             <TableCell className="font-medium">{entry.date}</TableCell>
                             <TableCell>{entry.projet}</TableCell>
