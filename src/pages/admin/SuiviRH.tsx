@@ -96,16 +96,46 @@ export default function SuiviRH() {
     return uniqueProjets.sort();
   }, [rhData]);
 
+  // Helper to parse French date strings
+  const parseFrenchDateForFilter = (dateStr: string): Date | null => {
+    if (!dateStr) return null;
+    const months: Record<string, number> = {
+      janvier: 0, fevrier: 1, mars: 2, avril: 3, mai: 4, juin: 5,
+      juillet: 6, aout: 7, septembre: 8, octobre: 9, novembre: 10, decembre: 11
+    };
+    const normalizedStr = dateStr.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+    const match = normalizedStr.match(/(\d{1,2})\s+(\w+)\s+(\d{4})/);
+    if (match) {
+      const day = parseInt(match[1], 10);
+      const month = months[match[2]];
+      const year = parseInt(match[3], 10);
+      if (month !== undefined) {
+        return new Date(year, month, day);
+      }
+    }
+    return null;
+  };
+
   // Filter data
   const filteredData = useMemo(() => {
     if (!rhData) return [];
+    
+    // Convert filter dates to Date objects
+    const startDate = dateStart ? new Date(dateStart + "T00:00:00") : null;
+    const endDate = dateEnd ? new Date(dateEnd + "T23:59:59") : null;
+    
     return rhData.filter((entry) => {
       // Filter by project
       if (projetFilter !== "all" && entry.projet !== projetFilter) return false;
       
-      // Filter by date range (basic string comparison)
-      if (dateStart && entry.date && entry.date < dateStart) return false;
-      if (dateEnd && entry.date && entry.date > dateEnd) return false;
+      // Filter by date range using proper Date comparison
+      if (entry.date) {
+        const entryDate = parseFrenchDateForFilter(entry.date);
+        if (entryDate) {
+          if (startDate && entryDate < startDate) return false;
+          if (endDate && entryDate > endDate) return false;
+        }
+      }
       
       return true;
     });
