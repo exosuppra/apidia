@@ -442,17 +442,23 @@ export default function SuiviRH() {
               </CardHeader>
               <CardContent>
                 {heuresParProjet.length > 0 ? (
-                  <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={heuresParProjet} layout="vertical">
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis type="number" />
+                  <ResponsiveContainer width="100%" height={Math.max(300, heuresParProjet.length * 35)}>
+                    <BarChart data={heuresParProjet} layout="vertical" margin={{ left: 20, right: 20 }}>
+                      <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+                      <XAxis type="number" tickFormatter={(value) => `${value}h`} />
                       <YAxis
                         dataKey="name"
                         type="category"
-                        width={120}
-                        tick={{ fontSize: 12 }}
+                        width={180}
+                        tick={{ fontSize: 11 }}
+                        tickFormatter={(value: string) => 
+                          value.length > 25 ? value.substring(0, 25) + "..." : value
+                        }
                       />
-                      <Tooltip />
+                      <Tooltip 
+                        formatter={(value: number) => [`${value}h`, "Heures"]}
+                        labelFormatter={(label) => label}
+                      />
                       <Bar dataKey="heures" fill="hsl(var(--primary))" radius={4} />
                     </BarChart>
                   </ResponsiveContainer>
