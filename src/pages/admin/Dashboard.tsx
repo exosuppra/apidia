@@ -79,161 +79,178 @@ export default function AdminDashboard() {
             </Button>
           </div>
 
-          {/* Dashboard Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {hasPermission('users') && (
+          {/* RH & Administration */}
+          {(hasPermission('users') || hasPermission('rh')) && (
+            <section className="mb-10">
+              <h2 className="text-lg font-semibold mb-4 text-primary">RH & Administration</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {hasPermission('users') && (
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium">
+                        Gestion des utilisateurs
+                      </CardTitle>
+                      <Users className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                      <CardDescription>
+                        Gérer les comptes utilisateurs et leurs permissions
+                      </CardDescription>
+                      <Button 
+                        className="w-full mt-4" 
+                        variant="outline"
+                        onClick={() => navigate("/admin/users")}
+                      >
+                        Accéder
+                      </Button>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {hasPermission('rh') && (
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium">
+                        Suivi RH - Projets IA
+                      </CardTitle>
+                      <Clock className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                      <CardDescription>
+                        Suivi des heures de travail et valorisation des projets IA
+                      </CardDescription>
+                      <Button 
+                        className="w-full mt-4" 
+                        variant="outline"
+                        onClick={() => navigate("/admin/rh")}
+                      >
+                        Accéder au suivi RH
+                      </Button>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+            </section>
+          )}
+
+          {/* Accueil & Qualification de la donnée touristique */}
+          <section className="mb-10">
+            <h2 className="text-lg font-semibold mb-4 text-primary">Accueil & Qualification de la donnée touristique</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {hasPermission('requests') && (
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">
+                      Demandes utilisateurs
+                    </CardTitle>
+                    <FileText className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <CardDescription>
+                      Traiter les demandes de modification des fiches
+                    </CardDescription>
+                    <Button 
+                      className="w-full mt-4" 
+                      variant="outline"
+                      onClick={() => navigate("/admin/requests")}
+                    >
+                      Voir les demandes
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
+
+              {hasPermission('fiches') && (
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">
+                      Toutes les fiches
+                    </CardTitle>
+                    <Eye className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <CardDescription>
+                      Voir toutes les fiches du Google Sheet (sauf SOURCING)
+                    </CardDescription>
+                    <Button 
+                      className="w-full mt-4" 
+                      variant="outline"
+                      onClick={() => navigate("/admin/fiches")}
+                    >
+                      Voir toutes les fiches
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
+
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">
-                    Gestion des utilisateurs
+                    Historique des actions
                   </CardTitle>
-                  <Users className="h-4 w-4 text-muted-foreground" />
+                  <Shield className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
                   <CardDescription>
-                    Gérer les comptes utilisateurs et leurs permissions
+                    Voir l'historique des actions des utilisateurs
                   </CardDescription>
                   <Button 
                     className="w-full mt-4" 
                     variant="outline"
-                    onClick={() => navigate("/admin/users")}
+                    onClick={() => navigate("/admin/logs")}
                   >
-                    Accéder
+                    Consulter l'historique
                   </Button>
                 </CardContent>
               </Card>
-            )}
 
-            {hasPermission('requests') && (
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">
-                    Demandes utilisateurs
+                    Générateur de planning
                   </CardTitle>
-                  <FileText className="h-4 w-4 text-muted-foreground" />
+                  <Calendar className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
                   <CardDescription>
-                    Traiter les demandes de modification des fiches
+                    Créer automatiquement des plannings de publication
                   </CardDescription>
-                  <Button 
-                    className="w-full mt-4" 
-                    variant="outline"
-                    onClick={() => navigate("/admin/requests")}
-                  >
-                    Voir les demandes
+                  <Button className="w-full mt-4" variant="outline">
+                    Générer un planning
                   </Button>
                 </CardContent>
               </Card>
-            )}
+            </div>
+          </section>
 
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Historique des actions
-                </CardTitle>
-                <Shield className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <CardDescription>
-                  Voir l'historique des actions des utilisateurs
-                </CardDescription>
-                <Button 
-                  className="w-full mt-4" 
-                  variant="outline"
-                  onClick={() => navigate("/admin/logs")}
-                >
-                  Consulter l'historique
-                </Button>
-              </CardContent>
-            </Card>
-
-            {hasPermission('fiches') && (
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    Toutes les fiches
-                  </CardTitle>
-                  <Eye className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <CardDescription>
-                    Voir toutes les fiches du Google Sheet (sauf SOURCING)
-                  </CardDescription>
-                  <Button 
-                    className="w-full mt-4" 
-                    variant="outline"
-                    onClick={() => navigate("/admin/fiches")}
-                  >
-                    Voir toutes les fiches
-                  </Button>
-                </CardContent>
-              </Card>
-            )}
-
-            {hasPermission('planning') && (
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    Planning éditorial social média
-                  </CardTitle>
-                  <CalendarClock className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <CardDescription>
-                    Gérer le planning de publication sur les réseaux sociaux
-                  </CardDescription>
-                  <Button 
-                    className="w-full mt-4" 
-                    variant="outline"
-                    onClick={() => navigate("/admin/planning")}
-                  >
-                    Accéder au planning
-                  </Button>
-                </CardContent>
-              </Card>
-            )}
-
-            {hasPermission('rh') && (
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    Suivi RH - Projets IA
-                  </CardTitle>
-                  <Clock className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <CardDescription>
-                    Suivi des heures de travail et valorisation des projets IA
-                  </CardDescription>
-                  <Button 
-                    className="w-full mt-4" 
-                    variant="outline"
-                    onClick={() => navigate("/admin/rh")}
-                  >
-                    Accéder au suivi RH
-                  </Button>
-                </CardContent>
-              </Card>
-            )}
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Générateur de planning
-                </CardTitle>
-                <Calendar className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <CardDescription>
-                  Créer automatiquement des plannings de publication
-                </CardDescription>
-                <Button className="w-full mt-4" variant="outline">
-                  Générer un planning
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
+          {/* Gestion de Projet Réseaux sociaux */}
+          {hasPermission('planning') && (
+            <section className="mb-10">
+              <h2 className="text-lg font-semibold mb-4 text-primary">Gestion de Projet Réseaux sociaux</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">
+                      Planning éditorial social média
+                    </CardTitle>
+                    <CalendarClock className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <CardDescription>
+                      Gérer le planning de publication sur les réseaux sociaux
+                    </CardDescription>
+                    <Button 
+                      className="w-full mt-4" 
+                      variant="outline"
+                      onClick={() => navigate("/admin/planning")}
+                    >
+                      Accéder au planning
+                    </Button>
+                  </CardContent>
+                </Card>
+              </div>
+            </section>
+          )}
 
           {/* Recent Activity */}
           <Card className="mt-8">
