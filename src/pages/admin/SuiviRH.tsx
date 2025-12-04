@@ -154,23 +154,18 @@ export default function SuiviRH() {
   const parseFrenchDate = (dateStr: string): Date | null => {
     if (!dateStr) return null;
     const months: Record<string, number> = {
-      janvier: 0, fevrier: 1, février: 1, mars: 2, avril: 3, mai: 4, juin: 5,
-      juillet: 6, aout: 7, août: 7, septembre: 8, octobre: 9, novembre: 10, 
-      decembre: 11, décembre: 11
+      janvier: 0, fevrier: 1, mars: 2, avril: 3, mai: 4, juin: 5,
+      juillet: 6, aout: 7, septembre: 8, octobre: 9, novembre: 10, decembre: 11
     };
-    // Normalize accents for matching
-    const normalizedStr = dateStr.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-    const match = dateStr.match(/(\d{1,2})\s+(\w+)\s+(\d{4})/);
+    
+    // Normalize accents for reliable matching
+    const normalizedStr = dateStr.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
     const matchNormalized = normalizedStr.match(/(\d{1,2})\s+(\w+)\s+(\d{4})/);
     
-    if (match) {
-      const day = parseInt(match[1], 10);
-      let month = months[match[2].toLowerCase()];
-      // Try with normalized version if not found
-      if (month === undefined && matchNormalized) {
-        month = months[matchNormalized[2].toLowerCase()];
-      }
-      const year = parseInt(match[3], 10);
+    if (matchNormalized) {
+      const day = parseInt(matchNormalized[1], 10);
+      const month = months[matchNormalized[2]];
+      const year = parseInt(matchNormalized[3], 10);
       if (month !== undefined) {
         return new Date(year, month, day);
       }
