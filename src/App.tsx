@@ -23,6 +23,7 @@ import UsersManagement from "./pages/admin/UsersManagement";
 import UserRequests from "./pages/admin/UserRequests";
 import UserActionLogs from "./pages/admin/UserActionLogs";
 import SuiviRH from "./pages/admin/SuiviRH";
+import StatsWeb from "./pages/admin/StatsWeb";
 import Fiches from "./pages/dashboard/Fiches";
 import Catalogue from "./pages/Catalogue";
 import ApidaeDetails from "./pages/ApidaeDetails";
@@ -110,6 +111,13 @@ const App = () => (
               <RequireAdminAuth>
                 <RequirePasswordChange>
                   <SuiviRH />
+                </RequirePasswordChange>
+              </RequireAdminAuth>
+            } />
+            <Route path="/admin/stats-web" element={
+              <RequireAdminAuth>
+                <RequirePasswordChange>
+                  <StatsWeb />
                 </RequirePasswordChange>
               </RequireAdminAuth>
             } />

@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import Seo from "@/components/Seo";
-import { Shield, LogOut, Users, FileText, Eye, Calendar, CalendarClock, Clock, Globe } from "lucide-react";
+import { Shield, LogOut, Users, FileText, Eye, Calendar, CalendarClock, Clock, Globe, BarChart3 } from "lucide-react";
 import { useAuth } from "@/context/AuthProvider";
 import {
   Dialog,
@@ -289,6 +289,27 @@ export default function AdminDashboard() {
                     onClick={handleIntenseVerdonClick}
                   >
                     Accéder à la plateforme
+                  </Button>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">
+                    Statistiques Web
+                  </CardTitle>
+                  <BarChart3 className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <CardDescription>
+                    Statistiques et données des projets web
+                  </CardDescription>
+                  <Button 
+                    className="w-full mt-4" 
+                    variant="outline"
+                    onClick={() => navigate("/admin/stats-web")}
+                  >
+                    Voir les statistiques
                   </Button>
                 </CardContent>
               </Card>
