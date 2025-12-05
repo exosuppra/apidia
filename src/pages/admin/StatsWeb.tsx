@@ -27,7 +27,7 @@ import Seo from "@/components/Seo";
 import { SiteStatsCard } from "@/components/stats/SiteStatsCard";
 import { SiteStatsChart } from "@/components/stats/SiteStatsChart";
 import { SiteComparisonChart } from "@/components/stats/SiteComparisonChart";
-import { format, startOfMonth, endOfMonth, subMonths, startOfQuarter, endOfQuarter, startOfYear, endOfYear, isWithinInterval, parse } from "date-fns";
+import { format, startOfMonth, endOfMonth, subMonths, isWithinInterval, parse } from "date-fns";
 import { fr } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 
@@ -42,7 +42,7 @@ interface StatsResponse {
   message?: string;
 }
 
-type PeriodType = "all" | "this_month" | "last_month" | "this_quarter" | "last_quarter" | "this_year" | "custom";
+type PeriodType = "all" | "last_month" | "semester_1" | "semester_2" | "custom";
 
 export default function StatsWeb() {
   const navigate = useNavigate();
@@ -101,20 +101,22 @@ export default function StatsWeb() {
   // Get date range based on period filter
   const getDateRange = (): { start: Date; end: Date } | null => {
     const now = new Date();
+    const currentYear = now.getFullYear();
     
     switch (periodFilter) {
-      case "this_month":
-        return { start: startOfMonth(now), end: endOfMonth(now) };
       case "last_month":
         const lastMonth = subMonths(now, 1);
         return { start: startOfMonth(lastMonth), end: endOfMonth(lastMonth) };
-      case "this_quarter":
-        return { start: startOfQuarter(now), end: endOfQuarter(now) };
-      case "last_quarter":
-        const lastQuarter = subMonths(now, 3);
-        return { start: startOfQuarter(lastQuarter), end: endOfQuarter(lastQuarter) };
-      case "this_year":
-        return { start: startOfYear(now), end: endOfYear(now) };
+      case "semester_1":
+        return { 
+          start: new Date(currentYear, 0, 1), // 1er janvier
+          end: new Date(currentYear, 5, 30)    // 30 juin
+        };
+      case "semester_2":
+        return { 
+          start: new Date(currentYear, 6, 1),  // 1er juillet
+          end: new Date(currentYear, 11, 31)   // 31 décembre
+        };
       case "custom":
         if (customDateRange.from && customDateRange.to) {
           return { start: customDateRange.from, end: customDateRange.to };
@@ -285,13 +287,16 @@ export default function StatsWeb() {
 
   const globalKPIs = calculateGlobalKPIs();
 
+  // Get last month name
+  const lastMonthDate = subMonths(new Date(), 1);
+  const lastMonthName = format(lastMonthDate, "MMMM yyyy", { locale: fr });
+  const currentYear = new Date().getFullYear();
+
   const periodOptions = [
     { value: "all", label: "Toutes les périodes" },
-    { value: "this_month", label: "Ce mois" },
-    { value: "last_month", label: "Mois dernier" },
-    { value: "this_quarter", label: "Ce trimestre" },
-    { value: "last_quarter", label: "Trimestre dernier" },
-    { value: "this_year", label: "Cette année" },
+    { value: "last_month", label: `${lastMonthName.charAt(0).toUpperCase() + lastMonthName.slice(1)}` },
+    { value: "semester_1", label: `Semestre 1 (${currentYear})` },
+    { value: "semester_2", label: `Semestre 2 (${currentYear})` },
     { value: "custom", label: "Période personnalisée" },
   ];
 
