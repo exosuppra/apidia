@@ -25,6 +25,8 @@ serve(async (req: Request) => {
     if (!SHEET_ID) throw new Error("Missing GOOGLE_SHEETS_STATS_WEB_ID secret");
     if (!SA_JSON) throw new Error("Missing GOOGLE_SERVICE_ACCOUNT_JSON secret");
 
+    console.log("Using Sheet ID:", SHEET_ID);
+
     const sa = JSON.parse(SA_JSON || "{}");
     if (!sa.client_email || !sa.private_key) {
       throw new Error("Invalid GOOGLE_SERVICE_ACCOUNT_JSON secret: missing client_email/private_key");
@@ -38,41 +40,51 @@ serve(async (req: Request) => {
 
     const sheets = google.sheets({ version: "v4", auth });
     
-    // Try multiple sheet names to find the data
-    const possibleSheetNames = ["Feuille 1", "Feuille1", "Sheet1", "Sheet 1", "Feuille 2", "Feuille2"];
-    let rows: string[][] = [];
-    let foundSheetName = "";
+    // First, get the spreadsheet metadata to find actual sheet names
+    console.log("Fetching spreadsheet metadata...");
+    const spreadsheetInfo = await sheets.spreadsheets.get({
+      spreadsheetId: SHEET_ID,
+    });
     
-    for (const name of possibleSheetNames) {
-      try {
-        const sheetRange = `${name}!A1:ZZ1000`;
-        console.log(`Trying to read stats web data from sheet: ${sheetRange}`);
-        
-        const resp = await sheets.spreadsheets.values.get({
-          spreadsheetId: SHEET_ID,
-          range: sheetRange,
-          majorDimension: "ROWS",
-        });
-        
-        rows = resp.data.values || [];
-        if (rows.length > 0) {
-          foundSheetName = name;
-          console.log(`SUCCESS: Found sheet "${name}" with ${rows.length} rows`);
-          break;
-        }
-      } catch (sheetError: any) {
-        console.log(`Sheet "${name}" not found, trying next...`);
-        continue;
-      }
-    }
+    const sheetNames = spreadsheetInfo.data.sheets?.map(s => s.properties?.title || "") || [];
+    console.log("Available sheets in spreadsheet:", sheetNames);
     
-    if (rows.length === 0) {
-      console.log("No data found in any sheet");
+    if (sheetNames.length === 0) {
+      console.log("No sheets found in spreadsheet");
       return new Response(JSON.stringify({ 
         data: [], 
         headers: [],
         sheetName: "",
-        message: "Aucune donnée trouvée. Vérifiez le nom de l'onglet." 
+        message: "Aucun onglet trouvé dans le document." 
+      }), {
+        status: 200,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
+    }
+    
+    // Use the first sheet by default
+    const sheetName = sheetNames[0];
+    console.log(`Using first sheet: "${sheetName}"`);
+    
+    const sheetRange = `${sheetName}!A1:ZZ1000`;
+    console.log(`Reading data from range: ${sheetRange}`);
+    
+    const resp = await sheets.spreadsheets.values.get({
+      spreadsheetId: SHEET_ID,
+      range: sheetRange,
+      majorDimension: "ROWS",
+    });
+    
+    const rows: string[][] = resp.data.values || [];
+    console.log(`Found ${rows.length} rows in sheet "${sheetName}"`);
+    
+    if (rows.length === 0) {
+      console.log("No data found in sheet");
+      return new Response(JSON.stringify({ 
+        data: [], 
+        headers: [],
+        sheetName: sheetName,
+        message: "Aucune donnée trouvée dans l'onglet." 
       }), {
         status: 200,
         headers: { "Content-Type": "application/json", ...corsHeaders },
@@ -107,7 +119,7 @@ serve(async (req: Request) => {
     return new Response(JSON.stringify({ 
       data, 
       headers,
-      sheetName: foundSheetName 
+      sheetName: sheetName 
     }), {
       status: 200,
       headers: { "Content-Type": "application/json", ...corsHeaders },
