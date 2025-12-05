@@ -97,9 +97,32 @@ serve(async (req: Request) => {
         }
 
         // Extract headers
-        const headers: string[] = rows[0].map((h: string) => h?.toString().trim() ?? "");
+        const allHeaders: string[] = rows[0].map((h: string) => h?.toString().trim() ?? "");
         
-        // Extract data rows
+        // Define columns to keep (in order)
+        const columnsToKeep = [
+          "Periode",
+          "Total Nbr Utilisateur",
+          "Moyenne durée",
+          "Nbr total de pages vues",
+          "Tx d'engagement moyen"
+        ];
+        
+        // Find indices of columns to keep
+        const columnIndices: { header: string; index: number }[] = [];
+        columnsToKeep.forEach(col => {
+          const idx = allHeaders.findIndex(h => h.toLowerCase() === col.toLowerCase());
+          if (idx !== -1) {
+            columnIndices.push({ header: allHeaders[idx], index: idx });
+          }
+        });
+        
+        // Filter headers to only kept columns
+        const headers = columnIndices.map(c => c.header);
+        
+        console.log(`Columns found in "${sheetName}":`, headers);
+        
+        // Extract data rows with only the relevant columns
         const data: Record<string, string>[] = [];
         
         for (let i = 1; i < rows.length; i++) {
@@ -111,11 +134,15 @@ serve(async (req: Request) => {
           if (!hasData) continue;
           
           const rowData: Record<string, string> = {};
-          headers.forEach((header, idx) => {
-            rowData[header] = row[idx]?.toString().trim() || "";
+          columnIndices.forEach(({ header, index }) => {
+            rowData[header] = row[index]?.toString().trim() || "";
           });
           
-          data.push(rowData);
+          // Only add if has at least one value
+          const hasValues = Object.values(rowData).some(v => v !== "");
+          if (hasValues) {
+            data.push(rowData);
+          }
         }
         
         if (data.length > 0) {
