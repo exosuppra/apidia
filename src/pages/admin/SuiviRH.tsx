@@ -39,6 +39,7 @@ import {
   Home,
   Loader2,
   Filter,
+  RefreshCw,
 } from "lucide-react";
 import {
   BarChart,
@@ -78,7 +79,7 @@ export default function SuiviRH() {
   const [projetFilter, setProjetFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
 
-  const { data: rhData, isLoading, error } = useQuery({
+  const { data: rhData, isLoading, error, refetch, isFetching } = useQuery({
     queryKey: ["rh-data"],
     queryFn: async () => {
       const { data, error } = await supabase.functions.invoke("get-rh-data", {
@@ -348,7 +349,7 @@ export default function SuiviRH() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="flex items-end">
+                <div className="flex items-end gap-2">
                   <Button
                     variant="outline"
                     onClick={() => {
@@ -358,6 +359,18 @@ export default function SuiviRH() {
                     }}
                   >
                     Réinitialiser
+                  </Button>
+                  <Button
+                    variant="default"
+                    onClick={() => refetch()}
+                    disabled={isFetching}
+                  >
+                    {isFetching ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <RefreshCw className="h-4 w-4 mr-2" />
+                    )}
+                    Rafraîchir
                   </Button>
                 </div>
               </div>
