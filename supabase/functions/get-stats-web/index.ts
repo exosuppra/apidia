@@ -56,7 +56,7 @@ serve(async (req: Request) => {
     console.log("Available sheets in spreadsheet:", allSheetNames);
     
     // Filter out "Global" sheet (case insensitive, with possible spaces)
-    const excludedNames = ["global", "globals", "globale"];
+    const excludedNames = ["global", "globals", "globale", "global "];
     const sheetNames = allSheetNames.filter(name => 
       !excludedNames.includes(name.toLowerCase().trim())
     );
@@ -79,13 +79,14 @@ serve(async (req: Request) => {
     
     for (const sheetName of sheetNames) {
       try {
-        const sheetRange = `'${sheetName}'!A1:ZZ1000`;
+        const sheetRange = `'${sheetName}'!A1:Z1000`;
         console.log(`Reading data from: ${sheetRange}`);
         
         const resp = await sheets.spreadsheets.values.get({
           spreadsheetId: SHEET_ID,
           range: sheetRange,
           majorDimension: "ROWS",
+          valueRenderOption: "FORMATTED_VALUE",
         });
         
         const rows: string[][] = resp.data.values || [];
@@ -96,8 +97,21 @@ serve(async (req: Request) => {
           continue;
         }
 
-        // Extract headers
-        const headers: string[] = rows[0].map((h: string) => h?.toString().trim() ?? "");
+        // Log raw first row for debugging
+        console.log(`Raw first row in "${sheetName}":`, JSON.stringify(rows[0]));
+
+        // Extract headers - filter out empty headers
+        const rawHeaders: string[] = rows[0] || [];
+        const headers: string[] = rawHeaders
+          .map((h: string) => (h?.toString().trim() ?? ""))
+          .filter((h: string) => h !== "");
+        
+        console.log(`Headers found in "${sheetName}":`, headers);
+        
+        if (headers.length === 0) {
+          console.log(`No valid headers in sheet "${sheetName}", skipping`);
+          continue;
+        }
         
         // Extract data rows
         const data: Record<string, string>[] = [];
@@ -107,25 +121,35 @@ serve(async (req: Request) => {
           if (!row || row.length === 0) continue;
           
           // Skip completely empty rows
-          const hasData = row.some(cell => cell && cell.trim() !== "");
+          const hasData = row.some(cell => cell && cell.toString().trim() !== "");
           if (!hasData) continue;
           
           const rowData: Record<string, string> = {};
-          headers.forEach((header, idx) => {
-            rowData[header] = row[idx]?.toString().trim() || "";
+          
+          // Map data to headers (only for valid headers)
+          rawHeaders.forEach((rawHeader, idx) => {
+            const header = rawHeader?.toString().trim() || "";
+            if (header !== "" && row[idx] !== undefined) {
+              rowData[header] = row[idx]?.toString().trim() || "";
+            }
           });
           
-          data.push(rowData);
+          // Only add row if it has at least one non-empty value
+          const hasValues = Object.values(rowData).some(v => v !== "");
+          if (hasValues) {
+            data.push(rowData);
+          }
         }
         
-        if (data.length > 0) {
-          sites.push({
-            name: sheetName,
-            data,
-            headers
-          });
-          console.log(`Processed ${data.length} rows for site "${sheetName}"`);
-        }
+        console.log(`Processed ${data.length} data rows for site "${sheetName}"`);
+        
+        // Add site even if it has headers but no data rows (for debugging)
+        sites.push({
+          name: sheetName,
+          data,
+          headers
+        });
+        
       } catch (sheetError: any) {
         console.error(`Error reading sheet "${sheetName}":`, sheetError?.message);
         continue;
