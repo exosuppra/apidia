@@ -23,10 +23,11 @@ export default function AdminDashboard() {
   const [showIntenseVerdonPopup, setShowIntenseVerdonPopup] = useState(false);
 
   const handleIntenseVerdonClick = () => {
+    // Open the tab immediately (user gesture required for popup)
+    const newTab = window.open("https://intense-verdon-edito.lovable.app", "_blank");
     setShowIntenseVerdonPopup(true);
     setTimeout(() => {
       setShowIntenseVerdonPopup(false);
-      window.open("https://intense-verdon-edito.lovable.app", "_blank");
     }, 5000);
   };
 
