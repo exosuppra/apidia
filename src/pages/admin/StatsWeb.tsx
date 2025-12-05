@@ -313,11 +313,25 @@ export default function StatsWeb() {
   };
 
   // Parse duration string - handles multiple formats:
-  // "1:23" (mm:ss), "01:23:45" (hh:mm:ss), "1m 23s", "83" (seconds), "0:01:23"
+  // "1:39", "01:27" (mm:ss), "0:01:23" (hh:mm:ss), "1 minute 32 secondes", "1m 23s"
   const parseDuration = (value: string): number => {
     if (!value) return 0;
     
     const trimmed = value.trim();
+    
+    // Format "X minute(s) Y seconde(s)" - French text format
+    const frenchMinSecMatch = trimmed.match(/(\d+)\s*minutes?\s*(?:(\d+)\s*secondes?)?/i);
+    if (frenchMinSecMatch) {
+      const mins = parseInt(frenchMinSecMatch[1]) || 0;
+      const secs = parseInt(frenchMinSecMatch[2]) || 0;
+      return mins * 60 + secs;
+    }
+    
+    // Format "X seconde(s)" only
+    const frenchSecMatch = trimmed.match(/^(\d+)\s*secondes?$/i);
+    if (frenchSecMatch) {
+      return parseInt(frenchSecMatch[1]) || 0;
+    }
     
     // Format "Xm Ys" or "Xmin Ys"
     const minSecMatch = trimmed.match(/(\d+)\s*m(?:in)?\s*(\d+)?\s*s?/i);
@@ -327,7 +341,7 @@ export default function StatsWeb() {
       return mins * 60 + secs;
     }
     
-    // Format with colons
+    // Format with colons (mm:ss or hh:mm:ss)
     if (trimmed.includes(":")) {
       const parts = trimmed.split(":").map(p => parseInt(p.trim()) || 0);
       if (parts.length === 3) {
