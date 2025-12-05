@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -12,12 +12,24 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ArrowLeft, RefreshCw, Users, Eye, Clock, BarChart3, Globe } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { ArrowLeft, RefreshCw, Users, Eye, Clock, BarChart3, Globe, CalendarIcon, Filter } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import Seo from "@/components/Seo";
 import { SiteStatsCard } from "@/components/stats/SiteStatsCard";
 import { SiteStatsChart } from "@/components/stats/SiteStatsChart";
 import { SiteComparisonChart } from "@/components/stats/SiteComparisonChart";
+import { format, startOfMonth, endOfMonth, subMonths, startOfQuarter, endOfQuarter, startOfYear, endOfYear, isWithinInterval, parse } from "date-fns";
+import { fr } from "date-fns/locale";
+import { cn } from "@/lib/utils";
 
 interface SiteData {
   name: string;
@@ -30,6 +42,8 @@ interface StatsResponse {
   message?: string;
 }
 
+type PeriodType = "all" | "this_month" | "last_month" | "this_quarter" | "last_quarter" | "this_year" | "custom";
+
 export default function StatsWeb() {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -37,6 +51,8 @@ export default function StatsWeb() {
   const [error, setError] = useState<string | null>(null);
   const [sites, setSites] = useState<SiteData[]>([]);
   const [selectedSite, setSelectedSite] = useState<string>("all");
+  const [periodFilter, setPeriodFilter] = useState<PeriodType>("all");
+  const [customDateRange, setCustomDateRange] = useState<{ from?: Date; to?: Date }>({});
 
   const fetchStats = async () => {
     setLoading(true);
@@ -82,6 +98,99 @@ export default function StatsWeb() {
     fetchStats();
   }, []);
 
+  // Get date range based on period filter
+  const getDateRange = (): { start: Date; end: Date } | null => {
+    const now = new Date();
+    
+    switch (periodFilter) {
+      case "this_month":
+        return { start: startOfMonth(now), end: endOfMonth(now) };
+      case "last_month":
+        const lastMonth = subMonths(now, 1);
+        return { start: startOfMonth(lastMonth), end: endOfMonth(lastMonth) };
+      case "this_quarter":
+        return { start: startOfQuarter(now), end: endOfQuarter(now) };
+      case "last_quarter":
+        const lastQuarter = subMonths(now, 3);
+        return { start: startOfQuarter(lastQuarter), end: endOfQuarter(lastQuarter) };
+      case "this_year":
+        return { start: startOfYear(now), end: endOfYear(now) };
+      case "custom":
+        if (customDateRange.from && customDateRange.to) {
+          return { start: customDateRange.from, end: customDateRange.to };
+        }
+        return null;
+      default:
+        return null;
+    }
+  };
+
+  // Parse date from various formats
+  const parseDate = (dateStr: string): Date | null => {
+    if (!dateStr) return null;
+    
+    // Try various date formats
+    const formats = [
+      "dd/MM/yyyy",
+      "MM/yyyy",
+      "yyyy-MM-dd",
+      "dd-MM-yyyy",
+      "MMMM yyyy",
+      "MMM yyyy",
+    ];
+    
+    for (const fmt of formats) {
+      try {
+        const parsed = parse(dateStr, fmt, new Date(), { locale: fr });
+        if (!isNaN(parsed.getTime())) {
+          return parsed;
+        }
+      } catch {
+        continue;
+      }
+    }
+    
+    // Try native Date parsing as fallback
+    const nativeDate = new Date(dateStr);
+    if (!isNaN(nativeDate.getTime())) {
+      return nativeDate;
+    }
+    
+    return null;
+  };
+
+  // Filter data by date range
+  const filterDataByPeriod = (data: Record<string, string>[], headers: string[]): Record<string, string>[] => {
+    const dateRange = getDateRange();
+    if (!dateRange) return data;
+
+    // Find the date column
+    const dateColumn = headers.find(h => 
+      h.toLowerCase().includes("date") || 
+      h.toLowerCase().includes("mois") || 
+      h.toLowerCase().includes("période") ||
+      h.toLowerCase().includes("periode") ||
+      h.toLowerCase().includes("month")
+    ) || headers[0];
+
+    return data.filter(row => {
+      const dateStr = row[dateColumn];
+      const rowDate = parseDate(dateStr);
+      
+      if (!rowDate) return true; // Keep rows without valid dates
+      
+      return isWithinInterval(rowDate, { start: dateRange.start, end: dateRange.end });
+    });
+  };
+
+  // Filtered sites data
+  const filteredSites = useMemo(() => {
+    return sites.map(site => ({
+      ...site,
+      data: filterDataByPeriod(site.data, site.headers),
+    }));
+  }, [sites, periodFilter, customDateRange]);
+
   // Helper to parse numeric values from strings
   const parseNumeric = (value: string): number => {
     if (!value) return 0;
@@ -95,10 +204,10 @@ export default function StatsWeb() {
     let totalPageViews = 0;
     let totalSessions = 0;
 
-    sites.forEach((site) => {
+    filteredSites.forEach((site) => {
       site.data.forEach((row) => {
-        const visitors = parseNumeric(row["Utilisateurs"] || row["Visiteurs"] || row["Users"] || "0");
-        const pageViews = parseNumeric(row["Pages vues"] || row["Vues"] || row["Page Views"] || row["Pageviews"] || "0");
+        const visitors = parseNumeric(row["Utilisateurs"] || row["Visiteurs"] || row["Users"] || row["Total Nbr Utilisateur"] || "0");
+        const pageViews = parseNumeric(row["Pages vues"] || row["Vues"] || row["Page Views"] || row["Pageviews"] || row["Nbr total de pages vues"] || "0");
         const sessions = parseNumeric(row["Sessions"] || row["Visites"] || "0");
         
         totalVisitors += visitors;
@@ -119,10 +228,10 @@ export default function StatsWeb() {
     let durationCount = 0;
 
     site.data.forEach((row) => {
-      const visitors = parseNumeric(row["Utilisateurs"] || row["Visiteurs"] || row["Users"] || "0");
-      const pageViews = parseNumeric(row["Pages vues"] || row["Vues"] || row["Page Views"] || row["Pageviews"] || "0");
+      const visitors = parseNumeric(row["Utilisateurs"] || row["Visiteurs"] || row["Users"] || row["Total Nbr Utilisateur"] || "0");
+      const pageViews = parseNumeric(row["Pages vues"] || row["Vues"] || row["Page Views"] || row["Pageviews"] || row["Nbr total de pages vues"] || "0");
       const sessions = parseNumeric(row["Sessions"] || row["Visites"] || "0");
-      const duration = parseNumeric(row["Durée moyenne"] || row["Avg Duration"] || row["Durée"] || "0");
+      const duration = parseNumeric(row["Durée moyenne"] || row["Avg Duration"] || row["Durée"] || row["Moyenne durée"] || "0");
       
       totalVisitors += visitors;
       totalPageViews += pageViews;
@@ -147,6 +256,7 @@ export default function StatsWeb() {
       h.toLowerCase().includes("date") || 
       h.toLowerCase().includes("mois") || 
       h.toLowerCase().includes("période") ||
+      h.toLowerCase().includes("periode") ||
       h.toLowerCase().includes("month")
     ) || site.headers[0];
 
@@ -164,7 +274,7 @@ export default function StatsWeb() {
 
   // Get comparison data across all sites
   const getComparisonData = () => {
-    return sites.map((site) => {
+    return filteredSites.map((site) => {
       const kpis = calculateSiteKPIs(site);
       return {
         name: site.name,
@@ -174,6 +284,16 @@ export default function StatsWeb() {
   };
 
   const globalKPIs = calculateGlobalKPIs();
+
+  const periodOptions = [
+    { value: "all", label: "Toutes les périodes" },
+    { value: "this_month", label: "Ce mois" },
+    { value: "last_month", label: "Mois dernier" },
+    { value: "this_quarter", label: "Ce trimestre" },
+    { value: "last_quarter", label: "Trimestre dernier" },
+    { value: "this_year", label: "Cette année" },
+    { value: "custom", label: "Période personnalisée" },
+  ];
 
   return (
     <div className="min-h-screen bg-background p-4 md:p-8">
@@ -191,15 +311,88 @@ export default function StatsWeb() {
           <div>
             <h1 className="text-2xl font-bold">Statistiques Web</h1>
             <p className="text-sm text-muted-foreground">
-              Analyse des performances de {sites.length} site(s)
+              Analyse des performances de {filteredSites.length} site(s)
             </p>
           </div>
         </div>
-        <Button onClick={fetchStats} disabled={loading} variant="outline">
-          <RefreshCw className={`mr-2 h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-          Actualiser
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button onClick={fetchStats} disabled={loading} variant="outline">
+            <RefreshCw className={`mr-2 h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+            Actualiser
+          </Button>
+        </div>
       </div>
+
+      {/* Period Filter */}
+      <Card className="mb-6">
+        <CardContent className="flex flex-wrap items-center gap-4 py-4">
+          <div className="flex items-center gap-2">
+            <Filter className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm font-medium">Filtrer par période :</span>
+          </div>
+          
+          <Select value={periodFilter} onValueChange={(value) => setPeriodFilter(value as PeriodType)}>
+            <SelectTrigger className="w-[200px]">
+              <SelectValue placeholder="Sélectionner une période" />
+            </SelectTrigger>
+            <SelectContent>
+              {periodOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {periodFilter === "custom" && (
+            <div className="flex items-center gap-2">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className={cn("w-[140px] justify-start text-left font-normal", !customDateRange.from && "text-muted-foreground")}>
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {customDateRange.from ? format(customDateRange.from, "dd/MM/yyyy") : "Du"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={customDateRange.from}
+                    onSelect={(date) => setCustomDateRange(prev => ({ ...prev, from: date }))}
+                    initialFocus
+                    className="pointer-events-auto"
+                  />
+                </PopoverContent>
+              </Popover>
+              
+              <span className="text-muted-foreground">→</span>
+              
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className={cn("w-[140px] justify-start text-left font-normal", !customDateRange.to && "text-muted-foreground")}>
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {customDateRange.to ? format(customDateRange.to, "dd/MM/yyyy") : "Au"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={customDateRange.to}
+                    onSelect={(date) => setCustomDateRange(prev => ({ ...prev, to: date }))}
+                    initialFocus
+                    className="pointer-events-auto"
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+          )}
+
+          {periodFilter !== "all" && (
+            <Button variant="ghost" size="sm" onClick={() => setPeriodFilter("all")}>
+              Réinitialiser
+            </Button>
+          )}
+        </CardContent>
+      </Card>
 
       {loading ? (
         <div className="flex h-64 items-center justify-center">
@@ -227,7 +420,7 @@ export default function StatsWeb() {
               <BarChart3 className="h-4 w-4" />
               Vue globale
             </TabsTrigger>
-            {sites.map((site) => (
+            {filteredSites.map((site) => (
               <TabsTrigger key={site.name} value={site.name}>
                 {site.name}
               </TabsTrigger>
@@ -263,7 +456,7 @@ export default function StatsWeb() {
 
             {/* Sites Overview */}
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {sites.map((site) => {
+              {filteredSites.map((site) => {
                 const kpis = calculateSiteKPIs(site);
                 return (
                   <Card key={site.name} className="cursor-pointer hover:bg-accent/50 transition-colors" onClick={() => setSelectedSite(site.name)}>
@@ -297,7 +490,7 @@ export default function StatsWeb() {
           </TabsContent>
 
           {/* Individual Site Views */}
-          {sites.map((site) => {
+          {filteredSites.map((site) => {
             const kpis = calculateSiteKPIs(site);
             const chartData = getChartData(site);
 
@@ -338,29 +531,35 @@ export default function StatsWeb() {
                 {/* Data Table */}
                 <Card>
                   <CardHeader>
-                    <CardTitle className="text-base">Données détaillées</CardTitle>
+                    <CardTitle className="text-base">Données détaillées ({site.data.length} entrées)</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="overflow-x-auto">
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            {site.headers.map((header, idx) => (
-                              <TableHead key={idx}>{header}</TableHead>
-                            ))}
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {site.data.map((row, rowIdx) => (
-                            <TableRow key={rowIdx}>
-                              {site.headers.map((header, cellIdx) => (
-                                <TableCell key={cellIdx}>{row[header] || "-"}</TableCell>
+                    {site.data.length === 0 ? (
+                      <p className="text-center text-muted-foreground py-8">
+                        Aucune donnée pour cette période
+                      </p>
+                    ) : (
+                      <div className="overflow-x-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              {site.headers.map((header, idx) => (
+                                <TableHead key={idx}>{header}</TableHead>
                               ))}
                             </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </div>
+                          </TableHeader>
+                          <TableBody>
+                            {site.data.map((row, rowIdx) => (
+                              <TableRow key={rowIdx}>
+                                {site.headers.map((header, cellIdx) => (
+                                  <TableCell key={cellIdx}>{row[header] || "-"}</TableCell>
+                                ))}
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               </TabsContent>
