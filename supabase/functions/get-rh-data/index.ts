@@ -178,6 +178,15 @@ serve(async (req: Request) => {
 
     const data: RHEntry[] = [];
     
+    // Log first 5 rows for debugging
+    for (let i = 1; i < Math.min(rows.length, 6); i++) {
+      const row = rows[i] as string[];
+      console.log(`Row ${i} raw data:`, {
+        colF_maison: row[5] || "(vide)",
+        colG_ot: row[6] || "(vide)",
+      });
+    }
+    
     for (let i = 1; i < rows.length; i++) {
       const row = rows[i] as string[];
       
@@ -188,11 +197,11 @@ serve(async (req: Request) => {
       const projet = projetIdx >= 0 ? (row[projetIdx] || "").trim() : "";
       const valorisation = valorisationIdx >= 0 ? parseNumber(row[valorisationIdx] || "") : 0;
       
-      // Parse OT and Maison time ranges
+      // Parse OT and Maison time ranges from columns F and G
       const otValue = heuresOTIdx >= 0 ? (row[heuresOTIdx] || "") : "";
       const maisonValue = heuresMaisonIdx >= 0 ? (row[heuresMaisonIdx] || "") : "";
       
-      // Calculate hours from time ranges
+      // Calculate hours from time ranges or simple numbers
       const heuresOT = parseTimeRangeToHours(otValue);
       const heuresMaison = parseTimeRangeToHours(maisonValue);
       

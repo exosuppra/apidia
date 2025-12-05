@@ -97,7 +97,7 @@ export default function SuiviRH() {
     return uniqueProjets.sort();
   }, [rhData]);
 
-  // Helper to parse French date strings
+  // Helper to parse French date strings (with or without year)
   const parseFrenchDateForFilter = (dateStr: string): Date | null => {
     if (!dateStr) return null;
     const months: Record<string, number> = {
@@ -105,12 +105,27 @@ export default function SuiviRH() {
       juillet: 6, aout: 7, septembre: 8, octobre: 9, novembre: 10, decembre: 11
     };
     const normalizedStr = dateStr.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-    const match = normalizedStr.match(/(\d{1,2})\s+(\w+)\s+(\d{4})/);
-    if (match) {
-      const day = parseInt(match[1], 10);
-      const month = months[match[2]];
-      const year = parseInt(match[3], 10);
+    
+    // Try with year first
+    const matchWithYear = normalizedStr.match(/(\d{1,2})\s+(\w+)\s+(\d{4})/);
+    if (matchWithYear) {
+      const day = parseInt(matchWithYear[1], 10);
+      const month = months[matchWithYear[2]];
+      const year = parseInt(matchWithYear[3], 10);
       if (month !== undefined) {
+        return new Date(year, month, day);
+      }
+    }
+    
+    // Try without year
+    const matchWithoutYear = normalizedStr.match(/(\d{1,2})\s+(\w+)/);
+    if (matchWithoutYear) {
+      const day = parseInt(matchWithoutYear[1], 10);
+      const month = months[matchWithoutYear[2]];
+      if (month !== undefined) {
+        const currentYear = new Date().getFullYear();
+        const currentMonth = new Date().getMonth();
+        const year = month > currentMonth ? currentYear - 1 : currentYear;
         return new Date(year, month, day);
       }
     }
@@ -181,7 +196,7 @@ export default function SuiviRH() {
     ].filter((d) => d.value > 0);
   }, [kpis]);
 
-  // Parse French date like "10 juin 2025" to Date object
+  // Parse French date like "10 juin 2025", "Le 30 octobre", "Le 22 septembre à 19h" to Date object
   const parseFrenchDate = (dateStr: string): Date | null => {
     if (!dateStr) return null;
     const months: Record<string, number> = {
@@ -191,16 +206,33 @@ export default function SuiviRH() {
     
     // Normalize accents for reliable matching
     const normalizedStr = dateStr.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-    const matchNormalized = normalizedStr.match(/(\d{1,2})\s+(\w+)\s+(\d{4})/);
     
-    if (matchNormalized) {
-      const day = parseInt(matchNormalized[1], 10);
-      const month = months[matchNormalized[2]];
-      const year = parseInt(matchNormalized[3], 10);
+    // Try to match with year: "10 juin 2025" or "Le 6 mai 2025 à 9h00"
+    const matchWithYear = normalizedStr.match(/(\d{1,2})\s+(\w+)\s+(\d{4})/);
+    if (matchWithYear) {
+      const day = parseInt(matchWithYear[1], 10);
+      const month = months[matchWithYear[2]];
+      const year = parseInt(matchWithYear[3], 10);
       if (month !== undefined) {
         return new Date(year, month, day);
       }
     }
+    
+    // Try to match without year: "Le 30 octobre", "Le 22 septembre à 19h"
+    const matchWithoutYear = normalizedStr.match(/(\d{1,2})\s+(\w+)/);
+    if (matchWithoutYear) {
+      const day = parseInt(matchWithoutYear[1], 10);
+      const month = months[matchWithoutYear[2]];
+      if (month !== undefined) {
+        // Assume current year, or use 2024/2025 based on month context
+        const currentYear = new Date().getFullYear();
+        const currentMonth = new Date().getMonth();
+        // If the month is in the future, assume previous year
+        const year = month > currentMonth ? currentYear - 1 : currentYear;
+        return new Date(year, month, day);
+      }
+    }
+    
     return null;
   };
 
