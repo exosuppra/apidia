@@ -300,13 +300,21 @@ export default function StatsWeb() {
     }));
   }, [sites, periodFilter]);
 
-  // Helper to parse numeric values - handles French format (space as thousands, comma as decimal)
+  // Helper to parse numeric values - handles various formats
   const parseNumeric = (value: string): number => {
     if (!value) return 0;
     // Remove all spaces (including non-breaking spaces used as thousands separator)
     let cleaned = value.replace(/[\s\u00A0]/g, "");
-    // Replace comma with dot for decimal
-    cleaned = cleaned.replace(",", ".");
+    
+    // Detect if comma is used as thousands separator (e.g., "33,319" = 33319)
+    // If comma is followed by exactly 3 digits, it's a thousands separator
+    if (/,\d{3}(?!\d)/.test(cleaned)) {
+      cleaned = cleaned.replace(/,/g, "");
+    } else {
+      // Otherwise, treat comma as decimal separator (French format)
+      cleaned = cleaned.replace(",", ".");
+    }
+    
     // Remove any remaining non-numeric characters except dot and minus
     cleaned = cleaned.replace(/[^\d.\-]/g, "");
     return parseFloat(cleaned) || 0;
