@@ -5,8 +5,14 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import Seo from "@/components/Seo";
-import { Shield, LogOut, Users, FileText, Eye, Calendar, CalendarClock, Clock } from "lucide-react";
+import { Shield, LogOut, Users, FileText, Eye, Calendar, CalendarClock, Clock, Globe } from "lucide-react";
 import { useAuth } from "@/context/AuthProvider";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 export default function AdminDashboard() {
   const { user } = useAuth();
@@ -14,6 +20,15 @@ export default function AdminDashboard() {
   const { toast } = useToast();
   const [permissions, setPermissions] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showIntenseVerdonPopup, setShowIntenseVerdonPopup] = useState(false);
+
+  const handleIntenseVerdonClick = () => {
+    setShowIntenseVerdonPopup(true);
+    setTimeout(() => {
+      setShowIntenseVerdonPopup(false);
+      window.open("https://intense-verdon-edito.lovable.app", "_blank");
+    }, 5000);
+  };
 
   useEffect(() => {
     const fetchPermissions = async () => {
@@ -251,6 +266,48 @@ export default function AdminDashboard() {
               </div>
             </section>
           )}
+
+          {/* Gestion de Projet Web */}
+          <section className="mb-10">
+            <h2 className="text-lg font-semibold mb-4 text-primary">Gestion de Projet Web</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">
+                    Intense Verdon Edito
+                  </CardTitle>
+                  <Globe className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <CardDescription>
+                    Plateforme éditoriale Intense Verdon
+                  </CardDescription>
+                  <Button 
+                    className="w-full mt-4" 
+                    variant="outline"
+                    onClick={handleIntenseVerdonClick}
+                  >
+                    Accéder à la plateforme
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+          </section>
+
+          {/* Dialog Intense Verdon */}
+          <Dialog open={showIntenseVerdonPopup} onOpenChange={setShowIntenseVerdonPopup}>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle className="text-center">Identifiants Intense Verdon</DialogTitle>
+              </DialogHeader>
+              <div className="text-center py-6 text-lg font-medium">
+                mail pro + Mauque04
+              </div>
+              <p className="text-center text-sm text-muted-foreground">
+                Redirection automatique dans 5 secondes...
+              </p>
+            </DialogContent>
+          </Dialog>
 
           {/* Recent Activity */}
           <Card className="mt-8">
