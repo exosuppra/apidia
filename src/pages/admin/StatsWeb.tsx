@@ -21,7 +21,8 @@ import {
 } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { ArrowLeft, RefreshCw, Users, Eye, Clock, BarChart3, Globe, CalendarIcon, Filter, Download, UserPlus, Target, FileText } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { ArrowLeft, RefreshCw, Users, Eye, Clock, BarChart3, Globe, CalendarIcon, Filter, Download, UserPlus, Target, FileText, Info, HelpCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import Seo from "@/components/Seo";
 import { SiteStatsCard } from "@/components/stats/SiteStatsCard";
@@ -30,6 +31,38 @@ import { SiteComparisonChart } from "@/components/stats/SiteComparisonChart";
 import { format, startOfMonth, endOfMonth, subMonths, isWithinInterval, parse } from "date-fns";
 import { fr } from "date-fns/locale";
 import { cn } from "@/lib/utils";
+
+// KPI definitions with descriptions
+const KPI_DEFINITIONS = {
+  utilisateursActifs: {
+    title: "Utilisateurs actifs",
+    description: "Nombre total d'utilisateurs uniques ayant visité le(s) site(s) pendant la période sélectionnée.",
+  },
+  nouveauxUtilisateurs: {
+    title: "Nouveaux utilisateurs",
+    description: "Nombre d'utilisateurs visitant le(s) site(s) pour la première fois.",
+  },
+  pagesVues: {
+    title: "Pages vues",
+    description: "Nombre total de pages consultées, incluant les rechargements et les pages vues plusieurs fois.",
+  },
+  tauxEngagement: {
+    title: "Taux d'engagement",
+    description: "Pourcentage de sessions où l'utilisateur a interagi activement (clic, scroll, navigation, etc.).",
+  },
+  pagesSession: {
+    title: "Pages / Session",
+    description: "Nombre moyen de pages consultées par session. Un indicateur de l'intérêt des visiteurs.",
+  },
+  dureeMoyenne: {
+    title: "Durée moyenne",
+    description: "Temps moyen passé par session sur le(s) site(s). Format: minutes:secondes.",
+  },
+  tauxRetention: {
+    title: "Taux de rétention",
+    description: "Pourcentage de visiteurs qui reviennent sur le site (utilisateurs actifs - nouveaux utilisateurs).",
+  },
+};
 
 interface SiteData {
   name: string;
@@ -661,24 +694,28 @@ export default function StatsWeb() {
                 value={globalKPIs.totalVisitors.toLocaleString()}
                 trend={globalKPIs.trends?.visitors}
                 icon={<Users className="h-4 w-4" />}
+                tooltip={KPI_DEFINITIONS.utilisateursActifs.description}
               />
               <SiteStatsCard
                 title="Nouveaux utilisateurs"
                 value={globalKPIs.totalNewUsers.toLocaleString()}
                 trend={globalKPIs.trends?.newUsers}
                 icon={<UserPlus className="h-4 w-4" />}
+                tooltip={KPI_DEFINITIONS.nouveauxUtilisateurs.description}
               />
               <SiteStatsCard
                 title="Pages vues"
                 value={globalKPIs.totalPageViews.toLocaleString()}
                 trend={globalKPIs.trends?.pageViews}
                 icon={<Eye className="h-4 w-4" />}
+                tooltip={KPI_DEFINITIONS.pagesVues.description}
               />
               <SiteStatsCard
                 title="Taux d'engagement"
                 value={`${globalKPIs.avgEngagement}%`}
                 trend={globalKPIs.trends?.engagement}
                 icon={<Target className="h-4 w-4" />}
+                tooltip={KPI_DEFINITIONS.tauxEngagement.description}
               />
             </div>
 
@@ -688,16 +725,19 @@ export default function StatsWeb() {
                 title="Pages / Session"
                 value={globalKPIs.avgPagesPerSession.toFixed(2)}
                 icon={<FileText className="h-4 w-4" />}
+                tooltip={KPI_DEFINITIONS.pagesSession.description}
               />
               <SiteStatsCard
                 title="Durée moyenne"
                 value={formatDuration(globalKPIs.avgDuration)}
                 icon={<Clock className="h-4 w-4" />}
+                tooltip={KPI_DEFINITIONS.dureeMoyenne.description}
               />
               <SiteStatsCard
                 title="Taux de rétention"
                 value={`${globalKPIs.retention}%`}
                 icon={<Users className="h-4 w-4" />}
+                tooltip={KPI_DEFINITIONS.tauxRetention.description}
               />
             </div>
 
@@ -782,24 +822,28 @@ export default function StatsWeb() {
                     value={kpis.totalVisitors.toLocaleString()}
                     trend={kpis.trends?.visitors}
                     icon={<Users className="h-4 w-4" />}
+                    tooltip={KPI_DEFINITIONS.utilisateursActifs.description}
                   />
                   <SiteStatsCard
                     title="Nouveaux utilisateurs"
                     value={kpis.totalNewUsers.toLocaleString()}
                     trend={kpis.trends?.newUsers}
                     icon={<UserPlus className="h-4 w-4" />}
+                    tooltip={KPI_DEFINITIONS.nouveauxUtilisateurs.description}
                   />
                   <SiteStatsCard
                     title="Pages vues"
                     value={kpis.totalPageViews.toLocaleString()}
                     trend={kpis.trends?.pageViews}
                     icon={<Eye className="h-4 w-4" />}
+                    tooltip={KPI_DEFINITIONS.pagesVues.description}
                   />
                   <SiteStatsCard
                     title="Taux d'engagement"
                     value={`${kpis.avgEngagement}%`}
                     trend={kpis.trends?.engagement}
                     icon={<Target className="h-4 w-4" />}
+                    tooltip={KPI_DEFINITIONS.tauxEngagement.description}
                   />
                 </div>
 
@@ -809,16 +853,19 @@ export default function StatsWeb() {
                     title="Pages / Session"
                     value={kpis.avgPagesPerSession.toFixed(2)}
                     icon={<FileText className="h-4 w-4" />}
+                    tooltip={KPI_DEFINITIONS.pagesSession.description}
                   />
                   <SiteStatsCard
                     title="Durée moyenne"
                     value={formatDuration(kpis.avgDuration)}
                     icon={<Clock className="h-4 w-4" />}
+                    tooltip={KPI_DEFINITIONS.dureeMoyenne.description}
                   />
                   <SiteStatsCard
                     title="Taux de rétention"
                     value={`${kpis.retention}%`}
                     icon={<Users className="h-4 w-4" />}
+                    tooltip={KPI_DEFINITIONS.tauxRetention.description}
                   />
                 </div>
 
