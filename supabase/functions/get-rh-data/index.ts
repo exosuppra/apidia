@@ -150,10 +150,14 @@ serve(async (req: Request) => {
     
     console.log("RH Sheet headers found:", header);
 
-    // Map expected columns (case-insensitive search)
+    // Map expected columns (case-insensitive search with precise matching)
     const findColumn = (names: string[]): number => {
       return headerLower.findIndex((h) => 
-        names.some(name => h.includes(name.toLowerCase()))
+        names.some(name => {
+          const nameLower = name.toLowerCase();
+          // Exact match or ends with the name to avoid confusion between similar columns
+          return h === nameLower || h.endsWith(nameLower);
+        })
       );
     };
 
@@ -161,8 +165,9 @@ serve(async (req: Request) => {
     const projetIdx = findColumn(["projet"]);
     const tacheIdx = findColumn(["tâche", "tache"]);
     const titreIdx = findColumn(["titre"]);
-    const heuresOTIdx = findColumn(["heure de recherche ot", "recherche ot"]);
-    const heuresMaisonIdx = findColumn(["heure de recherche maison", "recherche maison"]);
+    // Updated to match new column names: "Temps de travail OT" and "Temps de travail Maison"
+    const heuresOTIdx = findColumn(["temps de travail ot", "travail ot", "heure de recherche ot", "recherche ot"]);
+    const heuresMaisonIdx = findColumn(["temps de travail maison", "travail maison", "heure de recherche maison", "recherche maison"]);
     const tempsTravailIdx = findColumn(["temps de travail"]);
     const valorisationIdx = findColumn(["valorisation"]);
 
