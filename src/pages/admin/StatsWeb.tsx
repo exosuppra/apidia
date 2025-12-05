@@ -300,37 +300,69 @@ export default function StatsWeb() {
     }));
   }, [sites, periodFilter]);
 
-  // Helper to parse numeric values
+  // Helper to parse numeric values - handles French format (space as thousands, comma as decimal)
   const parseNumeric = (value: string): number => {
     if (!value) return 0;
-    const cleaned = value.replace(/[^\d.,\-]/g, "").replace(",", ".");
+    // Remove all spaces (including non-breaking spaces used as thousands separator)
+    let cleaned = value.replace(/[\s\u00A0]/g, "");
+    // Replace comma with dot for decimal
+    cleaned = cleaned.replace(",", ".");
+    // Remove any remaining non-numeric characters except dot and minus
+    cleaned = cleaned.replace(/[^\d.\-]/g, "");
     return parseFloat(cleaned) || 0;
   };
 
-  // Parse duration string like "1:23" or "01:23:45" to seconds
+  // Parse duration string - handles multiple formats:
+  // "1:23" (mm:ss), "01:23:45" (hh:mm:ss), "1m 23s", "83" (seconds), "0:01:23"
   const parseDuration = (value: string): number => {
     if (!value) return 0;
-    const parts = value.split(":").map(p => parseInt(p) || 0);
-    if (parts.length === 3) {
-      return parts[0] * 3600 + parts[1] * 60 + parts[2];
-    } else if (parts.length === 2) {
-      return parts[0] * 60 + parts[1];
+    
+    const trimmed = value.trim();
+    
+    // Format "Xm Ys" or "Xmin Ys"
+    const minSecMatch = trimmed.match(/(\d+)\s*m(?:in)?\s*(\d+)?\s*s?/i);
+    if (minSecMatch) {
+      const mins = parseInt(minSecMatch[1]) || 0;
+      const secs = parseInt(minSecMatch[2]) || 0;
+      return mins * 60 + secs;
     }
-    return parseNumeric(value);
+    
+    // Format with colons
+    if (trimmed.includes(":")) {
+      const parts = trimmed.split(":").map(p => parseInt(p.trim()) || 0);
+      if (parts.length === 3) {
+        // hh:mm:ss
+        return parts[0] * 3600 + parts[1] * 60 + parts[2];
+      } else if (parts.length === 2) {
+        // mm:ss
+        return parts[0] * 60 + parts[1];
+      }
+    }
+    
+    // Just a number (assume seconds)
+    return parseNumeric(trimmed);
   };
 
-  // Format seconds to mm:ss
+  // Format seconds to mm:ss consistently
   const formatDuration = (seconds: number): string => {
-    if (seconds <= 0) return "N/A";
+    if (seconds <= 0) return "0:00";
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
     return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
-  // Parse percentage string like "65.5%" to number
+  // Format large numbers with French locale (space as thousands separator)
+  const formatNumber = (num: number): string => {
+    return num.toLocaleString("fr-FR");
+  };
+
+  // Parse percentage string like "65.5%" or "65,5%" to number
   const parsePercentage = (value: string): number => {
     if (!value) return 0;
-    const cleaned = value.replace(/[%\s]/g, "").replace(",", ".");
+    // Remove spaces and %
+    let cleaned = value.replace(/[\s\u00A0%]/g, "");
+    // Replace comma with dot
+    cleaned = cleaned.replace(",", ".");
     return parseFloat(cleaned) || 0;
   };
 
@@ -691,21 +723,21 @@ export default function StatsWeb() {
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
               <SiteStatsCard
                 title="Utilisateurs actifs"
-                value={globalKPIs.totalVisitors.toLocaleString()}
+                value={formatNumber(globalKPIs.totalVisitors)}
                 trend={globalKPIs.trends?.visitors}
                 icon={<Users className="h-4 w-4" />}
                 tooltip={KPI_DEFINITIONS.utilisateursActifs.description}
               />
               <SiteStatsCard
                 title="Nouveaux utilisateurs"
-                value={globalKPIs.totalNewUsers.toLocaleString()}
+                value={formatNumber(globalKPIs.totalNewUsers)}
                 trend={globalKPIs.trends?.newUsers}
                 icon={<UserPlus className="h-4 w-4" />}
                 tooltip={KPI_DEFINITIONS.nouveauxUtilisateurs.description}
               />
               <SiteStatsCard
                 title="Pages vues"
-                value={globalKPIs.totalPageViews.toLocaleString()}
+                value={formatNumber(globalKPIs.totalPageViews)}
                 trend={globalKPIs.trends?.pageViews}
                 icon={<Eye className="h-4 w-4" />}
                 tooltip={KPI_DEFINITIONS.pagesVues.description}
@@ -787,11 +819,11 @@ export default function StatsWeb() {
                       <div className="grid grid-cols-2 gap-2 text-sm">
                         <div>
                           <p className="text-muted-foreground">Utilisateurs</p>
-                          <p className="font-semibold">{kpis.totalVisitors.toLocaleString()}</p>
+                          <p className="font-semibold">{formatNumber(kpis.totalVisitors)}</p>
                         </div>
                         <div>
                           <p className="text-muted-foreground">Pages vues</p>
-                          <p className="font-semibold">{kpis.totalPageViews.toLocaleString()}</p>
+                          <p className="font-semibold">{formatNumber(kpis.totalPageViews)}</p>
                         </div>
                         <div>
                           <p className="text-muted-foreground">Engagement</p>
@@ -819,21 +851,21 @@ export default function StatsWeb() {
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                   <SiteStatsCard
                     title="Utilisateurs actifs"
-                    value={kpis.totalVisitors.toLocaleString()}
+                    value={formatNumber(kpis.totalVisitors)}
                     trend={kpis.trends?.visitors}
                     icon={<Users className="h-4 w-4" />}
                     tooltip={KPI_DEFINITIONS.utilisateursActifs.description}
                   />
                   <SiteStatsCard
                     title="Nouveaux utilisateurs"
-                    value={kpis.totalNewUsers.toLocaleString()}
+                    value={formatNumber(kpis.totalNewUsers)}
                     trend={kpis.trends?.newUsers}
                     icon={<UserPlus className="h-4 w-4" />}
                     tooltip={KPI_DEFINITIONS.nouveauxUtilisateurs.description}
                   />
                   <SiteStatsCard
                     title="Pages vues"
-                    value={kpis.totalPageViews.toLocaleString()}
+                    value={formatNumber(kpis.totalPageViews)}
                     trend={kpis.trends?.pageViews}
                     icon={<Eye className="h-4 w-4" />}
                     tooltip={KPI_DEFINITIONS.pagesVues.description}
