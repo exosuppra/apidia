@@ -17,6 +17,17 @@ interface RHEntry {
   valorisation: number;
 }
 
+// Decode HTML entities like &#39; -> '
+function decodeHtmlEntities(str: string): string {
+  if (!str) return str;
+  return str
+    .replace(/&#39;/g, "'")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"');
+}
+
 function parseNumber(value: string): number {
   if (!value || value.trim() === "") return 0;
   // Handle both comma and dot decimal separators
@@ -209,13 +220,13 @@ serve(async (req: Request) => {
       if (!date && !projet && valorisation === 0 && heuresOT === 0 && heuresMaison === 0) continue;
       
       data.push({
-        date,
-        projet,
-        tache: tacheIdx >= 0 ? (row[tacheIdx] || "").trim() : "",
-        titre: titreIdx >= 0 ? (row[titreIdx] || "").trim() : "",
+        date: decodeHtmlEntities(date),
+        projet: decodeHtmlEntities(projet),
+        tache: decodeHtmlEntities(tacheIdx >= 0 ? (row[tacheIdx] || "").trim() : ""),
+        titre: decodeHtmlEntities(titreIdx >= 0 ? (row[titreIdx] || "").trim() : ""),
         heures_recherche_ot: heuresOT,
         heures_recherche_maison: heuresMaison,
-        temps_travail: tempsTravailIdx >= 0 ? (row[tempsTravailIdx] || "").trim() : "",
+        temps_travail: decodeHtmlEntities(tempsTravailIdx >= 0 ? (row[tempsTravailIdx] || "").trim() : ""),
         valorisation,
       });
     }
