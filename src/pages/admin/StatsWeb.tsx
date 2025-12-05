@@ -971,14 +971,27 @@ export default function StatsWeb() {
                               <TableRow key={rowIdx}>
                                 {site.headers.map((header, cellIdx) => {
                                   const value = row[header] || "-";
+                                  const headerLower = header.toLowerCase();
+                                  
                                   // Format duration columns
-                                  const isDurationColumn = header.toLowerCase().includes("durée") || 
-                                    header.toLowerCase().includes("duration") ||
-                                    header.toLowerCase().includes("moyenne session");
+                                  const isDurationColumn = headerLower.includes("durée") || 
+                                    headerLower.includes("duration") ||
+                                    headerLower.includes("moyenne session");
                                   if (isDurationColumn && value !== "-") {
                                     const seconds = parseDuration(value);
                                     return <TableCell key={cellIdx}>{formatDuration(seconds)}</TableCell>;
                                   }
+                                  
+                                  // Format numeric columns (utilisateurs, pages vues, nouveaux utilisateurs)
+                                  const isNumericColumn = headerLower.includes("utilisateurs") || 
+                                    headerLower.includes("pages vues") ||
+                                    headerLower.includes("visiteurs") ||
+                                    headerLower.includes("users");
+                                  if (isNumericColumn && value !== "-") {
+                                    const num = parseNumeric(value);
+                                    return <TableCell key={cellIdx}>{formatNumber(num)}</TableCell>;
+                                  }
+                                  
                                   return <TableCell key={cellIdx}>{value}</TableCell>;
                                 })}
                               </TableRow>
