@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { ArrowLeft, RefreshCw, Users, Eye, Clock, BarChart3, Globe, CalendarIcon, Filter } from "lucide-react";
+import { ArrowLeft, RefreshCw, Users, Eye, Clock, BarChart3, Globe, CalendarIcon, Filter, Download, UserPlus, Target, FileText } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import Seo from "@/components/Seo";
 import { SiteStatsCard } from "@/components/stats/SiteStatsCard";
@@ -43,6 +43,14 @@ interface StatsResponse {
 }
 
 type PeriodType = "all" | "last_month" | "semester_1" | "semester_2" | "custom";
+type MetricType = "visitors" | "pageviews" | "newUsers" | "engagement";
+
+// French month names for parsing
+const frenchMonths: Record<string, number> = {
+  "janvier": 0, "février": 1, "mars": 2, "avril": 3, "mai": 4, "juin": 5,
+  "juillet": 6, "août": 7, "septembre": 8, "octobre": 9, "novembre": 10, "décembre": 11,
+  "jan": 0, "fév": 1, "mar": 2, "avr": 3, "jui": 5, "juil": 6, "aoû": 7, "sep": 8, "oct": 9, "nov": 10, "déc": 11
+};
 
 export default function StatsWeb() {
   const navigate = useNavigate();
@@ -53,6 +61,7 @@ export default function StatsWeb() {
   const [selectedSite, setSelectedSite] = useState<string>("all");
   const [periodFilter, setPeriodFilter] = useState<PeriodType>("all");
   const [customDateRange, setCustomDateRange] = useState<{ from?: Date; to?: Date }>({});
+  const [selectedMetric, setSelectedMetric] = useState<MetricType>("visitors");
 
   const fetchStats = async () => {
     setLoading(true);
@@ -109,13 +118,13 @@ export default function StatsWeb() {
         return { start: startOfMonth(lastMonth), end: endOfMonth(lastMonth) };
       case "semester_1":
         return { 
-          start: new Date(currentYear, 0, 1), // 1er janvier
-          end: new Date(currentYear, 5, 30)    // 30 juin
+          start: new Date(currentYear, 0, 1),
+          end: new Date(currentYear, 5, 30)
         };
       case "semester_2":
         return { 
-          start: new Date(currentYear, 6, 1),  // 1er juillet
-          end: new Date(currentYear, 11, 31)   // 31 décembre
+          start: new Date(currentYear, 6, 1),
+          end: new Date(currentYear, 11, 31)
         };
       case "custom":
         if (customDateRange.from && customDateRange.to) {
@@ -127,11 +136,67 @@ export default function StatsWeb() {
     }
   };
 
-  // Parse date from various formats
+  // Get previous period range for trend calculation
+  const getPreviousPeriodRange = (): { start: Date; end: Date } | null => {
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    
+    switch (periodFilter) {
+      case "last_month":
+        const twoMonthsAgo = subMonths(now, 2);
+        return { start: startOfMonth(twoMonthsAgo), end: endOfMonth(twoMonthsAgo) };
+      case "semester_1":
+        return { 
+          start: new Date(currentYear - 1, 6, 1),
+          end: new Date(currentYear - 1, 11, 31)
+        };
+      case "semester_2":
+        return { 
+          start: new Date(currentYear, 0, 1),
+          end: new Date(currentYear, 5, 30)
+        };
+      default:
+        return null;
+    }
+  };
+
+  // Improved date parsing for French formats
   const parseDate = (dateStr: string): Date | null => {
     if (!dateStr) return null;
     
-    // Try various date formats
+    const cleaned = dateStr.trim().toLowerCase();
+    
+    // Try "janvier 2025" or "Janvier 2025" format
+    const frenchMonthYearRegex = /^([a-zéûà]+)\s*(\d{4})$/i;
+    const frenchMatch = cleaned.match(frenchMonthYearRegex);
+    if (frenchMatch) {
+      const monthName = frenchMatch[1].toLowerCase();
+      const year = parseInt(frenchMatch[2]);
+      const monthIndex = frenchMonths[monthName];
+      if (monthIndex !== undefined) {
+        return new Date(year, monthIndex, 1);
+      }
+    }
+    
+    // Try "01/2025" or "1/2025" format
+    const monthYearSlashRegex = /^(\d{1,2})\/(\d{4})$/;
+    const slashMatch = cleaned.match(monthYearSlashRegex);
+    if (slashMatch) {
+      const month = parseInt(slashMatch[1]) - 1;
+      const year = parseInt(slashMatch[2]);
+      return new Date(year, month, 1);
+    }
+
+    // Try "2025-01" format
+    const isoMonthRegex = /^(\d{4})-(\d{1,2})$/;
+    const isoMatch = cleaned.match(isoMonthRegex);
+    if (isoMatch) {
+      const year = parseInt(isoMatch[1]);
+      const month = parseInt(isoMatch[2]) - 1;
+      return new Date(year, month, 1);
+    }
+    
+    // Standard date-fns formats
     const formats = [
       "dd/MM/yyyy",
       "MM/yyyy",
@@ -152,7 +217,7 @@ export default function StatsWeb() {
       }
     }
     
-    // Try native Date parsing as fallback
+    // Native Date parsing as fallback
     const nativeDate = new Date(dateStr);
     if (!isNaN(nativeDate.getTime())) {
       return nativeDate;
@@ -162,11 +227,9 @@ export default function StatsWeb() {
   };
 
   // Filter data by date range
-  const filterDataByPeriod = (data: Record<string, string>[], headers: string[]): Record<string, string>[] => {
-    const dateRange = getDateRange();
+  const filterDataByPeriod = (data: Record<string, string>[], headers: string[], dateRange: { start: Date; end: Date } | null): Record<string, string>[] => {
     if (!dateRange) return data;
 
-    // Find the date column
     const dateColumn = headers.find(h => 
       h.toLowerCase().includes("date") || 
       h.toLowerCase().includes("mois") || 
@@ -179,81 +242,168 @@ export default function StatsWeb() {
       const dateStr = row[dateColumn];
       const rowDate = parseDate(dateStr);
       
-      if (!rowDate) return true; // Keep rows without valid dates
+      if (!rowDate) return true;
       
       return isWithinInterval(rowDate, { start: dateRange.start, end: dateRange.end });
     });
   };
 
-  // Filtered sites data
+  // Filtered sites data for current period
   const filteredSites = useMemo(() => {
+    const dateRange = getDateRange();
     return sites.map(site => ({
       ...site,
-      data: filterDataByPeriod(site.data, site.headers),
+      data: filterDataByPeriod(site.data, site.headers, dateRange),
     }));
   }, [sites, periodFilter, customDateRange]);
 
-  // Helper to parse numeric values from strings
+  // Filtered sites data for previous period (for trends)
+  const previousPeriodSites = useMemo(() => {
+    const dateRange = getPreviousPeriodRange();
+    if (!dateRange) return null;
+    return sites.map(site => ({
+      ...site,
+      data: filterDataByPeriod(site.data, site.headers, dateRange),
+    }));
+  }, [sites, periodFilter]);
+
+  // Helper to parse numeric values
   const parseNumeric = (value: string): number => {
     if (!value) return 0;
     const cleaned = value.replace(/[^\d.,\-]/g, "").replace(",", ".");
     return parseFloat(cleaned) || 0;
   };
 
-  // Calculate global KPIs
-  const calculateGlobalKPIs = () => {
+  // Parse duration string like "1:23" or "01:23:45" to seconds
+  const parseDuration = (value: string): number => {
+    if (!value) return 0;
+    const parts = value.split(":").map(p => parseInt(p) || 0);
+    if (parts.length === 3) {
+      return parts[0] * 3600 + parts[1] * 60 + parts[2];
+    } else if (parts.length === 2) {
+      return parts[0] * 60 + parts[1];
+    }
+    return parseNumeric(value);
+  };
+
+  // Format seconds to mm:ss
+  const formatDuration = (seconds: number): string => {
+    if (seconds <= 0) return "N/A";
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs.toString().padStart(2, "0")}`;
+  };
+
+  // Parse percentage string like "65.5%" to number
+  const parsePercentage = (value: string): number => {
+    if (!value) return 0;
+    const cleaned = value.replace(/[%\s]/g, "").replace(",", ".");
+    return parseFloat(cleaned) || 0;
+  };
+
+  // Get value from row with multiple possible column names
+  const getRowValue = (row: Record<string, string>, ...possibleNames: string[]): string => {
+    for (const name of possibleNames) {
+      if (row[name] !== undefined && row[name] !== "") return row[name];
+    }
+    return "";
+  };
+
+  // Calculate KPIs for a dataset
+  const calculateKPIs = (siteData: SiteData[]) => {
     let totalVisitors = 0;
     let totalPageViews = 0;
-    let totalSessions = 0;
+    let totalNewUsers = 0;
+    let totalEngagement = 0;
+    let totalPagesPerSession = 0;
+    let totalDuration = 0;
+    let engagementCount = 0;
+    let pagesPerSessionCount = 0;
+    let durationCount = 0;
 
-    filteredSites.forEach((site) => {
+    siteData.forEach((site) => {
       site.data.forEach((row) => {
-        const visitors = parseNumeric(row["Utilisateurs"] || row["Visiteurs"] || row["Users"] || row["Total Nbr Utilisateur"] || "0");
-        const pageViews = parseNumeric(row["Pages vues"] || row["Vues"] || row["Page Views"] || row["Pageviews"] || row["Nbr total de pages vues"] || "0");
-        const sessions = parseNumeric(row["Sessions"] || row["Visites"] || "0");
+        // Updated column mapping based on actual Google Sheets headers
+        const visitors = parseNumeric(getRowValue(row, "Utilisateurs actifs", "Utilisateurs", "Visiteurs", "Users", "Total Nbr Utilisateur"));
+        const pageViews = parseNumeric(getRowValue(row, "Pages vues", "Vues", "Page Views", "Pageviews", "Nbr total de pages vues"));
+        const newUsers = parseNumeric(getRowValue(row, "Nouveaux utilisateurs", "Nouveaux", "New Users"));
+        const engagement = parsePercentage(getRowValue(row, "Taux d'engagement", "Engagement", "Engagement Rate"));
+        const pagesPerSession = parseNumeric(getRowValue(row, "Pages/Session", "Pages par session", "Pages/Sess"));
+        const duration = parseDuration(getRowValue(row, "Durée moyenne session", "Durée moyenne", "Avg Duration", "Durée", "Moyenne durée"));
         
         totalVisitors += visitors;
         totalPageViews += pageViews;
-        totalSessions += sessions;
+        totalNewUsers += newUsers;
+        
+        if (engagement > 0) {
+          totalEngagement += engagement;
+          engagementCount++;
+        }
+        if (pagesPerSession > 0) {
+          totalPagesPerSession += pagesPerSession;
+          pagesPerSessionCount++;
+        }
+        if (duration > 0) {
+          totalDuration += duration;
+          durationCount++;
+        }
       });
-    });
-
-    return { totalVisitors, totalPageViews, totalSessions };
-  };
-
-  // Calculate site-specific KPIs
-  const calculateSiteKPIs = (site: SiteData) => {
-    let totalVisitors = 0;
-    let totalPageViews = 0;
-    let totalSessions = 0;
-    let avgDuration = 0;
-    let durationCount = 0;
-
-    site.data.forEach((row) => {
-      const visitors = parseNumeric(row["Utilisateurs"] || row["Visiteurs"] || row["Users"] || row["Total Nbr Utilisateur"] || "0");
-      const pageViews = parseNumeric(row["Pages vues"] || row["Vues"] || row["Page Views"] || row["Pageviews"] || row["Nbr total de pages vues"] || "0");
-      const sessions = parseNumeric(row["Sessions"] || row["Visites"] || "0");
-      const duration = parseNumeric(row["Durée moyenne"] || row["Avg Duration"] || row["Durée"] || row["Moyenne durée"] || "0");
-      
-      totalVisitors += visitors;
-      totalPageViews += pageViews;
-      totalSessions += sessions;
-      if (duration > 0) {
-        avgDuration += duration;
-        durationCount++;
-      }
     });
 
     return {
       totalVisitors,
       totalPageViews,
-      totalSessions,
-      avgDuration: durationCount > 0 ? Math.round(avgDuration / durationCount) : 0,
+      totalNewUsers,
+      avgEngagement: engagementCount > 0 ? Math.round(totalEngagement / engagementCount * 10) / 10 : 0,
+      avgPagesPerSession: pagesPerSessionCount > 0 ? Math.round(totalPagesPerSession / pagesPerSessionCount * 100) / 100 : 0,
+      avgDuration: durationCount > 0 ? Math.round(totalDuration / durationCount) : 0,
+      retention: totalVisitors > 0 ? Math.round((totalVisitors - totalNewUsers) / totalVisitors * 100) : 0,
     };
   };
 
-  // Get chart data for a site
-  const getChartData = (site: SiteData) => {
+  // Calculate trend percentage
+  const calculateTrend = (current: number, previous: number): number | undefined => {
+    if (previous === 0 || !previousPeriodSites) return undefined;
+    return Math.round((current - previous) / previous * 100);
+  };
+
+  // Calculate global KPIs
+  const calculateGlobalKPIs = () => {
+    const current = calculateKPIs(filteredSites);
+    const previous = previousPeriodSites ? calculateKPIs(previousPeriodSites) : null;
+
+    return {
+      ...current,
+      trends: previous ? {
+        visitors: calculateTrend(current.totalVisitors, previous.totalVisitors),
+        pageViews: calculateTrend(current.totalPageViews, previous.totalPageViews),
+        newUsers: calculateTrend(current.totalNewUsers, previous.totalNewUsers),
+        engagement: calculateTrend(current.avgEngagement, previous.avgEngagement),
+      } : undefined,
+    };
+  };
+
+  // Calculate site-specific KPIs
+  const calculateSiteKPIs = (site: SiteData) => {
+    const current = calculateKPIs([site]);
+    
+    // Find the same site in previous period data
+    const previousSite = previousPeriodSites?.find(s => s.name === site.name);
+    const previous = previousSite ? calculateKPIs([previousSite]) : null;
+
+    return {
+      ...current,
+      trends: previous ? {
+        visitors: calculateTrend(current.totalVisitors, previous.totalVisitors),
+        pageViews: calculateTrend(current.totalPageViews, previous.totalPageViews),
+        newUsers: calculateTrend(current.totalNewUsers, previous.totalNewUsers),
+        engagement: calculateTrend(current.avgEngagement, previous.avgEngagement),
+      } : undefined,
+    };
+  };
+
+  // Get chart data for a site with selected metric
+  const getChartData = (site: SiteData, metric: MetricType = "visitors") => {
     const dateColumn = site.headers.find(h => 
       h.toLowerCase().includes("date") || 
       h.toLowerCase().includes("mois") || 
@@ -262,26 +412,85 @@ export default function StatsWeb() {
       h.toLowerCase().includes("month")
     ) || site.headers[0];
 
-    const valueColumn = site.headers.find(h =>
-      h.toLowerCase().includes("utilisateur") ||
-      h.toLowerCase().includes("visiteur") ||
-      h.toLowerCase().includes("user")
-    ) || site.headers[1];
-
-    return site.data.map((row) => ({
-      label: row[dateColumn] || "",
-      value: parseNumeric(row[valueColumn] || "0"),
-    })).filter(d => d.label);
+    return site.data.map((row) => {
+      let value = 0;
+      switch (metric) {
+        case "visitors":
+          value = parseNumeric(getRowValue(row, "Utilisateurs actifs", "Utilisateurs", "Visiteurs", "Users"));
+          break;
+        case "pageviews":
+          value = parseNumeric(getRowValue(row, "Pages vues", "Vues", "Page Views"));
+          break;
+        case "newUsers":
+          value = parseNumeric(getRowValue(row, "Nouveaux utilisateurs", "Nouveaux", "New Users"));
+          break;
+        case "engagement":
+          value = parsePercentage(getRowValue(row, "Taux d'engagement", "Engagement"));
+          break;
+      }
+      return {
+        label: row[dateColumn] || "",
+        value,
+      };
+    }).filter(d => d.label);
   };
 
   // Get comparison data across all sites
-  const getComparisonData = () => {
+  const getComparisonData = (metric: MetricType = "visitors") => {
     return filteredSites.map((site) => {
       const kpis = calculateSiteKPIs(site);
+      let value = 0;
+      switch (metric) {
+        case "visitors":
+          value = kpis.totalVisitors;
+          break;
+        case "pageviews":
+          value = kpis.totalPageViews;
+          break;
+        case "newUsers":
+          value = kpis.totalNewUsers;
+          break;
+        case "engagement":
+          value = kpis.avgEngagement;
+          break;
+      }
       return {
         name: site.name,
-        value: kpis.totalVisitors,
+        value,
       };
+    });
+  };
+
+  // Export data to CSV
+  const exportToCSV = () => {
+    const dataToExport = selectedSite === "all" ? filteredSites : filteredSites.filter(s => s.name === selectedSite);
+    
+    let csv = "";
+    dataToExport.forEach(site => {
+      csv += `\n${site.name}\n`;
+      csv += site.headers.join(";") + "\n";
+      site.data.forEach(row => {
+        csv += site.headers.map(h => row[h] || "").join(";") + "\n";
+      });
+    });
+    
+    // Add summary
+    csv += "\n\nRésumé\n";
+    csv += "Site;Visiteurs;Pages vues;Nouveaux utilisateurs;Taux engagement;Durée moyenne\n";
+    dataToExport.forEach(site => {
+      const kpis = calculateSiteKPIs(site);
+      csv += `${site.name};${kpis.totalVisitors};${kpis.totalPageViews};${kpis.totalNewUsers};${kpis.avgEngagement}%;${formatDuration(kpis.avgDuration)}\n`;
+    });
+
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `stats-web-${format(new Date(), "yyyy-MM-dd")}.csv`;
+    link.click();
+    
+    toast({
+      title: "Export réussi",
+      description: "Le fichier CSV a été téléchargé",
     });
   };
 
@@ -298,6 +507,13 @@ export default function StatsWeb() {
     { value: "semester_1", label: `Semestre 1 (${currentYear})` },
     { value: "semester_2", label: `Semestre 2 (${currentYear})` },
     { value: "custom", label: "Période personnalisée" },
+  ];
+
+  const metricOptions = [
+    { value: "visitors", label: "Utilisateurs actifs", icon: Users },
+    { value: "pageviews", label: "Pages vues", icon: Eye },
+    { value: "newUsers", label: "Nouveaux utilisateurs", icon: UserPlus },
+    { value: "engagement", label: "Taux d'engagement", icon: Target },
   ];
 
   return (
@@ -321,6 +537,10 @@ export default function StatsWeb() {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <Button onClick={exportToCSV} variant="outline">
+            <Download className="mr-2 h-4 w-4" />
+            Exporter CSV
+          </Button>
           <Button onClick={fetchStats} disabled={loading} variant="outline">
             <RefreshCw className={`mr-2 h-4 w-4 ${loading ? "animate-spin" : ""}`} />
             Actualiser
@@ -434,44 +654,99 @@ export default function StatsWeb() {
 
           {/* Global View */}
           <TabsContent value="all" className="space-y-6">
-            {/* Global KPIs */}
-            <div className="grid gap-4 md:grid-cols-3">
+            {/* Global KPIs - Row 1 */}
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
               <SiteStatsCard
-                title="Total Visiteurs"
+                title="Utilisateurs actifs"
                 value={globalKPIs.totalVisitors.toLocaleString()}
+                trend={globalKPIs.trends?.visitors}
                 icon={<Users className="h-4 w-4" />}
               />
               <SiteStatsCard
-                title="Total Pages Vues"
+                title="Nouveaux utilisateurs"
+                value={globalKPIs.totalNewUsers.toLocaleString()}
+                trend={globalKPIs.trends?.newUsers}
+                icon={<UserPlus className="h-4 w-4" />}
+              />
+              <SiteStatsCard
+                title="Pages vues"
                 value={globalKPIs.totalPageViews.toLocaleString()}
+                trend={globalKPIs.trends?.pageViews}
                 icon={<Eye className="h-4 w-4" />}
               />
               <SiteStatsCard
-                title="Total Sessions"
-                value={globalKPIs.totalSessions.toLocaleString()}
-                icon={<Clock className="h-4 w-4" />}
+                title="Taux d'engagement"
+                value={`${globalKPIs.avgEngagement}%`}
+                trend={globalKPIs.trends?.engagement}
+                icon={<Target className="h-4 w-4" />}
               />
             </div>
 
-            {/* Comparison Chart */}
-            <SiteComparisonChart
-              title="Comparaison des visiteurs par site"
-              data={getComparisonData()}
-            />
+            {/* Global KPIs - Row 2 */}
+            <div className="grid gap-4 md:grid-cols-3">
+              <SiteStatsCard
+                title="Pages / Session"
+                value={globalKPIs.avgPagesPerSession.toFixed(2)}
+                icon={<FileText className="h-4 w-4" />}
+              />
+              <SiteStatsCard
+                title="Durée moyenne"
+                value={formatDuration(globalKPIs.avgDuration)}
+                icon={<Clock className="h-4 w-4" />}
+              />
+              <SiteStatsCard
+                title="Taux de rétention"
+                value={`${globalKPIs.retention}%`}
+                icon={<Users className="h-4 w-4" />}
+              />
+            </div>
+
+            {/* Metric Selector for Chart */}
+            <Card>
+              <CardHeader className="pb-2 flex flex-row items-center justify-between">
+                <CardTitle className="text-base">Comparaison par site</CardTitle>
+                <Select value={selectedMetric} onValueChange={(v) => setSelectedMetric(v as MetricType)}>
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {metricOptions.map(opt => (
+                      <SelectItem key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </CardHeader>
+              <CardContent>
+                <SiteComparisonChart
+                  title=""
+                  data={getComparisonData(selectedMetric)}
+                />
+              </CardContent>
+            </Card>
 
             {/* Sites Overview */}
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {filteredSites.map((site) => {
                 const kpis = calculateSiteKPIs(site);
+                const rank = getComparisonData("visitors")
+                  .sort((a, b) => b.value - a.value)
+                  .findIndex(s => s.name === site.name) + 1;
+                const rankBadge = rank === 1 ? "🥇" : rank === 2 ? "🥈" : rank === 3 ? "🥉" : "";
+                
                 return (
                   <Card key={site.name} className="cursor-pointer hover:bg-accent/50 transition-colors" onClick={() => setSelectedSite(site.name)}>
                     <CardHeader className="pb-2">
-                      <CardTitle className="text-base">{site.name}</CardTitle>
+                      <CardTitle className="text-base flex items-center gap-2">
+                        {rankBadge && <span>{rankBadge}</span>}
+                        {site.name}
+                      </CardTitle>
                     </CardHeader>
                     <CardContent>
                       <div className="grid grid-cols-2 gap-2 text-sm">
                         <div>
-                          <p className="text-muted-foreground">Visiteurs</p>
+                          <p className="text-muted-foreground">Utilisateurs</p>
                           <p className="font-semibold">{kpis.totalVisitors.toLocaleString()}</p>
                         </div>
                         <div>
@@ -479,12 +754,12 @@ export default function StatsWeb() {
                           <p className="font-semibold">{kpis.totalPageViews.toLocaleString()}</p>
                         </div>
                         <div>
-                          <p className="text-muted-foreground">Sessions</p>
-                          <p className="font-semibold">{kpis.totalSessions.toLocaleString()}</p>
+                          <p className="text-muted-foreground">Engagement</p>
+                          <p className="font-semibold">{kpis.avgEngagement}%</p>
                         </div>
                         <div>
-                          <p className="text-muted-foreground">Entrées</p>
-                          <p className="font-semibold">{site.data.length}</p>
+                          <p className="text-muted-foreground">Durée moy.</p>
+                          <p className="font-semibold">{formatDuration(kpis.avgDuration)}</p>
                         </div>
                       </div>
                     </CardContent>
@@ -497,41 +772,86 @@ export default function StatsWeb() {
           {/* Individual Site Views */}
           {filteredSites.map((site) => {
             const kpis = calculateSiteKPIs(site);
-            const chartData = getChartData(site);
 
             return (
               <TabsContent key={site.name} value={site.name} className="space-y-6">
-                {/* Site KPIs */}
-                <div className="grid gap-4 md:grid-cols-4">
+                {/* Site KPIs - Row 1 */}
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                   <SiteStatsCard
-                    title="Visiteurs"
+                    title="Utilisateurs actifs"
                     value={kpis.totalVisitors.toLocaleString()}
+                    trend={kpis.trends?.visitors}
                     icon={<Users className="h-4 w-4" />}
                   />
                   <SiteStatsCard
-                    title="Pages Vues"
+                    title="Nouveaux utilisateurs"
+                    value={kpis.totalNewUsers.toLocaleString()}
+                    trend={kpis.trends?.newUsers}
+                    icon={<UserPlus className="h-4 w-4" />}
+                  />
+                  <SiteStatsCard
+                    title="Pages vues"
                     value={kpis.totalPageViews.toLocaleString()}
+                    trend={kpis.trends?.pageViews}
                     icon={<Eye className="h-4 w-4" />}
                   />
                   <SiteStatsCard
-                    title="Sessions"
-                    value={kpis.totalSessions.toLocaleString()}
-                    icon={<Clock className="h-4 w-4" />}
-                  />
-                  <SiteStatsCard
-                    title="Durée Moyenne"
-                    value={kpis.avgDuration > 0 ? `${kpis.avgDuration}s` : "N/A"}
-                    icon={<Clock className="h-4 w-4" />}
+                    title="Taux d'engagement"
+                    value={`${kpis.avgEngagement}%`}
+                    trend={kpis.trends?.engagement}
+                    icon={<Target className="h-4 w-4" />}
                   />
                 </div>
 
-                {/* Evolution Chart */}
-                {chartData.length > 1 && (
-                  <SiteStatsChart
-                    title="Évolution des visiteurs"
-                    data={chartData}
+                {/* Site KPIs - Row 2 */}
+                <div className="grid gap-4 md:grid-cols-3">
+                  <SiteStatsCard
+                    title="Pages / Session"
+                    value={kpis.avgPagesPerSession.toFixed(2)}
+                    icon={<FileText className="h-4 w-4" />}
                   />
-                )}
+                  <SiteStatsCard
+                    title="Durée moyenne"
+                    value={formatDuration(kpis.avgDuration)}
+                    icon={<Clock className="h-4 w-4" />}
+                  />
+                  <SiteStatsCard
+                    title="Taux de rétention"
+                    value={`${kpis.retention}%`}
+                    icon={<Users className="h-4 w-4" />}
+                  />
+                </div>
+
+                {/* Evolution Chart with Metric Selector */}
+                <Card>
+                  <CardHeader className="pb-2 flex flex-row items-center justify-between">
+                    <CardTitle className="text-base">Évolution</CardTitle>
+                    <Select value={selectedMetric} onValueChange={(v) => setSelectedMetric(v as MetricType)}>
+                      <SelectTrigger className="w-[180px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {metricOptions.map(opt => (
+                          <SelectItem key={opt.value} value={opt.value}>
+                            {opt.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </CardHeader>
+                  <CardContent>
+                    {getChartData(site, selectedMetric).length > 1 ? (
+                      <SiteStatsChart
+                        title=""
+                        data={getChartData(site, selectedMetric)}
+                      />
+                    ) : (
+                      <p className="text-center text-muted-foreground py-8">
+                        Pas assez de données pour afficher le graphique
+                      </p>
+                    )}
+                  </CardContent>
+                </Card>
 
                 {/* Data Table */}
                 <Card>
