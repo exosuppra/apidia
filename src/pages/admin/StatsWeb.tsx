@@ -969,9 +969,18 @@ export default function StatsWeb() {
                           <TableBody>
                             {site.data.map((row, rowIdx) => (
                               <TableRow key={rowIdx}>
-                                {site.headers.map((header, cellIdx) => (
-                                  <TableCell key={cellIdx}>{row[header] || "-"}</TableCell>
-                                ))}
+                                {site.headers.map((header, cellIdx) => {
+                                  const value = row[header] || "-";
+                                  // Format duration columns
+                                  const isDurationColumn = header.toLowerCase().includes("durée") || 
+                                    header.toLowerCase().includes("duration") ||
+                                    header.toLowerCase().includes("moyenne session");
+                                  if (isDurationColumn && value !== "-") {
+                                    const seconds = parseDuration(value);
+                                    return <TableCell key={cellIdx}>{formatDuration(seconds)}</TableCell>;
+                                  }
+                                  return <TableCell key={cellIdx}>{value}</TableCell>;
+                                })}
                               </TableRow>
                             ))}
                           </TableBody>
