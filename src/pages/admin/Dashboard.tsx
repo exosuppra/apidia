@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import Seo from "@/components/Seo";
-import { Shield, LogOut, Users, FileText, Eye, Calendar, CalendarClock, Clock, Globe, BarChart3 } from "lucide-react";
+import { Shield, LogOut, Users, FileText, Eye, Calendar, CalendarClock, Clock, Globe, BarChart3, History } from "lucide-react";
 import { useAuth } from "@/context/AuthProvider";
 import {
   Dialog,
@@ -150,94 +150,81 @@ export default function AdminDashboard() {
           )}
 
           {/* Accueil & Qualification de la donnée touristique */}
-          <section className="mb-10">
-            <h2 className="text-lg font-semibold mb-4 text-primary">Accueil & Qualification de la donnée touristique</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {hasPermission('requests') && (
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">
-                      Demandes utilisateurs
-                    </CardTitle>
-                    <FileText className="h-4 w-4 text-muted-foreground" />
-                  </CardHeader>
-                  <CardContent>
-                    <CardDescription>
-                      Traiter les demandes de modification des fiches
-                    </CardDescription>
-                    <Button 
-                      className="w-full mt-4" 
-                      variant="outline"
-                      onClick={() => navigate("/admin/requests")}
-                    >
-                      Voir les demandes
-                    </Button>
-                  </CardContent>
-                </Card>
-              )}
+          {(hasPermission('requests') || hasPermission('fiches') || hasPermission('logs')) && (
+            <section className="mb-10">
+              <h2 className="text-lg font-semibold mb-4 text-primary">Accueil & Qualification de la donnée touristique</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {hasPermission('requests') && (
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium">
+                        Demandes utilisateurs
+                      </CardTitle>
+                      <FileText className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                      <CardDescription>
+                        Traiter les demandes de modification des fiches
+                      </CardDescription>
+                      <Button 
+                        className="w-full mt-4" 
+                        variant="outline"
+                        onClick={() => navigate("/admin/requests")}
+                      >
+                        Voir les demandes
+                      </Button>
+                    </CardContent>
+                  </Card>
+                )}
 
-              {hasPermission('fiches') && (
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">
-                      Toutes les fiches
-                    </CardTitle>
-                    <Eye className="h-4 w-4 text-muted-foreground" />
-                  </CardHeader>
-                  <CardContent>
-                    <CardDescription>
-                      Voir toutes les fiches du Google Sheet (sauf SOURCING)
-                    </CardDescription>
-                    <Button 
-                      className="w-full mt-4" 
-                      variant="outline"
-                      onClick={() => navigate("/admin/fiches")}
-                    >
-                      Voir toutes les fiches
-                    </Button>
-                  </CardContent>
-                </Card>
-              )}
+                {hasPermission('fiches') && (
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium">
+                        Toutes les fiches
+                      </CardTitle>
+                      <Eye className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                      <CardDescription>
+                        Voir toutes les fiches du Google Sheet (sauf SOURCING)
+                      </CardDescription>
+                      <Button 
+                        className="w-full mt-4" 
+                        variant="outline"
+                        onClick={() => navigate("/admin/fiches")}
+                      >
+                        Voir toutes les fiches
+                      </Button>
+                    </CardContent>
+                  </Card>
+                )}
 
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    Historique des actions
-                  </CardTitle>
-                  <Shield className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <CardDescription>
-                    Voir l'historique des actions des utilisateurs
-                  </CardDescription>
-                  <Button 
-                    className="w-full mt-4" 
-                    variant="outline"
-                    onClick={() => navigate("/admin/logs")}
-                  >
-                    Consulter l'historique
-                  </Button>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    Générateur de planning
-                  </CardTitle>
-                  <Calendar className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <CardDescription>
-                    Créer automatiquement des plannings de publication
-                  </CardDescription>
-                  <Button className="w-full mt-4" variant="outline">
-                    Générer un planning
-                  </Button>
-                </CardContent>
-              </Card>
-            </div>
-          </section>
+                {hasPermission('logs') && (
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium">
+                        Historique des actions
+                      </CardTitle>
+                      <History className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                      <CardDescription>
+                        Voir l'historique des actions des utilisateurs
+                      </CardDescription>
+                      <Button 
+                        className="w-full mt-4" 
+                        variant="outline"
+                        onClick={() => navigate("/admin/logs")}
+                      >
+                        Consulter l'historique
+                      </Button>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+            </section>
+          )}
 
           {/* Gestion de Projet Réseaux sociaux */}
           {hasPermission('planning') && (
@@ -269,52 +256,58 @@ export default function AdminDashboard() {
           )}
 
           {/* Gestion de Projet Web */}
-          <section className="mb-10">
-            <h2 className="text-lg font-semibold mb-4 text-primary">Gestion de Projet Web</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    Intense Verdon Edito
-                  </CardTitle>
-                  <Globe className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <CardDescription>
-                    Plateforme éditoriale Intense Verdon
-                  </CardDescription>
-                  <Button 
-                    className="w-full mt-4" 
-                    variant="outline"
-                    onClick={handleIntenseVerdonClick}
-                  >
-                    Accéder à la plateforme
-                  </Button>
-                </CardContent>
-              </Card>
+          {(hasPermission('intense-verdon') || hasPermission('stats-web')) && (
+            <section className="mb-10">
+              <h2 className="text-lg font-semibold mb-4 text-primary">Gestion de Projet Web</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {hasPermission('intense-verdon') && (
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium">
+                        Intense Verdon Edito
+                      </CardTitle>
+                      <Globe className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                      <CardDescription>
+                        Plateforme éditoriale Intense Verdon
+                      </CardDescription>
+                      <Button 
+                        className="w-full mt-4" 
+                        variant="outline"
+                        onClick={handleIntenseVerdonClick}
+                      >
+                        Accéder à la plateforme
+                      </Button>
+                    </CardContent>
+                  </Card>
+                )}
 
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    Statistiques Web
-                  </CardTitle>
-                  <BarChart3 className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <CardDescription>
-                    Statistiques et données des projets web
-                  </CardDescription>
-                  <Button 
-                    className="w-full mt-4" 
-                    variant="outline"
-                    onClick={() => navigate("/admin/stats-web")}
-                  >
-                    Voir les statistiques
-                  </Button>
-                </CardContent>
-              </Card>
-            </div>
-          </section>
+                {hasPermission('stats-web') && (
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium">
+                        Statistiques Web
+                      </CardTitle>
+                      <BarChart3 className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                      <CardDescription>
+                        Statistiques et données des projets web
+                      </CardDescription>
+                      <Button 
+                        className="w-full mt-4" 
+                        variant="outline"
+                        onClick={() => navigate("/admin/stats-web")}
+                      >
+                        Voir les statistiques
+                      </Button>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+            </section>
+          )}
 
           {/* Dialog Intense Verdon */}
           <Dialog open={showIntenseVerdonPopup} onOpenChange={setShowIntenseVerdonPopup}>
@@ -331,20 +324,22 @@ export default function AdminDashboard() {
             </DialogContent>
           </Dialog>
 
-          {/* Recent Activity */}
-          <Card className="mt-8">
-            <CardHeader>
-              <CardTitle>Activité récente</CardTitle>
-              <CardDescription>
-                Les dernières actions effectuées sur la plateforme
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="text-sm text-muted-foreground">
-                Aucune activité récente à afficher
-              </div>
-            </CardContent>
-          </Card>
+          {/* Recent Activity - only for users with logs permission */}
+          {hasPermission('logs') && (
+            <Card className="mt-8">
+              <CardHeader>
+                <CardTitle>Activité récente</CardTitle>
+                <CardDescription>
+                  Les dernières actions effectuées sur la plateforme
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="text-sm text-muted-foreground">
+                  Aucune activité récente à afficher
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
     </>
