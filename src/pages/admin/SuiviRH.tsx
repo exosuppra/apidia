@@ -40,6 +40,7 @@ import {
   Loader2,
   Filter,
   RefreshCw,
+  Search,
 } from "lucide-react";
 import {
   BarChart,
@@ -78,6 +79,7 @@ export default function SuiviRH() {
   const [dateEnd, setDateEnd] = useState("");
   const [projetFilter, setProjetFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
+  const [tableSearch, setTableSearch] = useState("");
 
   const { data: rhData, isLoading, error, refetch, isFetching } = useQuery({
     queryKey: ["rh-data"],
@@ -274,12 +276,24 @@ export default function SuiviRH() {
     });
   }, [filteredData]);
 
+  // Search filtered data for table
+  const searchFilteredTableData = useMemo(() => {
+    if (!tableSearch.trim()) return sortedTableData;
+    const searchLower = tableSearch.toLowerCase().trim();
+    return sortedTableData.filter((entry) => 
+      entry.date?.toLowerCase().includes(searchLower) ||
+      entry.projet?.toLowerCase().includes(searchLower) ||
+      entry.tache?.toLowerCase().includes(searchLower) ||
+      entry.titre?.toLowerCase().includes(searchLower)
+    );
+  }, [sortedTableData, tableSearch]);
+
   // Paginated data
-  const totalPages = Math.ceil(sortedTableData.length / ITEMS_PER_PAGE);
+  const totalPages = Math.ceil(searchFilteredTableData.length / ITEMS_PER_PAGE);
   const paginatedData = useMemo(() => {
     const start = (currentPage - 1) * ITEMS_PER_PAGE;
-    return sortedTableData.slice(start, start + ITEMS_PER_PAGE);
-  }, [sortedTableData, currentPage]);
+    return searchFilteredTableData.slice(start, start + ITEMS_PER_PAGE);
+  }, [searchFilteredTableData, currentPage]);
 
   if (isLoading) {
     return (
@@ -595,10 +609,22 @@ export default function SuiviRH() {
 
           {/* Detailed table */}
           <Card>
-            <CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
               <CardTitle className="text-base">
-                Détail des entrées ({sortedTableData.length} entrées)
+                Détail des entrées ({searchFilteredTableData.length} entrées)
               </CardTitle>
+              <div className="relative w-64">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Rechercher..."
+                  value={tableSearch}
+                  onChange={(e) => {
+                    setTableSearch(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  className="pl-9"
+                />
+              </div>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="rounded-md border">
