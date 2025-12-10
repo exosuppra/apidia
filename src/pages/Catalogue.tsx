@@ -82,19 +82,6 @@ const services = [
     ]
   },
   {
-    category: "E-learning",
-    color: "bg-green-500/10 text-green-600",
-    services: [
-      {
-        icon: <GraduationCap className="w-8 h-8" />,
-        title: "Formation marketing digital",
-        description: "Modules interactifs pour apprendre à booster sa visibilité en ligne et maîtriser les outils digitaux du tourisme",
-        cta: "Commencer la formation",
-        price: "99€"
-      }
-    ]
-  },
-  {
     category: "Communication",
     color: "bg-purple-500/10 text-purple-600",
     services: [
