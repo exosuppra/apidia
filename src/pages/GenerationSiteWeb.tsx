@@ -47,9 +47,9 @@ const GenerationSiteWeb = () => {
       description: "Design responsive et professionnel adapté à votre image de marque"
     },
     {
-      icon: <Calendar className="w-6 h-6 text-primary" />,
-      title: "Module de réservation",
-      description: "Système de disponibilité en temps réel pour les hébergeurs et activités"
+      icon: <Shield className="w-6 h-6 text-primary" />,
+      title: "Back-office sur mesure",
+      description: "Interface d'administration personnalisée pour gérer vos contenus en autonomie"
     },
     {
       icon: <Search className="w-6 h-6 text-primary" />,
@@ -115,13 +115,13 @@ const GenerationSiteWeb = () => {
     },
     {
       step: 2,
-      title: "Création du site",
+      title: "Création du site vitrine",
       description: "Développement avec notre technologie avancée"
     },
     {
       step: 3,
-      title: "Intégration réservation",
-      description: "Configuration du module de disponibilité si nécessaire"
+      title: "Back-office sur mesure",
+      description: "Développement de votre interface d'administration personnalisée"
     },
     {
       step: 4,
@@ -138,9 +138,9 @@ const GenerationSiteWeb = () => {
   return (
     <>
       <Seo
-        title="Génération de Site Internet - ApidIA | Création de Site Web Optimisé IA"
-        description="Création de sites web modernes avec module de réservation intégré. Optimisation SEO, GEO et GSO pour une visibilité maximale dans les recherches IA et traditionnelles."
-        keywords="création site web, site internet tourisme, module réservation, SEO, GEO, GSO, optimisation IA, site vitrine"
+        title="Génération de Site Vitrine - ApidIA | Création de Site Web Optimisé IA"
+        description="Création de sites vitrines modernes avec back-office sur mesure. Optimisation SEO, GEO et GSO pour une visibilité maximale dans les recherches IA et traditionnelles."
+        keywords="création site vitrine, site internet tourisme, back-office sur mesure, SEO, GEO, GSO, optimisation IA"
       />
 
       <div className="min-h-screen bg-background">
@@ -172,11 +172,11 @@ const GenerationSiteWeb = () => {
                 Technologie IA Avancée
               </Badge>
               <h1 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl lg:text-6xl">
-                Génération de Site Internet
+                Site Vitrine Professionnel
                 <span className="text-primary block mt-2">Optimisé pour l'IA</span>
               </h1>
               <p className="mx-auto max-w-[700px] text-muted-foreground md:text-xl">
-                Créez un site web moderne avec module de réservation intégré. 
+                Créez un site vitrine moderne avec un back-office sur mesure pour gérer vos contenus en autonomie. 
                 Optimisé SEO, GEO et GSO pour une visibilité maximale dans les recherches traditionnelles et IA.
               </p>
               <div className="space-x-4">
@@ -221,43 +221,50 @@ const GenerationSiteWeb = () => {
           </div>
         </section>
 
-        {/* Module de Réservation */}
+        {/* Back-office sur mesure */}
         <section className="py-12 md:py-24 bg-muted/30">
           <div className="container px-4 md:px-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
               <div>
                 <Badge variant="secondary" className="mb-4">
-                  <Calendar className="w-4 h-4 mr-2" />
-                  Module Hébergeurs
+                  <Shield className="w-4 h-4 mr-2" />
+                  Administration personnalisée
                 </Badge>
                 <h2 className="text-3xl font-bold mb-6">
-                  Système de Réservation Intégré
+                  Back-office Développé Sur Mesure
                 </h2>
                 <p className="text-muted-foreground mb-6 leading-relaxed">
-                  Pour les hébergeurs, nous intégrons le module de disponibilité Ingénie qui permet 
-                  à vos clients de consulter vos disponibilités en temps réel directement sur votre site.
+                  Chaque site vitrine est livré avec une interface d'administration entièrement personnalisée, 
+                  développée selon vos besoins spécifiques pour vous permettre de gérer vos contenus en toute autonomie.
                 </p>
                 
                 <div className="space-y-4">
                   <div className="flex items-start gap-3">
                     <CheckCircle className="w-5 h-5 text-primary mt-0.5" />
                     <div>
-                      <h4 className="font-semibold">Module Ingénie</h4>
-                      <p className="text-sm text-muted-foreground">Calendrier des disponibilités en temps réel</p>
+                      <h4 className="font-semibold">Gestion des contenus</h4>
+                      <p className="text-sm text-muted-foreground">Modifiez textes, images et médias en quelques clics</p>
                     </div>
                   </div>
                   <div className="flex items-start gap-3">
                     <CheckCircle className="w-5 h-5 text-primary mt-0.5" />
                     <div>
-                      <h4 className="font-semibold">Affichage des disponibilités</h4>
-                      <p className="text-sm text-muted-foreground">Visualisation claire des périodes libres et occupées</p>
+                      <h4 className="font-semibold">Interface intuitive</h4>
+                      <p className="text-sm text-muted-foreground">Aucune compétence technique requise</p>
                     </div>
                   </div>
                   <div className="flex items-start gap-3">
                     <CheckCircle className="w-5 h-5 text-primary mt-0.5" />
                     <div>
-                      <h4 className="font-semibold">Interface simple</h4>
-                      <p className="text-sm text-muted-foreground">Consultation facile pour vos clients</p>
+                      <h4 className="font-semibold">Fonctionnalités adaptées</h4>
+                      <p className="text-sm text-muted-foreground">Développement sur mesure selon votre activité</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <CheckCircle className="w-5 h-5 text-primary mt-0.5" />
+                    <div>
+                      <h4 className="font-semibold">Formation incluse</h4>
+                      <p className="text-sm text-muted-foreground">Accompagnement pour la prise en main de votre back-office</p>
                     </div>
                   </div>
                 </div>
@@ -266,35 +273,29 @@ const GenerationSiteWeb = () => {
               <Card className="p-6">
                 <div className="space-y-4">
                   <div className="flex items-center gap-3">
-                    <Calendar className="w-8 h-8 text-primary" />
+                    <Shield className="w-8 h-8 text-primary" />
                     <div>
-                      <h3 className="font-semibold">Aperçu du module</h3>
-                      <p className="text-sm text-muted-foreground">Interface intuitive pour vos clients</p>
+                      <h3 className="font-semibold">Aperçu du back-office</h3>
+                      <p className="text-sm text-muted-foreground">Interface d'administration personnalisée</p>
                     </div>
                   </div>
                   <Separator />
-                  <div className="grid grid-cols-7 gap-2 text-xs text-center">
-                    {['L', 'M', 'M', 'J', 'V', 'S', 'D'].map((day) => (
-                      <div key={day} className="font-medium p-2">{day}</div>
-                    ))}
-                    {Array.from({length: 28}, (_, i) => (
-                      <div key={i} className={`p-2 rounded ${
-                        i % 7 === 0 ? 'bg-red-100 text-red-600' : 
-                        i % 3 === 0 ? 'bg-green-100 text-green-600' : 
-                        'bg-gray-50 text-gray-400'
-                      }`}>
-                        {i + 1}
-                      </div>
-                    ))}
-                  </div>
-                  <div className="flex gap-4 text-xs">
-                    <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 bg-green-100 rounded"></div>
-                      <span>Disponible</span>
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                      <span className="text-sm font-medium">Pages du site</span>
+                      <Badge variant="secondary">Modifier</Badge>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 bg-red-100 rounded"></div>
-                      <span>Occupé</span>
+                    <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                      <span className="text-sm font-medium">Galerie photos</span>
+                      <Badge variant="secondary">Modifier</Badge>
+                    </div>
+                    <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                      <span className="text-sm font-medium">Actualités</span>
+                      <Badge variant="secondary">Modifier</Badge>
+                    </div>
+                    <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                      <span className="text-sm font-medium">Informations pratiques</span>
+                      <Badge variant="secondary">Modifier</Badge>
                     </div>
                   </div>
                 </div>
