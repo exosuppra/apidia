@@ -12,6 +12,7 @@ import AuthProvider from "./context/AuthProvider";
 import RequireAuth from "./components/RequireAuth";
 import RequireAdminAuth from "./components/RequireAdminAuth";
 import RequirePasswordChange from "./components/RequirePasswordChange";
+import RequirePermission from "./components/RequirePermission";
 import Login from "./pages/auth/Login";
 import SetCode from "./pages/auth/SetCode";
 import ChangePassword from "./pages/auth/ChangePassword";
@@ -75,49 +76,63 @@ const App = () => (
             <Route path="/admin/users" element={
               <RequireAdminAuth>
                 <RequirePasswordChange>
-                  <UsersManagement />
+                  <RequirePermission pageKey="users">
+                    <UsersManagement />
+                  </RequirePermission>
                 </RequirePasswordChange>
               </RequireAdminAuth>
             } />
             <Route path="/admin/fiches" element={
               <RequireAdminAuth>
                 <RequirePasswordChange>
-                  <AllFiches />
+                  <RequirePermission pageKey="fiches">
+                    <AllFiches />
+                  </RequirePermission>
                 </RequirePasswordChange>
               </RequireAdminAuth>
             } />
             <Route path="/admin/planning" element={
               <RequireAdminAuth>
                 <RequirePasswordChange>
-                  <PlanningEditorial />
+                  <RequirePermission pageKey="planning">
+                    <PlanningEditorial />
+                  </RequirePermission>
                 </RequirePasswordChange>
               </RequireAdminAuth>
             } />
             <Route path="/admin/requests" element={
               <RequireAdminAuth>
                 <RequirePasswordChange>
-                  <UserRequests />
+                  <RequirePermission pageKey="requests">
+                    <UserRequests />
+                  </RequirePermission>
                 </RequirePasswordChange>
               </RequireAdminAuth>
             } />
             <Route path="/admin/logs" element={
               <RequireAdminAuth>
                 <RequirePasswordChange>
-                  <UserActionLogs />
+                  <RequirePermission pageKey="logs">
+                    <UserActionLogs />
+                  </RequirePermission>
                 </RequirePasswordChange>
               </RequireAdminAuth>
             } />
             <Route path="/admin/rh" element={
               <RequireAdminAuth>
                 <RequirePasswordChange>
-                  <SuiviRH />
+                  <RequirePermission pageKey="rh">
+                    <SuiviRH />
+                  </RequirePermission>
                 </RequirePasswordChange>
               </RequireAdminAuth>
             } />
             <Route path="/admin/stats-web" element={
               <RequireAdminAuth>
                 <RequirePasswordChange>
-                  <StatsWeb />
+                  <RequirePermission pageKey="stats-web">
+                    <StatsWeb />
+                  </RequirePermission>
                 </RequirePasswordChange>
               </RequireAdminAuth>
             } />
