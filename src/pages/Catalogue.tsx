@@ -52,8 +52,8 @@ const services = [
       },
       {
         icon: <Smartphone className="w-8 h-8" />,
-        title: "Génération de site internet",
-        description: "Création de site web avec module de disponibilité intégré pour vos réservations",
+        title: "Génération de site vitrine",
+        description: "Création de site vitrine moderne avec back-office sur mesure pour gérer vos contenus en autonomie",
         cta: "Créer mon site",
         price: "Sur devis",
         link: "/generation-site-web"
