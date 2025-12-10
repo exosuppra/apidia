@@ -53,7 +53,7 @@ const services = [
       {
         icon: <Smartphone className="w-8 h-8" />,
         title: "Génération de site vitrine",
-        description: "Création de site vitrine moderne avec back-office sur mesure pour mettre en avant votre destination",
+        description: "Création de site vitrine moderne avec back-office sur mesure pour mettre en avant votre établissement en ligne",
         cta: "Créer mon site",
         price: "Sur devis",
         link: "/generation-site-web"
