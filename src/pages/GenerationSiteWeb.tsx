@@ -224,8 +224,8 @@ const GenerationSiteWeb = () => {
         {/* Back-office sur mesure */}
         <section className="py-12 md:py-24 bg-muted/30">
           <div className="container px-4 md:px-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-              <div>
+            <div className="max-w-3xl mx-auto">
+              <div className="text-center mb-8">
                 <Badge variant="secondary" className="mb-4">
                   <Shield className="w-4 h-4 mr-2" />
                   Administration personnalisée
@@ -233,73 +233,42 @@ const GenerationSiteWeb = () => {
                 <h2 className="text-3xl font-bold mb-6">
                   Back-office Développé Sur Mesure
                 </h2>
-                <p className="text-muted-foreground mb-6 leading-relaxed">
+                <p className="text-muted-foreground leading-relaxed">
                   Chaque site vitrine est livré avec une interface d'administration entièrement personnalisée, 
                   développée selon vos besoins spécifiques pour vous permettre de gérer vos contenus en toute autonomie.
                 </p>
-                
-                <div className="space-y-4">
-                  <div className="flex items-start gap-3">
-                    <CheckCircle className="w-5 h-5 text-primary mt-0.5" />
-                    <div>
-                      <h4 className="font-semibold">Gestion des contenus</h4>
-                      <p className="text-sm text-muted-foreground">Modifiez textes, images et médias en quelques clics</p>
-                    </div>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="flex items-start gap-3">
+                  <CheckCircle className="w-5 h-5 text-primary mt-0.5" />
+                  <div>
+                    <h4 className="font-semibold">Gestion des contenus</h4>
+                    <p className="text-sm text-muted-foreground">Modifiez textes, images et médias en quelques clics</p>
                   </div>
-                  <div className="flex items-start gap-3">
-                    <CheckCircle className="w-5 h-5 text-primary mt-0.5" />
-                    <div>
-                      <h4 className="font-semibold">Interface intuitive</h4>
-                      <p className="text-sm text-muted-foreground">Aucune compétence technique requise</p>
-                    </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <CheckCircle className="w-5 h-5 text-primary mt-0.5" />
+                  <div>
+                    <h4 className="font-semibold">Interface intuitive</h4>
+                    <p className="text-sm text-muted-foreground">Aucune compétence technique requise</p>
                   </div>
-                  <div className="flex items-start gap-3">
-                    <CheckCircle className="w-5 h-5 text-primary mt-0.5" />
-                    <div>
-                      <h4 className="font-semibold">Fonctionnalités adaptées</h4>
-                      <p className="text-sm text-muted-foreground">Développement sur mesure selon votre activité</p>
-                    </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <CheckCircle className="w-5 h-5 text-primary mt-0.5" />
+                  <div>
+                    <h4 className="font-semibold">Fonctionnalités adaptées</h4>
+                    <p className="text-sm text-muted-foreground">Développement sur mesure selon votre activité</p>
                   </div>
-                  <div className="flex items-start gap-3">
-                    <CheckCircle className="w-5 h-5 text-primary mt-0.5" />
-                    <div>
-                      <h4 className="font-semibold">Formation incluse</h4>
-                      <p className="text-sm text-muted-foreground">Accompagnement pour la prise en main de votre back-office</p>
-                    </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <CheckCircle className="w-5 h-5 text-primary mt-0.5" />
+                  <div>
+                    <h4 className="font-semibold">Formation incluse</h4>
+                    <p className="text-sm text-muted-foreground">Accompagnement pour la prise en main de votre back-office</p>
                   </div>
                 </div>
               </div>
-              
-              <Card className="p-6">
-                <div className="space-y-4">
-                  <div className="flex items-center gap-3">
-                    <Shield className="w-8 h-8 text-primary" />
-                    <div>
-                      <h3 className="font-semibold">Aperçu du back-office</h3>
-                      <p className="text-sm text-muted-foreground">Interface d'administration personnalisée</p>
-                    </div>
-                  </div>
-                  <Separator />
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                      <span className="text-sm font-medium">Pages du site</span>
-                      <Badge variant="secondary">Modifier</Badge>
-                    </div>
-                    <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                      <span className="text-sm font-medium">Galerie photos</span>
-                      <Badge variant="secondary">Modifier</Badge>
-                    </div>
-                    <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                      <span className="text-sm font-medium">Actualités</span>
-                      <Badge variant="secondary">Modifier</Badge>
-                    </div>
-                    <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                      <span className="text-sm font-medium">Informations pratiques</span>
-                      <Badge variant="secondary">Modifier</Badge>
-                    </div>
-                  </div>
-                </div>
-              </Card>
             </div>
           </div>
         </section>
