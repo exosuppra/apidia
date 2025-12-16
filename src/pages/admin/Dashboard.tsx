@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import Seo from "@/components/Seo";
-import { Shield, LogOut, Users, FileText, Eye, Calendar, CalendarClock, Clock, Globe, BarChart3, History } from "lucide-react";
+import { Shield, LogOut, Users, FileText, Eye, Calendar, CalendarClock, Clock, Globe, BarChart3, History, Star } from "lucide-react";
 import { useAuth } from "@/context/AuthProvider";
 import {
   Dialog,
@@ -256,7 +256,7 @@ export default function AdminDashboard() {
           )}
 
           {/* Gestion de Projet Web */}
-          {(hasPermission('intense-verdon') || hasPermission('stats-web')) && (
+          {(hasPermission('intense-verdon') || hasPermission('stats-web') || hasPermission('stats-ereputation')) && (
             <section className="mb-10">
               <h2 className="text-lg font-semibold mb-4 text-primary">Gestion de Projet Web</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -299,6 +299,29 @@ export default function AdminDashboard() {
                         className="w-full mt-4" 
                         variant="outline"
                         onClick={() => navigate("/admin/stats-web")}
+                      >
+                        Voir les statistiques
+                      </Button>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {hasPermission('stats-ereputation') && (
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium">
+                        E-réputation Google
+                      </CardTitle>
+                      <Star className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                      <CardDescription>
+                        Suivi des avis et notes Google par établissement
+                      </CardDescription>
+                      <Button 
+                        className="w-full mt-4" 
+                        variant="outline"
+                        onClick={() => navigate("/admin/stats-ereputation")}
                       >
                         Voir les statistiques
                       </Button>

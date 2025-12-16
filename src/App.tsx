@@ -25,6 +25,7 @@ import UserRequests from "./pages/admin/UserRequests";
 import UserActionLogs from "./pages/admin/UserActionLogs";
 import SuiviRH from "./pages/admin/SuiviRH";
 import StatsWeb from "./pages/admin/StatsWeb";
+import StatsEreputation from "./pages/admin/StatsEreputation";
 import Fiches from "./pages/dashboard/Fiches";
 import Catalogue from "./pages/Catalogue";
 import ApidaeDetails from "./pages/ApidaeDetails";
@@ -132,6 +133,15 @@ const App = () => (
                 <RequirePasswordChange>
                   <RequirePermission pageKey="stats-web">
                     <StatsWeb />
+                  </RequirePermission>
+                </RequirePasswordChange>
+              </RequireAdminAuth>
+            } />
+            <Route path="/admin/stats-ereputation" element={
+              <RequireAdminAuth>
+                <RequirePasswordChange>
+                  <RequirePermission pageKey="stats-ereputation">
+                    <StatsEreputation />
                   </RequirePermission>
                 </RequirePasswordChange>
               </RequireAdminAuth>
