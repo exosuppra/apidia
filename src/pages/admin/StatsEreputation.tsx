@@ -136,16 +136,20 @@ export default function StatsEreputation() {
 
   // Calculate KPIs
   const calculateKPIs = (data: EstablishmentData[]) => {
-    let totalReviews = 0;
     let totalRatings = 0;
     let ratingCount = 0;
+    let totalEntries = 0;
 
     data.forEach((establishment) => {
       establishment.data.forEach((entry) => {
-        if (entry.reviews > 0) {
-          totalReviews += entry.reviews;
+        totalEntries++;
+        // Include "Avis /5" column in average (stored as reviews)
+        if (entry.reviews > 0 && entry.reviews <= 5) {
+          totalRatings += entry.reviews;
+          ratingCount++;
         }
-        if (entry.rating > 0) {
+        // Include "Note /5" column in average
+        if (entry.rating > 0 && entry.rating <= 5) {
           totalRatings += entry.rating;
           ratingCount++;
         }
@@ -153,7 +157,7 @@ export default function StatsEreputation() {
     });
 
     return {
-      totalReviews,
+      totalEntries,
       avgRating: ratingCount > 0 ? Math.round(totalRatings / ratingCount * 100) / 100 : 0,
       establishmentCount: data.length,
     };
@@ -212,7 +216,7 @@ export default function StatsEreputation() {
       const kpis = calculateKPIs([e]);
       return {
         name: e.name.replace("BIT de ", "").replace("BIT ", ""),
-        value: kpis.totalReviews,
+        value: kpis.totalEntries,
       };
     }).filter(d => d.value > 0);
   }, [establishments]);
@@ -362,10 +366,10 @@ export default function StatsEreputation() {
               tooltip="Note moyenne sur l'ensemble des établissements sélectionnés"
             />
             <SiteStatsCard
-              title="Total avis"
-              value={globalKPIs.totalReviews.toLocaleString("fr-FR")}
+              title="Total entrées"
+              value={globalKPIs.totalEntries.toLocaleString("fr-FR")}
               icon={<MessageSquare className="h-4 w-4 text-blue-500" />}
-              tooltip="Nombre total d'avis reçus"
+              tooltip="Nombre total d'entrées de données"
             />
             <SiteStatsCard
               title="Établissements"
@@ -447,8 +451,8 @@ export default function StatsEreputation() {
                           <p className="text-sm text-muted-foreground">Note moyenne</p>
                         </div>
                         <div className="text-center p-4 bg-muted/50 rounded-lg">
-                          <p className="text-2xl font-bold">{kpis.totalReviews}</p>
-                          <p className="text-sm text-muted-foreground">Total avis</p>
+                          <p className="text-2xl font-bold">{kpis.totalEntries}</p>
+                          <p className="text-sm text-muted-foreground">Total entrées</p>
                         </div>
                         <div className="text-center p-4 bg-muted/50 rounded-lg">
                           <p className="text-2xl font-bold">{establishment.data.length}</p>
