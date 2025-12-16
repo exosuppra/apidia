@@ -220,7 +220,7 @@ export default function PlanningEditorial() {
                   ) : (
                     <>
                       <LayoutGrid className="h-4 w-4 mr-2" />
-                      Kanban
+                      Vue tâches
                     </>
                   )}
                 </Button>
