@@ -11,12 +11,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowLeft, RefreshCw, Star, MessageSquare, TrendingUp, Building2 } from "lucide-react";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { ArrowLeft, RefreshCw, Star, MessageSquare, Building2, CalendarIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import Seo from "@/components/Seo";
 import { SiteStatsCard } from "@/components/stats/SiteStatsCard";
 import { SiteStatsChart } from "@/components/stats/SiteStatsChart";
 import { SiteComparisonChart } from "@/components/stats/SiteComparisonChart";
+import { format, parse, isAfter, isBefore, isValid } from "date-fns";
+import { fr } from "date-fns/locale";
+import { cn } from "@/lib/utils";
 
 interface EstablishmentEntry {
   date: string;
@@ -41,6 +50,45 @@ export default function StatsEreputation() {
   const [error, setError] = useState<string | null>(null);
   const [establishments, setEstablishments] = useState<EstablishmentData[]>([]);
   const [selectedEstablishment, setSelectedEstablishment] = useState<string>("all");
+  const [customDateRange, setCustomDateRange] = useState<{ from?: Date; to?: Date }>({});
+  const [pendingDateRange, setPendingDateRange] = useState<{ from?: Date; to?: Date }>({});
+
+  const applyCustomDateRange = () => {
+    if (pendingDateRange.from && pendingDateRange.to) {
+      setCustomDateRange(pendingDateRange);
+      toast({
+        title: "Période appliquée",
+        description: `Du ${format(pendingDateRange.from, "dd/MM/yyyy")} au ${format(pendingDateRange.to, "dd/MM/yyyy")}`,
+      });
+    }
+  };
+
+  const resetDateRange = () => {
+    setPendingDateRange({});
+    setCustomDateRange({});
+  };
+
+  // Parse date string from Google Sheets (format: "10 décembre 2025" or similar)
+  const parseEntryDate = (dateStr: string): Date | null => {
+    if (!dateStr) return null;
+    
+    // Try parsing French date format "10 décembre 2025"
+    try {
+      const parsed = parse(dateStr, "d MMMM yyyy", new Date(), { locale: fr });
+      if (isValid(parsed)) return parsed;
+    } catch {}
+    
+    // Try other formats
+    const formats = ["dd/MM/yyyy", "yyyy-MM-dd", "d/M/yyyy"];
+    for (const fmt of formats) {
+      try {
+        const parsed = parse(dateStr, fmt, new Date());
+        if (isValid(parsed)) return parsed;
+      } catch {}
+    }
+    
+    return null;
+  };
 
   const fetchStats = async () => {
     setLoading(true);
@@ -111,13 +159,30 @@ export default function StatsEreputation() {
     };
   };
 
-  // Get filtered data based on selection
+  // Get filtered data based on selection and date range
   const filteredEstablishments = useMemo(() => {
-    if (selectedEstablishment === "all") {
-      return establishments;
+    let filtered = selectedEstablishment === "all" 
+      ? establishments 
+      : establishments.filter(e => e.name === selectedEstablishment);
+    
+    // Apply date filter
+    if (customDateRange.from || customDateRange.to) {
+      filtered = filtered.map(establishment => ({
+        ...establishment,
+        data: establishment.data.filter(entry => {
+          const entryDate = parseEntryDate(entry.date);
+          if (!entryDate) return false;
+          
+          if (customDateRange.from && isBefore(entryDate, customDateRange.from)) return false;
+          if (customDateRange.to && isAfter(entryDate, customDateRange.to)) return false;
+          
+          return true;
+        })
+      })).filter(e => e.data.length > 0);
     }
-    return establishments.filter(e => e.name === selectedEstablishment);
-  }, [establishments, selectedEstablishment]);
+    
+    return filtered;
+  }, [establishments, selectedEstablishment, customDateRange]);
 
   const globalKPIs = useMemo(() => calculateKPIs(filteredEstablishments), [filteredEstablishments]);
 
@@ -188,38 +253,103 @@ export default function StatsEreputation() {
       <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/5">
         <div className="container mx-auto p-6">
           {/* Header */}
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-4">
-              <Button variant="ghost" size="icon" onClick={() => navigate("/admin/dashboard")}>
-                <ArrowLeft className="w-5 h-5" />
-              </Button>
-              <div>
-                <h1 className="text-2xl font-bold">Statistiques E-réputation</h1>
-                <p className="text-sm text-muted-foreground">
-                  Suivi des avis Google par établissement
-                </p>
+          <div className="flex flex-col gap-4 mb-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <Button variant="ghost" size="icon" onClick={() => navigate("/admin/dashboard")}>
+                  <ArrowLeft className="w-5 h-5" />
+                </Button>
+                <div>
+                  <h1 className="text-2xl font-bold">Statistiques E-réputation</h1>
+                  <p className="text-sm text-muted-foreground">
+                    Suivi des avis Google par établissement
+                  </p>
+                </div>
+              </div>
+              
+              <div className="flex items-center gap-4">
+                <Select value={selectedEstablishment} onValueChange={setSelectedEstablishment}>
+                  <SelectTrigger className="w-[220px]">
+                    <SelectValue placeholder="Tous les établissements" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Tous les établissements</SelectItem>
+                    {establishments.map((e) => (
+                      <SelectItem key={e.name} value={e.name}>
+                        {e.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                
+                <Button onClick={fetchStats} variant="outline" size="sm">
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  Actualiser
+                </Button>
               </div>
             </div>
-            
-            <div className="flex items-center gap-4">
-              <Select value={selectedEstablishment} onValueChange={setSelectedEstablishment}>
-                <SelectTrigger className="w-[220px]">
-                  <SelectValue placeholder="Tous les établissements" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Tous les établissements</SelectItem>
-                  {establishments.map((e) => (
-                    <SelectItem key={e.name} value={e.name}>
-                      {e.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+
+            {/* Period Filter */}
+            <div className="flex flex-wrap items-center gap-3 p-4 bg-muted/30 rounded-lg">
+              <span className="text-sm font-medium">Période :</span>
               
-              <Button onClick={fetchStats} variant="outline" size="sm">
-                <RefreshCw className="w-4 h-4 mr-2" />
-                Actualiser
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className={cn("w-[140px] justify-start text-left font-normal", !pendingDateRange.from && "text-muted-foreground")}>
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {pendingDateRange.from ? format(pendingDateRange.from, "dd/MM/yyyy") : "Du"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={pendingDateRange.from}
+                    onSelect={(date) => setPendingDateRange(prev => ({ ...prev, from: date }))}
+                    initialFocus
+                    className="pointer-events-auto"
+                  />
+                </PopoverContent>
+              </Popover>
+              
+              <span className="text-muted-foreground">→</span>
+              
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className={cn("w-[140px] justify-start text-left font-normal", !pendingDateRange.to && "text-muted-foreground")}>
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {pendingDateRange.to ? format(pendingDateRange.to, "dd/MM/yyyy") : "Au"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={pendingDateRange.to}
+                    onSelect={(date) => setPendingDateRange(prev => ({ ...prev, to: date }))}
+                    initialFocus
+                    className="pointer-events-auto"
+                  />
+                </PopoverContent>
+              </Popover>
+
+              <Button 
+                size="sm" 
+                onClick={applyCustomDateRange}
+                disabled={!pendingDateRange.from || !pendingDateRange.to}
+              >
+                Valider
               </Button>
+
+              {(customDateRange.from || customDateRange.to) && (
+                <Button variant="ghost" size="sm" onClick={resetDateRange}>
+                  Réinitialiser
+                </Button>
+              )}
+
+              {customDateRange.from && customDateRange.to && (
+                <span className="text-sm text-muted-foreground ml-2">
+                  Filtre actif : {format(customDateRange.from, "dd/MM/yyyy")} - {format(customDateRange.to, "dd/MM/yyyy")}
+                </span>
+              )}
             </div>
           </div>
 
