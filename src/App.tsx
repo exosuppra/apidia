@@ -38,6 +38,7 @@ import BusinessDashboard from "./pages/BusinessDashboard";
 import GoogleCallback from "./pages/GoogleCallback";
 import GestionAvis from "./pages/GestionAvis";
 import GenerationSiteWeb from "./pages/GenerationSiteWeb";
+import PublicPlanning from "./pages/PublicPlanning";
 
 const queryClient = new QueryClient();
 
@@ -173,6 +174,9 @@ const App = () => (
             
             {/* Google OAuth callback */}
             <Route path="/google-callback" element={<GoogleCallback />} />
+            
+            {/* Public planning view */}
+            <Route path="/planning/:token" element={<PublicPlanning />} />
             
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />

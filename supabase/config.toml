@@ -5,3 +5,9 @@ verify_jwt = false
 
 [functions.get-rh-data]
 verify_jwt = false
+
+[functions.get-public-planning]
+verify_jwt = false
+
+[functions.add-task-comment]
+verify_jwt = false

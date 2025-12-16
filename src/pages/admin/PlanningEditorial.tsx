@@ -4,7 +4,16 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, Plus, Tag as TagIcon, Calendar, LayoutGrid, Search, X } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { ArrowLeft, Plus, Tag as TagIcon, Calendar, LayoutGrid, Search, X, Share2, Copy, Check, ExternalLink, MessageCircle } from "lucide-react";
 import Seo from "@/components/Seo";
 import { TaskColumn } from "@/components/planning/TaskColumn";
 import { CalendarView } from "@/components/planning/CalendarView";
@@ -14,21 +23,28 @@ import { TagManager } from "@/components/planning/TagManager";
 import { PlanningSelector } from "@/components/planning/PlanningSelector";
 import type { Task, Tag, EditorialPlanning } from "@/types/planning";
 
+interface ExtendedPlanning extends EditorialPlanning {
+  share_token?: string | null;
+  is_public?: boolean;
+}
+
 export default function PlanningEditorial() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [tags, setTags] = useState<Tag[]>([]);
-  const [plannings, setPlannings] = useState<EditorialPlanning[]>([]);
+  const [plannings, setPlannings] = useState<ExtendedPlanning[]>([]);
   const [selectedPlanningId, setSelectedPlanningId] = useState<string | null>(null);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [isTagManagerOpen, setIsTagManagerOpen] = useState(false);
+  const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
   const [viewMode, setViewMode] = useState<"kanban" | "calendar">("calendar");
   const [prefilledDate, setPrefilledDate] = useState<Date | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -150,6 +166,72 @@ export default function PlanningEditorial() {
     }
   };
 
+  const selectedPlanning = plannings.find(p => p.id === selectedPlanningId);
+  
+  const generateShareToken = () => {
+    return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+  };
+
+  const handleTogglePublic = async (isPublic: boolean) => {
+    if (!selectedPlanningId) return;
+    
+    try {
+      const updates: any = { is_public: isPublic };
+      
+      // Generate token if making public and no token exists
+      if (isPublic && !selectedPlanning?.share_token) {
+        updates.share_token = generateShareToken();
+      }
+      
+      const { error } = await supabase
+        .from("editorial_plannings")
+        .update(updates)
+        .eq("id", selectedPlanningId);
+      
+      if (error) throw error;
+      
+      toast({
+        title: isPublic ? "Planning public" : "Planning privé",
+        description: isPublic 
+          ? "Le lien de partage est maintenant actif" 
+          : "Le planning n'est plus accessible publiquement",
+      });
+      
+      loadData();
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: error.message,
+      });
+    }
+  };
+
+  const copyShareLink = () => {
+    if (!selectedPlanning?.share_token) return;
+    
+    const link = `${window.location.origin}/planning/${selectedPlanning.share_token}`;
+    navigator.clipboard.writeText(link);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+    
+    toast({
+      title: "Lien copié",
+      description: "Le lien a été copié dans le presse-papier",
+    });
+  };
+
+  const getShareLink = () => {
+    if (!selectedPlanning?.share_token) return "";
+    return `${window.location.origin}/planning/${selectedPlanning.share_token}`;
+  };
+
+  const getTotalComments = () => {
+    return tasks
+      .filter(t => t.planning_id === selectedPlanningId)
+      .reduce((acc, task) => acc + ((task as any).comments?.length || 0), 0);
+  };
+
   // Filter tasks by selected planning and search term
   const filteredTasks = tasks.filter((t) => {
     if (t.planning_id !== selectedPlanningId) return false;
@@ -253,6 +335,19 @@ export default function PlanningEditorial() {
                   <TagIcon className="h-4 w-4 mr-2" />
                   Gérer les tags
                 </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsShareDialogOpen(true)}
+                  disabled={!selectedPlanningId}
+                  className="transition-all hover:scale-105"
+                >
+                  <Share2 className="h-4 w-4 mr-2" />
+                  Partager
+                  {selectedPlanning?.is_public && (
+                    <span className="ml-1 h-2 w-2 rounded-full bg-green-500" />
+                  )}
+                </Button>
               </div>
 
               {/* Barre de recherche */}
@@ -348,6 +443,76 @@ export default function PlanningEditorial() {
         tags={tags}
         onUpdate={loadData}
       />
+
+      {/* Share Dialog */}
+      <Dialog open={isShareDialogOpen} onOpenChange={setIsShareDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Partager le planning</DialogTitle>
+            <DialogDescription>
+              Permettez à des personnes externes de consulter le calendrier et de laisser des commentaires sur les tâches.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-6">
+            {/* Toggle public */}
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label htmlFor="public-toggle">Activer le lien public</Label>
+                <p className="text-sm text-muted-foreground">
+                  Rendre le planning accessible sans connexion
+                </p>
+              </div>
+              <Switch
+                id="public-toggle"
+                checked={selectedPlanning?.is_public || false}
+                onCheckedChange={handleTogglePublic}
+              />
+            </div>
+
+            {/* Share link */}
+            {selectedPlanning?.is_public && selectedPlanning?.share_token && (
+              <div className="space-y-3">
+                <Label>Lien de partage</Label>
+                <div className="flex gap-2">
+                  <Input
+                    value={getShareLink()}
+                    readOnly
+                    className="text-sm"
+                  />
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={copyShareLink}
+                  >
+                    {copied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => window.open(getShareLink(), "_blank")}
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Les visiteurs pourront voir le calendrier et laisser des commentaires sur les tâches.
+                </p>
+              </div>
+            )}
+
+            {/* Comments indicator */}
+            {getTotalComments() > 0 && (
+              <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg">
+                <MessageCircle className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm">
+                  {getTotalComments()} commentaire{getTotalComments() > 1 ? "s" : ""} reçu{getTotalComments() > 1 ? "s" : ""}
+                </span>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

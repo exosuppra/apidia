@@ -41,6 +41,8 @@ export type Database = {
           created_by: string
           description: string | null
           id: string
+          is_public: boolean | null
+          share_token: string | null
           title: string
           updated_at: string
         }
@@ -49,6 +51,8 @@ export type Database = {
           created_by: string
           description?: string | null
           id?: string
+          is_public?: boolean | null
+          share_token?: string | null
           title: string
           updated_at?: string
         }
@@ -57,6 +61,8 @@ export type Database = {
           created_by?: string
           description?: string | null
           id?: string
+          is_public?: boolean | null
+          share_token?: string | null
           title?: string
           updated_at?: string
         }
@@ -144,6 +150,41 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "task_attachments_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      task_comments: {
+        Row: {
+          author_email: string | null
+          author_name: string
+          content: string
+          created_at: string
+          id: string
+          task_id: string
+        }
+        Insert: {
+          author_email?: string | null
+          author_name: string
+          content: string
+          created_at?: string
+          id?: string
+          task_id: string
+        }
+        Update: {
+          author_email?: string | null
+          author_name?: string
+          content?: string
+          created_at?: string
+          id?: string
+          task_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_comments_task_id_fkey"
             columns: ["task_id"]
             isOneToOne: false
             referencedRelation: "tasks"
