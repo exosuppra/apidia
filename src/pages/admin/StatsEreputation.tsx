@@ -21,7 +21,7 @@ import { ArrowLeft, RefreshCw, Star, MessageSquare, Building2, CalendarIcon } fr
 import { useToast } from "@/hooks/use-toast";
 import Seo from "@/components/Seo";
 import { SiteStatsCard } from "@/components/stats/SiteStatsCard";
-import { SiteStatsChart } from "@/components/stats/SiteStatsChart";
+import { DualLineChart } from "@/components/stats/DualLineChart";
 import { SiteComparisonChart } from "@/components/stats/SiteComparisonChart";
 import { format, parse, isAfter, isBefore, isValid } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -190,14 +190,40 @@ export default function StatsEreputation() {
 
   const globalKPIs = useMemo(() => calculateKPIs(filteredEstablishments), [filteredEstablishments]);
 
-  // Chart data for rating evolution
+  // Chart data for rating evolution with cumulative average
   const getChartData = (establishment: EstablishmentData) => {
-    return establishment.data
-      .filter(entry => entry.date && entry.rating > 0)
-      .map(entry => ({
+    const validEntries = establishment.data.filter(entry => entry.date && (entry.rating > 0 || entry.reviews > 0));
+    
+    let cumulativeSum = 0;
+    let cumulativeCount = 0;
+    
+    return validEntries.map(entry => {
+      // Calculate current entry value (average of rating and reviews if both exist)
+      let currentValue = 0;
+      let valueCount = 0;
+      
+      if (entry.reviews > 0 && entry.reviews <= 5) {
+        currentValue += entry.reviews;
+        valueCount++;
+        cumulativeSum += entry.reviews;
+        cumulativeCount++;
+      }
+      if (entry.rating > 0 && entry.rating <= 5) {
+        currentValue += entry.rating;
+        valueCount++;
+        cumulativeSum += entry.rating;
+        cumulativeCount++;
+      }
+      
+      const value = valueCount > 0 ? currentValue / valueCount : 0;
+      const average = cumulativeCount > 0 ? Math.round(cumulativeSum / cumulativeCount * 100) / 100 : 0;
+      
+      return {
         label: entry.date,
-        value: entry.rating,
-      }));
+        value: Math.round(value * 100) / 100,
+        average,
+      };
+    });
   };
 
   // Comparison data across establishments
@@ -401,11 +427,14 @@ export default function StatsEreputation() {
                     if (chartData.length === 0) return null;
                     
                     return (
-                      <SiteStatsChart
+                      <DualLineChart
                         key={establishment.name}
                         title={`Évolution notes - ${establishment.name}`}
                         data={chartData}
-                        color="hsl(var(--primary))"
+                        valueLabel="Note"
+                        averageLabel="Moyenne cumulative"
+                        valueColor="hsl(var(--primary))"
+                        averageColor="hsl(48, 96%, 53%)"
                       />
                     );
                   })}
