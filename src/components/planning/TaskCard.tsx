@@ -2,13 +2,19 @@ import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Calendar, MoreVertical, Trash2, Edit2, Paperclip } from "lucide-react";
+import { Calendar, MoreVertical, Trash2, Edit2, Paperclip, Check } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
@@ -25,6 +31,8 @@ interface TaskCardProps {
 export function TaskCard({ task, onRefresh, allTags }: TaskCardProps) {
   const { toast } = useToast();
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+
+  const isDone = task.status === "done";
 
   const getPriorityColor = (priority: string | null) => {
     switch (priority) {
@@ -75,87 +83,151 @@ export function TaskCard({ task, onRefresh, allTags }: TaskCardProps) {
     }
   };
 
+  const handleMarkDone = async () => {
+    try {
+      const { error } = await supabase
+        .from("tasks" as any)
+        .update({ status: "done" })
+        .eq("id", task.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Tâche terminée",
+        description: "La tâche a été marquée comme terminée.",
+      });
+      onRefresh();
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: error.message,
+      });
+    }
+  };
+
+  // Simple markdown rendering for bold and italic
+  const renderDescription = (text: string) => {
+    return text
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*(.+?)\*/g, '<em>$1</em>');
+  };
+
   return (
     <>
-      <Card className="hover:shadow-lg transition-all duration-300 hover:scale-[1.02] cursor-pointer animate-fade-in">
-        <CardContent className="p-4 transition-all">
-          <div className="flex items-start justify-between mb-2">
-            <h3 
-              className="font-medium text-sm cursor-pointer hover:text-primary transition-colors"
-              onClick={() => setIsEditDialogOpen(true)}
-            >
-              {task.title}
-            </h3>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-accent transition-all">
-                  <MoreVertical className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="animate-scale-in">
-                <DropdownMenuItem 
+      <ContextMenu>
+        <ContextMenuTrigger>
+          <Card className={`hover:shadow-lg transition-all duration-300 hover:scale-[1.02] cursor-pointer animate-fade-in ${
+            isDone ? "opacity-60 bg-muted/50" : ""
+          }`}>
+            <CardContent className="p-4 transition-all">
+              <div className="flex items-start justify-between mb-2">
+                <h3 
+                  className={`font-medium text-sm cursor-pointer hover:text-primary transition-colors ${
+                    isDone ? "line-through text-muted-foreground" : ""
+                  }`}
                   onClick={() => setIsEditDialogOpen(true)}
-                  className="transition-colors hover:bg-accent"
                 >
-                  <Edit2 className="h-4 w-4 mr-2" />
-                  Modifier
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={handleDelete}
-                  className="text-destructive transition-colors hover:bg-destructive/10"
-                >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Supprimer
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-
-          {task.description && (
-            <p className="text-xs text-muted-foreground mb-3 line-clamp-2">
-              {task.description}
-            </p>
-          )}
-
-          <div className="flex flex-wrap gap-1 mb-3">
-            {task.tags?.map((tag) => (
-              <Badge
-                key={tag.id}
-                variant="outline"
-                style={{
-                  backgroundColor: `${tag.color}20`,
-                  borderColor: tag.color,
-                  color: tag.color,
-                }}
-                className="text-xs"
-              >
-                {tag.name}
-              </Badge>
-            ))}
-          </div>
-
-          {task.attachments && task.attachments.length > 0 && (
-            <div className="flex items-center gap-1 text-xs text-muted-foreground mb-3">
-              <Paperclip className="h-3 w-3" />
-              <span>{task.attachments.length} fichier(s) joint(s)</span>
-            </div>
-          )}
-
-          <div className="flex items-center justify-between text-xs">
-            <Badge variant={getPriorityColor(task.priority)}>
-              {getPriorityLabel(task.priority)}
-            </Badge>
-            {task.due_date && (
-              <div className="flex items-center gap-1 text-muted-foreground">
-                <Calendar className="h-3 w-3" />
-                <span>
-                  {format(new Date(task.due_date), "d MMM", { locale: fr })}
-                </span>
+                  {task.title}
+                </h3>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-accent transition-all">
+                      <MoreVertical className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="animate-scale-in">
+                    {!isDone && (
+                      <DropdownMenuItem 
+                        onClick={handleMarkDone}
+                        className="transition-colors hover:bg-accent"
+                      >
+                        <Check className="h-4 w-4 mr-2" />
+                        Marquer terminée
+                      </DropdownMenuItem>
+                    )}
+                    <DropdownMenuItem 
+                      onClick={() => setIsEditDialogOpen(true)}
+                      className="transition-colors hover:bg-accent"
+                    >
+                      <Edit2 className="h-4 w-4 mr-2" />
+                      Modifier
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={handleDelete}
+                      className="text-destructive transition-colors hover:bg-destructive/10"
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Supprimer
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+
+              {task.description && (
+                <p 
+                  className={`text-xs text-muted-foreground mb-3 line-clamp-2 ${isDone ? "line-through" : ""}`}
+                  dangerouslySetInnerHTML={{ __html: renderDescription(task.description) }}
+                />
+              )}
+
+              <div className="flex flex-wrap gap-1 mb-3">
+                {task.tags?.map((tag) => (
+                  <Badge
+                    key={tag.id}
+                    variant="outline"
+                    style={{
+                      backgroundColor: `${tag.color}20`,
+                      borderColor: tag.color,
+                      color: tag.color,
+                    }}
+                    className="text-xs"
+                  >
+                    {tag.name}
+                  </Badge>
+                ))}
+              </div>
+
+              {task.attachments && task.attachments.length > 0 && (
+                <div className="flex items-center gap-1 text-xs text-muted-foreground mb-3">
+                  <Paperclip className="h-3 w-3" />
+                  <span>{task.attachments.length} fichier(s) joint(s)</span>
+                </div>
+              )}
+
+              <div className="flex items-center justify-between text-xs">
+                <Badge variant={getPriorityColor(task.priority)} className={isDone ? "opacity-60" : ""}>
+                  {getPriorityLabel(task.priority)}
+                </Badge>
+                {task.due_date && (
+                  <div className={`flex items-center gap-1 text-muted-foreground ${isDone ? "line-through" : ""}`}>
+                    <Calendar className="h-3 w-3" />
+                    <span>
+                      {format(new Date(task.due_date), "d MMM", { locale: fr })}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </ContextMenuTrigger>
+        <ContextMenuContent>
+          {!isDone && (
+            <ContextMenuItem onClick={handleMarkDone}>
+              <Check className="h-4 w-4 mr-2" />
+              Marquer terminée
+            </ContextMenuItem>
+          )}
+          <ContextMenuItem onClick={() => setIsEditDialogOpen(true)}>
+            <Edit2 className="h-4 w-4 mr-2" />
+            Modifier
+          </ContextMenuItem>
+          <ContextMenuItem onClick={handleDelete} className="text-destructive">
+            <Trash2 className="h-4 w-4 mr-2" />
+            Supprimer
+          </ContextMenuItem>
+        </ContextMenuContent>
+      </ContextMenu>
 
       <EditTaskDialog
         open={isEditDialogOpen}

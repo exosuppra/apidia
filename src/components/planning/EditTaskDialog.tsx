@@ -27,7 +27,6 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -45,6 +44,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { TagSelector } from "./TagSelector";
 import { FileUpload } from "./FileUpload";
+import { RichTextEditor } from "./RichTextEditor";
 import type { Task, Tag } from "@/types/planning";
 
 const taskSchema = z.object({
@@ -243,10 +243,11 @@ export function EditTaskDialog({
                 <FormItem>
                   <FormLabel>Description</FormLabel>
                   <FormControl>
-                    <Textarea
+                    <RichTextEditor
+                      value={field.value || ""}
+                      onChange={field.onChange}
                       placeholder="Description de la tâche"
                       rows={4}
-                      {...field}
                     />
                   </FormControl>
                   <FormMessage />
