@@ -94,7 +94,18 @@ export default function StatsWeb() {
   const [selectedSite, setSelectedSite] = useState<string>("all");
   const [periodFilter, setPeriodFilter] = useState<PeriodType>("all");
   const [customDateRange, setCustomDateRange] = useState<{ from?: Date; to?: Date }>({});
+  const [pendingDateRange, setPendingDateRange] = useState<{ from?: Date; to?: Date }>({});
   const [selectedMetric, setSelectedMetric] = useState<MetricType>("visitors");
+
+  const applyCustomDateRange = () => {
+    if (pendingDateRange.from && pendingDateRange.to) {
+      setCustomDateRange(pendingDateRange);
+      toast({
+        title: "Période appliquée",
+        description: `Du ${format(pendingDateRange.from, "dd/MM/yyyy")} au ${format(pendingDateRange.to, "dd/MM/yyyy")}`,
+      });
+    }
+  };
 
   const fetchStats = async () => {
     setLoading(true);
@@ -660,16 +671,16 @@ export default function StatsWeb() {
             <div className="flex items-center gap-2">
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button variant="outline" className={cn("w-[140px] justify-start text-left font-normal", !customDateRange.from && "text-muted-foreground")}>
+                  <Button variant="outline" className={cn("w-[140px] justify-start text-left font-normal", !pendingDateRange.from && "text-muted-foreground")}>
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {customDateRange.from ? format(customDateRange.from, "dd/MM/yyyy") : "Du"}
+                    {pendingDateRange.from ? format(pendingDateRange.from, "dd/MM/yyyy") : "Du"}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
                   <Calendar
                     mode="single"
-                    selected={customDateRange.from}
-                    onSelect={(date) => setCustomDateRange(prev => ({ ...prev, from: date }))}
+                    selected={pendingDateRange.from}
+                    onSelect={(date) => setPendingDateRange(prev => ({ ...prev, from: date }))}
                     initialFocus
                     className="pointer-events-auto"
                   />
@@ -680,26 +691,38 @@ export default function StatsWeb() {
               
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button variant="outline" className={cn("w-[140px] justify-start text-left font-normal", !customDateRange.to && "text-muted-foreground")}>
+                  <Button variant="outline" className={cn("w-[140px] justify-start text-left font-normal", !pendingDateRange.to && "text-muted-foreground")}>
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {customDateRange.to ? format(customDateRange.to, "dd/MM/yyyy") : "Au"}
+                    {pendingDateRange.to ? format(pendingDateRange.to, "dd/MM/yyyy") : "Au"}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
                   <Calendar
                     mode="single"
-                    selected={customDateRange.to}
-                    onSelect={(date) => setCustomDateRange(prev => ({ ...prev, to: date }))}
+                    selected={pendingDateRange.to}
+                    onSelect={(date) => setPendingDateRange(prev => ({ ...prev, to: date }))}
                     initialFocus
                     className="pointer-events-auto"
                   />
                 </PopoverContent>
               </Popover>
+
+              <Button 
+                size="sm" 
+                onClick={applyCustomDateRange}
+                disabled={!pendingDateRange.from || !pendingDateRange.to}
+              >
+                Valider
+              </Button>
             </div>
           )}
 
           {periodFilter !== "all" && (
-            <Button variant="ghost" size="sm" onClick={() => setPeriodFilter("all")}>
+            <Button variant="ghost" size="sm" onClick={() => {
+              setPeriodFilter("all");
+              setPendingDateRange({});
+              setCustomDateRange({});
+            }}>
               Réinitialiser
             </Button>
           )}
