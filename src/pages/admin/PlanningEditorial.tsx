@@ -13,7 +13,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { ArrowLeft, Plus, Tag as TagIcon, Calendar, LayoutGrid, Search, X, Share2, Copy, Check, ExternalLink, MessageCircle } from "lucide-react";
+import { ArrowLeft, Plus, Tag as TagIcon, Calendar, LayoutGrid, Search, X, Share2, Copy, Check, ExternalLink, MessageCircle, Download } from "lucide-react";
 import Seo from "@/components/Seo";
 import { TaskColumn } from "@/components/planning/TaskColumn";
 import { CalendarView } from "@/components/planning/CalendarView";
@@ -21,6 +21,7 @@ import { CreateTaskDialog } from "@/components/planning/CreateTaskDialog";
 import { EditTaskDialog } from "@/components/planning/EditTaskDialog";
 import { TagManager } from "@/components/planning/TagManager";
 import { PlanningSelector } from "@/components/planning/PlanningSelector";
+import { ExportDialog } from "@/components/planning/ExportDialog";
 import type { Task, Tag, EditorialPlanning } from "@/types/planning";
 
 interface ExtendedPlanning extends EditorialPlanning {
@@ -41,6 +42,7 @@ export default function PlanningEditorial() {
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [isTagManagerOpen, setIsTagManagerOpen] = useState(false);
   const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
+  const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
   const [viewMode, setViewMode] = useState<"kanban" | "calendar">("calendar");
   const [prefilledDate, setPrefilledDate] = useState<Date | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
@@ -338,6 +340,16 @@ export default function PlanningEditorial() {
                 <Button
                   variant="outline"
                   size="sm"
+                  onClick={() => setIsExportDialogOpen(true)}
+                  disabled={!selectedPlanningId}
+                  className="transition-all hover:scale-105"
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Exporter
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
                   onClick={() => setIsShareDialogOpen(true)}
                   disabled={!selectedPlanningId}
                   className="transition-all hover:scale-105"
@@ -442,6 +454,13 @@ export default function PlanningEditorial() {
         onOpenChange={setIsTagManagerOpen}
         tags={tags}
         onUpdate={loadData}
+      />
+
+      <ExportDialog
+        open={isExportDialogOpen}
+        onOpenChange={setIsExportDialogOpen}
+        tasks={filteredTasks}
+        tags={tags}
       />
 
       {/* Share Dialog */}
