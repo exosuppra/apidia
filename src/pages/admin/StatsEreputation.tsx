@@ -114,7 +114,10 @@ export default function StatsEreputation() {
     }
   };
 
-  // Sync all Google ratings automatically using Firecrawl
+  // Helper function to wait between requests
+  const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+  // Sync all Google ratings automatically using Firecrawl (with rate limit handling)
   const syncAllGoogleRatings = async () => {
     setSyncing(true);
     try {
@@ -127,19 +130,62 @@ export default function StatsEreputation() {
       if (error) throw error;
       if (!ratings || ratings.length === 0) {
         console.log("Aucun établissement avec URL Google Maps");
+        setSyncing(false);
         return;
       }
 
-      console.log(`Synchronisation de ${ratings.length} établissements...`);
+      console.log(`Synchronisation de ${ratings.length} établissements (avec délai de 5s entre chaque)...`);
       let successCount = 0;
       let errorCount = 0;
 
-      // Process each establishment
-      for (const rating of ratings) {
+      // Process each establishment with delay to avoid rate limiting
+      for (let i = 0; i < ratings.length; i++) {
+        const rating = ratings[i];
+        
+        // Add delay between requests (except for the first one)
+        if (i > 0) {
+          console.log(`Attente de 5s avant ${rating.establishment_name}...`);
+          await delay(5000); // 5 seconds between requests to stay under Firecrawl limits
+        }
+
         try {
           const { data: result, error: scrapeError } = await supabase.functions.invoke("scrape-google-rating", {
             body: { googleMapsUrl: rating.google_maps_url },
           });
+
+          // Handle rate limit error specifically
+          if (scrapeError?.message?.includes("429") || result?.error?.includes("Rate limit")) {
+            console.warn(`Rate limit atteint pour ${rating.establishment_name}, attente de 60s...`);
+            toast({
+              title: "Limite atteinte",
+              description: "Attente de 60 secondes avant de continuer...",
+            });
+            await delay(60000); // Wait 60 seconds on rate limit
+            
+            // Retry after waiting
+            const { data: retryResult, error: retryError } = await supabase.functions.invoke("scrape-google-rating", {
+              body: { googleMapsUrl: rating.google_maps_url },
+            });
+            
+            if (retryError || retryResult?.error) {
+              errorCount++;
+              continue;
+            }
+            
+            // Update with retry result
+            const { data: userData } = await supabase.auth.getUser();
+            await supabase
+              .from("ereputation_google_ratings")
+              .update({
+                current_rating: retryResult.rating ?? rating.current_rating,
+                total_reviews: retryResult.reviewCount ?? rating.total_reviews,
+                last_updated_at: new Date().toISOString(),
+                updated_by: userData.user?.id || null,
+              })
+              .eq("id", rating.id);
+            successCount++;
+            continue;
+          }
 
           if (scrapeError || result?.error) {
             console.error(`Erreur scraping ${rating.establishment_name}:`, scrapeError || result?.error);
