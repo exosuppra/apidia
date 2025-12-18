@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ExternalLink, Save, Star } from "lucide-react";
+import { ExternalLink, Save, Star, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -25,6 +25,7 @@ export function GoogleRatingInput({ establishmentName }: GoogleRatingInputProps)
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [fetching, setFetching] = useState(false);
   const [data, setData] = useState<GoogleRatingData>({
     establishment_name: establishmentName,
     google_maps_url: "",
@@ -116,6 +117,55 @@ export function GoogleRatingInput({ establishmentName }: GoogleRatingInputProps)
     }
   };
 
+  const fetchRatingFromGoogle = async () => {
+    if (!data.google_maps_url) {
+      toast({
+        title: "URL requise",
+        description: "Veuillez d'abord entrer l'URL Google Maps",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setFetching(true);
+    try {
+      const { data: result, error } = await supabase.functions.invoke("scrape-google-rating", {
+        body: { googleMapsUrl: data.google_maps_url },
+      });
+
+      if (error) throw error;
+
+      if (result.error) {
+        toast({
+          title: "Erreur",
+          description: result.error,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      setData((prev) => ({
+        ...prev,
+        current_rating: result.rating ?? prev.current_rating,
+        total_reviews: result.reviewCount ?? prev.total_reviews,
+      }));
+
+      toast({
+        title: "Données récupérées",
+        description: `Note: ${result.rating ?? "N/A"} - Avis: ${result.reviewCount ?? "N/A"}`,
+      });
+    } catch (err: any) {
+      console.error("Erreur récupération note:", err);
+      toast({
+        title: "Erreur",
+        description: err.message || "Impossible de récupérer les données",
+        variant: "destructive",
+      });
+    } finally {
+      setFetching(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="p-4 bg-muted/30 rounded-lg border border-border/50 animate-pulse">
@@ -153,6 +203,15 @@ export function GoogleRatingInput({ establishmentName }: GoogleRatingInputProps)
               title="Ouvrir dans Google Maps"
             >
               <ExternalLink className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="secondary"
+              size="icon"
+              onClick={fetchRatingFromGoogle}
+              disabled={!data.google_maps_url || fetching}
+              title="Récupérer la note automatiquement"
+            >
+              <RefreshCw className={`h-4 w-4 ${fetching ? "animate-spin" : ""}`} />
             </Button>
           </div>
         </div>

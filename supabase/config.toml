@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.add-task-comment]
 verify_jwt = false
+
+[functions.scrape-google-rating]
+verify_jwt = true
