@@ -22,6 +22,19 @@ import { Badge } from "@/components/ui/badge";
 import { Download, FileText, Filter, X } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import {
+  Document,
+  Packer,
+  Paragraph,
+  TextRun,
+  Table,
+  TableRow,
+  TableCell,
+  WidthType,
+  HeadingLevel,
+  AlignmentType,
+  BorderStyle,
+} from "docx";
 import type { Task, Tag } from "@/types/planning";
 
 interface ExportDialogProps {
@@ -31,7 +44,7 @@ interface ExportDialogProps {
   tags: Tag[];
 }
 
-type ExportFormat = "csv" | "json";
+type ExportFormat = "csv" | "json" | "docx";
 
 export function ExportDialog({ open, onOpenChange, tasks, tags }: ExportDialogProps) {
   const [titleFilter, setTitleFilter] = useState("");
@@ -172,6 +185,162 @@ export function ExportDialog({ open, onOpenChange, tasks, tags }: ExportDialogPr
     downloadFile(jsonContent, "planning-export.json", "application/json");
   };
 
+  const exportToWord = async () => {
+    // Build headers
+    const headers = ["Titre", "Date"];
+    if (includeDescription) headers.push("Description");
+    if (includeTags) headers.push("Tags");
+    if (includeStatus) headers.push("Statut");
+    if (includePriority) headers.push("Priorité");
+
+    // Create header row
+    const headerCells = headers.map(
+      (h) =>
+        new TableCell({
+          children: [
+            new Paragraph({
+              children: [new TextRun({ text: h, bold: true, size: 22 })],
+              alignment: AlignmentType.CENTER,
+            }),
+          ],
+          shading: { fill: "E5E7EB" },
+        })
+    );
+
+    // Create data rows
+    const dataRows = filteredTasks.map((task) => {
+      const cells: TableCell[] = [
+        new TableCell({
+          children: [
+            new Paragraph({
+              children: [new TextRun({ text: task.title, size: 20 })],
+            }),
+          ],
+        }),
+        new TableCell({
+          children: [
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: task.due_date
+                    ? format(new Date(task.due_date), "dd/MM/yyyy", { locale: fr })
+                    : "-",
+                  size: 20,
+                }),
+              ],
+            }),
+          ],
+        }),
+      ];
+
+      if (includeDescription) {
+        cells.push(
+          new TableCell({
+            children: [
+              new Paragraph({
+                children: [
+                  new TextRun({
+                    text: (task.description || "-").replace(/<[^>]*>/g, ""),
+                    size: 20,
+                  }),
+                ],
+              }),
+            ],
+          })
+        );
+      }
+
+      if (includeTags) {
+        cells.push(
+          new TableCell({
+            children: [
+              new Paragraph({
+                children: [
+                  new TextRun({
+                    text: task.tags?.map((t) => t.name).join(", ") || "-",
+                    size: 20,
+                  }),
+                ],
+              }),
+            ],
+          })
+        );
+      }
+
+      if (includeStatus) {
+        cells.push(
+          new TableCell({
+            children: [
+              new Paragraph({
+                children: [
+                  new TextRun({ text: getStatusLabel(task.status), size: 20 }),
+                ],
+              }),
+            ],
+          })
+        );
+      }
+
+      if (includePriority) {
+        cells.push(
+          new TableCell({
+            children: [
+              new Paragraph({
+                children: [
+                  new TextRun({ text: getPriorityLabel(task.priority), size: 20 }),
+                ],
+              }),
+            ],
+          })
+        );
+      }
+
+      return new TableRow({ children: cells });
+    });
+
+    const table = new Table({
+      rows: [new TableRow({ children: headerCells }), ...dataRows],
+      width: { size: 100, type: WidthType.PERCENTAGE },
+    });
+
+    const doc = new Document({
+      sections: [
+        {
+          children: [
+            new Paragraph({
+              text: "Planning Éditorial",
+              heading: HeadingLevel.HEADING_1,
+              alignment: AlignmentType.CENTER,
+            }),
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: `Exporté le ${format(new Date(), "dd MMMM yyyy", { locale: fr })}`,
+                  italics: true,
+                  size: 20,
+                }),
+              ],
+              alignment: AlignmentType.CENTER,
+            }),
+            new Paragraph({ text: "" }),
+            table,
+          ],
+        },
+      ],
+    });
+
+    const blob = await Packer.toBlob(doc);
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "planning-export.docx";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    onOpenChange(false);
+  };
+
   const downloadFile = (content: string, filename: string, mimeType: string) => {
     const blob = new Blob(["\ufeff" + content], { type: mimeType });
     const url = URL.createObjectURL(blob);
@@ -188,8 +357,10 @@ export function ExportDialog({ open, onOpenChange, tasks, tags }: ExportDialogPr
   const handleExport = () => {
     if (exportFormat === "csv") {
       exportToCSV();
-    } else {
+    } else if (exportFormat === "json") {
       exportToJSON();
+    } else if (exportFormat === "docx") {
+      exportToWord();
     }
   };
 
@@ -305,6 +476,7 @@ export function ExportDialog({ open, onOpenChange, tasks, tags }: ExportDialogPr
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="csv">CSV (Excel)</SelectItem>
+                  <SelectItem value="docx">Word (DOCX)</SelectItem>
                   <SelectItem value="json">JSON</SelectItem>
                 </SelectContent>
               </Select>
