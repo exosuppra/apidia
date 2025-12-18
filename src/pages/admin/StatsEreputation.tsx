@@ -17,7 +17,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { ArrowLeft, RefreshCw, Star, MessageSquare, Building2, CalendarIcon } from "lucide-react";
+import { ArrowLeft, RefreshCw, Star, MessageSquare, Building2, CalendarIcon, Info } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import Seo from "@/components/Seo";
 import { SiteStatsCard } from "@/components/stats/SiteStatsCard";
@@ -507,6 +507,15 @@ export default function StatsEreputation() {
                   Données
                 </Button>
               </div>
+            </div>
+
+            {/* Info note about Firecrawl sync */}
+            <div className="flex items-start gap-2 p-3 bg-muted/50 rounded-lg border border-border/50 text-sm text-muted-foreground">
+              <Info className="w-4 h-4 mt-0.5 shrink-0" />
+              <p>
+                Les notes Google sont synchronisées via l'API Firecrawl (compte GMAIL). 
+                La synchronisation automatique est limitée à <strong>une fois par mois</strong> pour préserver les crédits API.
+              </p>
             </div>
 
             {/* Period Filter */}
