@@ -126,6 +126,19 @@ export default function StatsEreputation() {
     return lastUpdate < oneMonthAgo;
   };
 
+  // Get next sync date (1 month after last update)
+  const getNextSyncDate = (lastUpdatedAt: string | null): string => {
+    if (!lastUpdatedAt) return "Maintenant";
+    const lastUpdate = new Date(lastUpdatedAt);
+    const nextSync = new Date(lastUpdate);
+    nextSync.setMonth(nextSync.getMonth() + 1);
+    
+    if (nextSync <= new Date()) {
+      return "Maintenant";
+    }
+    return format(nextSync, "dd MMMM yyyy", { locale: fr });
+  };
+
   // Sync all Google ratings automatically using Firecrawl (with rate limit handling)
   const syncAllGoogleRatings = async () => {
     setSyncing(true);
@@ -654,6 +667,9 @@ export default function StatsEreputation() {
                                     ({googleRating.total_reviews} avis)
                                   </span>
                                 )}
+                                <span className="text-muted-foreground text-xs ml-2">
+                                  • Prochaine sync: {getNextSyncDate(googleRating.last_updated_at)}
+                                </span>
                               </div>
                             )}
                             {googleRating?.current_rating && periodKpis.avgRating > 0 && (
