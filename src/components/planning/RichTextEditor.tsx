@@ -1,10 +1,11 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Bold, Italic, Smile } from "lucide-react";
+import { Bold, Italic, Smile, Search } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Input } from "@/components/ui/input";
 
 interface RichTextEditorProps {
   value: string;
@@ -14,8 +15,9 @@ interface RichTextEditorProps {
 }
 
 const emojiCategories = {
-  "😊": { // Smileys & People
+  "😊": {
     name: "Visages",
+    keywords: ["sourire", "rire", "triste", "pleurer", "colère", "love", "cool", "malade", "dormir", "peur"],
     emojis: [
       "😀", "😃", "😄", "😁", "😆", "😅", "🤣", "😂", "🙂", "🙃",
       "😉", "😊", "😇", "🥰", "😍", "🤩", "😘", "😗", "😚", "😙",
@@ -29,8 +31,9 @@ const emojiCategories = {
       "😠", "🤬", "😈", "👿", "💀", "☠️", "💩", "🤡", "👹", "👺",
     ]
   },
-  "👋": { // Gestures
+  "👋": {
     name: "Gestes",
+    keywords: ["main", "pouce", "ok", "victoire", "poing", "applaudir", "prier", "muscle", "doigt"],
     emojis: [
       "👋", "🤚", "🖐️", "✋", "🖖", "👌", "🤌", "🤏", "✌️", "🤞",
       "🤟", "🤘", "🤙", "👈", "👉", "👆", "🖕", "👇", "☝️", "👍",
@@ -39,8 +42,9 @@ const emojiCategories = {
       "🦻", "👃", "🧠", "🫀", "🫁", "🦷", "🦴", "👀", "👁️", "👅",
     ]
   },
-  "❤️": { // Hearts & Symbols
+  "❤️": {
     name: "Cœurs",
+    keywords: ["amour", "love", "coeur", "heart", "rouge", "rose", "bleu", "vert", "jaune"],
     emojis: [
       "❤️", "🧡", "💛", "💚", "💙", "💜", "🖤", "🤍", "🤎", "💔",
       "❣️", "💕", "💞", "💓", "💗", "💖", "💘", "💝", "💟", "♥️",
@@ -48,8 +52,9 @@ const emojiCategories = {
       "💬", "👁️‍🗨️", "🗨️", "🗯️", "💭", "💤", "✨", "⭐", "🌟", "💫",
     ]
   },
-  "🎉": { // Celebration
+  "🎉": {
     name: "Fête",
+    keywords: ["fête", "party", "cadeau", "anniversaire", "ballon", "confetti", "trophée", "médaille", "sport"],
     emojis: [
       "🎉", "🎊", "🎈", "🎁", "🎀", "🎂", "🍰", "🧁", "🥳", "🎄",
       "🎃", "🎗️", "🎟️", "🎫", "🎖️", "🏆", "🥇", "🥈", "🥉", "⚽",
@@ -57,8 +62,9 @@ const emojiCategories = {
       "🏓", "🏸", "🏒", "🏑", "🥍", "🏏", "🪃", "🥅", "⛳", "🪁",
     ]
   },
-  "📝": { // Work & Objects
+  "📝": {
     name: "Travail",
+    keywords: ["travail", "bureau", "document", "fichier", "email", "calendrier", "note", "stylo", "livre", "graphique"],
     emojis: [
       "📝", "📋", "📌", "📍", "📎", "🖇️", "📐", "📏", "🗂️", "📁",
       "📂", "🗃️", "🗄️", "🗑️", "📅", "📆", "🗓️", "📇", "📈", "📉",
@@ -68,8 +74,9 @@ const emojiCategories = {
       "📚", "📖", "🔗", "📎", "💼", "📁", "📂", "🗂️", "📃", "📄",
     ]
   },
-  "💻": { // Tech
+  "💻": {
     name: "Tech",
+    keywords: ["ordinateur", "téléphone", "tech", "argent", "euro", "dollar", "outil", "ampoule", "batterie"],
     emojis: [
       "💻", "🖥️", "🖨️", "⌨️", "🖱️", "🖲️", "💽", "💾", "💿", "📀",
       "📱", "📲", "☎️", "📞", "📟", "📠", "🔋", "🔌", "💡", "🔦",
@@ -78,8 +85,9 @@ const emojiCategories = {
       "⛏️", "🪚", "🔩", "⚙️", "🪤", "🧲", "🔫", "💣", "🧨", "🪓",
     ]
   },
-  "🌿": { // Nature
+  "🌿": {
     name: "Nature",
+    keywords: ["nature", "plante", "arbre", "fleur", "soleil", "lune", "étoile", "pluie", "neige", "feu"],
     emojis: [
       "🌵", "🎄", "🌲", "🌳", "🌴", "🪵", "🌱", "🌿", "☘️", "🍀",
       "🎍", "🪴", "🎋", "🍃", "🍂", "🍁", "🍄", "🐚", "🪨", "🌾",
@@ -89,8 +97,9 @@ const emojiCategories = {
       "⚡", "☄️", "💥", "🔥", "🌪️", "🌈", "☀️", "🌤️", "⛅", "🌥️",
     ]
   },
-  "🍕": { // Food
+  "🍕": {
     name: "Nourriture",
+    keywords: ["manger", "pizza", "burger", "gâteau", "café", "boisson", "fruit", "légume", "dessert"],
     emojis: [
       "🍕", "🍔", "🍟", "🌭", "🥪", "🌮", "🌯", "🫔", "🥙", "🧆",
       "🥚", "🍳", "🥘", "🍲", "🫕", "🥣", "🥗", "🍿", "🧈", "🧂",
@@ -100,8 +109,9 @@ const emojiCategories = {
       "🍪", "🌰", "🥜", "🍯", "🥛", "🍼", "🫖", "☕", "🍵", "🧃",
     ]
   },
-  "🚀": { // Travel
+  "🚀": {
     name: "Voyage",
+    keywords: ["voyage", "avion", "voiture", "train", "bus", "vélo", "bateau", "fusée", "transport"],
     emojis: [
       "🚀", "✈️", "🛫", "🛬", "🪂", "💺", "🚁", "🚂", "🚃", "🚄",
       "🚅", "🚆", "🚇", "🚈", "🚉", "🚊", "🚝", "🚞", "🚋", "🚌",
@@ -111,8 +121,9 @@ const emojiCategories = {
       "🚥", "🚦", "🛑", "🚧", "⚓", "⛵", "🛶", "🚤", "🛳️", "⛴️",
     ]
   },
-  "⚠️": { // Alerts & Status
+  "⚠️": {
     name: "Alertes",
+    keywords: ["ok", "valider", "erreur", "warning", "stop", "interdit", "rouge", "vert", "question"],
     emojis: [
       "✅", "❌", "⚠️", "🚫", "⛔", "📛", "🔴", "🟠", "🟡", "🟢",
       "🔵", "🟣", "🟤", "⚫", "⚪", "🔶", "🔷", "🔸", "🔹", "🔺",
@@ -126,6 +137,7 @@ const emojiCategories = {
 export function RichTextEditor({ value, onChange, placeholder, rows = 4 }: RichTextEditorProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [emojiOpen, setEmojiOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const insertTextAtCursor = (text: string) => {
     const textarea = textareaRef.current;
@@ -165,9 +177,32 @@ export function RichTextEditor({ value, onChange, placeholder, rows = 4 }: RichT
   const handleEmojiSelect = (emoji: string) => {
     insertTextAtCursor(emoji);
     setEmojiOpen(false);
+    setSearchQuery("");
   };
 
   const categoryKeys = Object.keys(emojiCategories) as Array<keyof typeof emojiCategories>;
+
+  const filteredEmojis = useMemo(() => {
+    if (!searchQuery.trim()) return null;
+    
+    const query = searchQuery.toLowerCase();
+    const results: string[] = [];
+    
+    Object.values(emojiCategories).forEach((category) => {
+      const keywordMatch = category.keywords.some(k => k.includes(query));
+      if (keywordMatch || category.name.toLowerCase().includes(query)) {
+        results.push(...category.emojis);
+      } else {
+        category.emojis.forEach(emoji => {
+          if (!results.includes(emoji)) {
+            results.push(emoji);
+          }
+        });
+      }
+    });
+    
+    return results.slice(0, 80);
+  }, [searchQuery]);
 
   return (
     <div className="space-y-2">
@@ -192,7 +227,7 @@ export function RichTextEditor({ value, onChange, placeholder, rows = 4 }: RichT
         >
           <Italic className="h-4 w-4" />
         </Button>
-        <Popover open={emojiOpen} onOpenChange={setEmojiOpen}>
+        <Popover open={emojiOpen} onOpenChange={(open) => { setEmojiOpen(open); if (!open) setSearchQuery(""); }}>
           <PopoverTrigger asChild>
             <Button
               type="button"
@@ -205,38 +240,68 @@ export function RichTextEditor({ value, onChange, placeholder, rows = 4 }: RichT
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-80 p-2" align="start">
-            <Tabs defaultValue={categoryKeys[0]} className="w-full">
-              <TabsList className="w-full flex flex-wrap h-auto gap-1 bg-transparent p-0 mb-2">
+            <div className="relative mb-2">
+              <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Rechercher un emoji..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-8 h-8 text-sm"
+              />
+            </div>
+            
+            {searchQuery.trim() ? (
+              <ScrollArea className="h-48">
+                <div className="grid grid-cols-8 gap-1">
+                  {filteredEmojis?.map((emoji, idx) => (
+                    <button
+                      key={`${emoji}-${idx}`}
+                      type="button"
+                      className="h-8 w-8 flex items-center justify-center hover:bg-accent rounded text-lg transition-colors"
+                      onClick={() => handleEmojiSelect(emoji)}
+                    >
+                      {emoji}
+                    </button>
+                  ))}
+                </div>
+                {filteredEmojis?.length === 0 && (
+                  <p className="text-center text-muted-foreground text-sm py-4">Aucun emoji trouvé</p>
+                )}
+              </ScrollArea>
+            ) : (
+              <Tabs defaultValue={categoryKeys[0]} className="w-full">
+                <TabsList className="w-full flex flex-wrap h-auto gap-1 bg-transparent p-0 mb-2">
+                  {categoryKeys.map((key) => (
+                    <TabsTrigger
+                      key={key}
+                      value={key}
+                      className="h-8 w-8 p-0 data-[state=active]:bg-accent"
+                      title={emojiCategories[key].name}
+                    >
+                      {key}
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
                 {categoryKeys.map((key) => (
-                  <TabsTrigger
-                    key={key}
-                    value={key}
-                    className="h-8 w-8 p-0 data-[state=active]:bg-accent"
-                    title={emojiCategories[key].name}
-                  >
-                    {key}
-                  </TabsTrigger>
+                  <TabsContent key={key} value={key} className="mt-0">
+                    <ScrollArea className="h-48">
+                      <div className="grid grid-cols-8 gap-1">
+                        {emojiCategories[key].emojis.map((emoji, idx) => (
+                          <button
+                            key={`${emoji}-${idx}`}
+                            type="button"
+                            className="h-8 w-8 flex items-center justify-center hover:bg-accent rounded text-lg transition-colors"
+                            onClick={() => handleEmojiSelect(emoji)}
+                          >
+                            {emoji}
+                          </button>
+                        ))}
+                      </div>
+                    </ScrollArea>
+                  </TabsContent>
                 ))}
-              </TabsList>
-              {categoryKeys.map((key) => (
-                <TabsContent key={key} value={key} className="mt-0">
-                  <ScrollArea className="h-48">
-                    <div className="grid grid-cols-8 gap-1">
-                      {emojiCategories[key].emojis.map((emoji, idx) => (
-                        <button
-                          key={`${emoji}-${idx}`}
-                          type="button"
-                          className="h-8 w-8 flex items-center justify-center hover:bg-accent rounded text-lg transition-colors"
-                          onClick={() => handleEmojiSelect(emoji)}
-                        >
-                          {emoji}
-                        </button>
-                      ))}
-                    </div>
-                  </ScrollArea>
-                </TabsContent>
-              ))}
-            </Tabs>
+              </Tabs>
+            )}
           </PopoverContent>
         </Popover>
       </div>
