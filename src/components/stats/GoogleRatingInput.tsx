@@ -19,9 +19,10 @@ interface GoogleRatingData {
 
 interface GoogleRatingInputProps {
   establishmentName: string;
+  onRatingUpdated?: () => void;
 }
 
-export function GoogleRatingInput({ establishmentName }: GoogleRatingInputProps) {
+export function GoogleRatingInput({ establishmentName, onRatingUpdated }: GoogleRatingInputProps) {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -99,6 +100,7 @@ export function GoogleRatingInput({ establishmentName }: GoogleRatingInputProps)
       });
 
       fetchExistingData();
+      onRatingUpdated?.();
     } catch (err: any) {
       console.error("Erreur sauvegarde:", err);
       toast({
