@@ -44,12 +44,20 @@ interface StatsResponse {
   message?: string;
 }
 
+interface GoogleRatingRecord {
+  establishment_name: string;
+  current_rating: number | null;
+  total_reviews: number | null;
+  last_updated_at: string | null;
+}
+
 export default function StatsEreputation() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [establishments, setEstablishments] = useState<EstablishmentData[]>([]);
+  const [googleRatings, setGoogleRatings] = useState<GoogleRatingRecord[]>([]);
   const [selectedEstablishment, setSelectedEstablishment] = useState<string>("all");
   const [customDateRange, setCustomDateRange] = useState<{ from?: Date; to?: Date }>({});
   const [pendingDateRange, setPendingDateRange] = useState<{ from?: Date; to?: Date }>({});
@@ -89,6 +97,19 @@ export default function StatsEreputation() {
     }
     
     return null;
+  };
+
+  const fetchGoogleRatings = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("ereputation_google_ratings")
+        .select("establishment_name, current_rating, total_reviews, last_updated_at");
+      
+      if (error) throw error;
+      setGoogleRatings(data || []);
+    } catch (err) {
+      console.error("Erreur chargement notes Google:", err);
+    }
   };
 
   const fetchStats = async () => {
@@ -133,6 +154,7 @@ export default function StatsEreputation() {
 
   useEffect(() => {
     fetchStats();
+    fetchGoogleRatings();
   }, []);
 
   // Calculate KPIs
@@ -225,6 +247,11 @@ export default function StatsEreputation() {
         average,
       };
     });
+  };
+
+  // Helper to get Google rating for an establishment
+  const getGoogleRating = (establishmentName: string) => {
+    return googleRatings.find(r => r.establishment_name === establishmentName);
   };
 
   // Comparison data across establishments
@@ -425,18 +452,64 @@ export default function StatsEreputation() {
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                   {filteredEstablishments.map((establishment) => {
                     const chartData = getChartData(establishment);
+                    const googleRating = getGoogleRating(establishment.name);
+                    const periodKpis = calculateKPIs([establishment]);
                     if (chartData.length === 0) return null;
                     
                     return (
-                      <DualLineChart
-                        key={establishment.name}
-                        title={`Évolution notes - ${establishment.name}`}
-                        data={chartData}
-                        valueLabel="Note"
-                        averageLabel="Moyenne cumulative"
-                        valueColor="hsl(var(--primary))"
-                        averageColor="hsl(48, 96%, 53%)"
-                      />
+                      <Card key={establishment.name}>
+                        <CardHeader className="pb-2">
+                          <CardTitle className="text-base flex items-center gap-2">
+                            <Building2 className="h-4 w-4" />
+                            {establishment.name}
+                          </CardTitle>
+                          {/* Comparison: Period average vs Google rating */}
+                          <div className="flex flex-wrap items-center gap-4 mt-2">
+                            <div className="flex items-center gap-2 text-sm">
+                              <span className="text-muted-foreground">Moyenne période:</span>
+                              <span className="font-semibold text-primary">
+                                {periodKpis.avgRating.toFixed(2)}/5
+                              </span>
+                            </div>
+                            {googleRating?.current_rating && (
+                              <div className="flex items-center gap-2 text-sm">
+                                <span className="text-muted-foreground">Note Google actuelle:</span>
+                                <span className="font-semibold text-yellow-600 flex items-center gap-1">
+                                  {googleRating.current_rating}/5
+                                  <Star className="h-3 w-3 fill-yellow-500 text-yellow-500" />
+                                </span>
+                                {googleRating.total_reviews && (
+                                  <span className="text-muted-foreground text-xs">
+                                    ({googleRating.total_reviews} avis)
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                            {googleRating?.current_rating && periodKpis.avgRating > 0 && (
+                              <div className={`text-xs font-medium px-2 py-0.5 rounded ${
+                                periodKpis.avgRating >= googleRating.current_rating 
+                                  ? 'bg-green-100 text-green-700' 
+                                  : 'bg-orange-100 text-orange-700'
+                              }`}>
+                                {periodKpis.avgRating >= googleRating.current_rating 
+                                  ? `+${(periodKpis.avgRating - googleRating.current_rating).toFixed(2)} vs Google`
+                                  : `${(periodKpis.avgRating - googleRating.current_rating).toFixed(2)} vs Google`
+                                }
+                              </div>
+                            )}
+                          </div>
+                        </CardHeader>
+                        <CardContent className="pt-0">
+                          <DualLineChart
+                            title=""
+                            data={chartData}
+                            valueLabel="Note"
+                            averageLabel="Moyenne cumulative"
+                            valueColor="hsl(var(--primary))"
+                            averageColor="hsl(48, 96%, 53%)"
+                          />
+                        </CardContent>
+                      </Card>
                     );
                   })}
                 </div>
