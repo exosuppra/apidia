@@ -21,6 +21,7 @@ import { ArrowLeft, RefreshCw, Star, MessageSquare, Building2, CalendarIcon } fr
 import { useToast } from "@/hooks/use-toast";
 import Seo from "@/components/Seo";
 import { SiteStatsCard } from "@/components/stats/SiteStatsCard";
+import { GoogleRatingInput } from "@/components/stats/GoogleRatingInput";
 import { DualLineChart } from "@/components/stats/DualLineChart";
 import { SiteComparisonChart } from "@/components/stats/SiteComparisonChart";
 import { format, parse, isAfter, isBefore, isValid } from "date-fns";
@@ -497,6 +498,9 @@ export default function StatsEreputation() {
                           <p className="text-sm text-muted-foreground">Dernière entrée</p>
                         </div>
                       </div>
+
+                      {/* Google Maps Rating Input */}
+                      <GoogleRatingInput establishmentName={establishment.name} />
                       
                       {/* Recent entries table */}
                       <div className="overflow-x-auto">
