@@ -68,6 +68,39 @@ export type Database = {
         }
         Relationships: []
       }
+      ereputation_google_ratings: {
+        Row: {
+          created_at: string | null
+          current_rating: number | null
+          establishment_name: string
+          google_maps_url: string | null
+          id: string
+          last_updated_at: string | null
+          total_reviews: number | null
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          current_rating?: number | null
+          establishment_name: string
+          google_maps_url?: string | null
+          id?: string
+          last_updated_at?: string | null
+          total_reviews?: number | null
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          current_rating?: number | null
+          establishment_name?: string
+          google_maps_url?: string | null
+          id?: string
+          last_updated_at?: string | null
+          total_reviews?: number | null
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
