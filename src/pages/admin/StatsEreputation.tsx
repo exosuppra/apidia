@@ -117,6 +117,15 @@ export default function StatsEreputation() {
   // Helper function to wait between requests
   const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
+  // Check if sync is allowed (once per month)
+  const canSync = (lastUpdatedAt: string | null): boolean => {
+    if (!lastUpdatedAt) return true;
+    const lastUpdate = new Date(lastUpdatedAt);
+    const oneMonthAgo = new Date();
+    oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+    return lastUpdate < oneMonthAgo;
+  };
+
   // Sync all Google ratings automatically using Firecrawl (with rate limit handling)
   const syncAllGoogleRatings = async () => {
     setSyncing(true);
@@ -134,13 +143,26 @@ export default function StatsEreputation() {
         return;
       }
 
-      console.log(`Synchronisation de ${ratings.length} établissements (avec délai de 5s entre chaque)...`);
+      // Filter only establishments that need sync (last update > 1 month ago)
+      const ratingsToSync = ratings.filter(r => canSync(r.last_updated_at));
+
+      if (ratingsToSync.length === 0) {
+        console.log("Tous les établissements ont été synchronisés ce mois-ci");
+        toast({
+          title: "Synchronisation non nécessaire",
+          description: "Tous les établissements ont déjà été synchronisés ce mois-ci.",
+        });
+        setSyncing(false);
+        return;
+      }
+
+      console.log(`Synchronisation de ${ratingsToSync.length}/${ratings.length} établissements (avec délai de 5s entre chaque)...`);
       let successCount = 0;
       let errorCount = 0;
 
       // Process each establishment with delay to avoid rate limiting
-      for (let i = 0; i < ratings.length; i++) {
-        const rating = ratings[i];
+      for (let i = 0; i < ratingsToSync.length; i++) {
+        const rating = ratingsToSync[i];
         
         // Add delay between requests (except for the first one)
         if (i > 0) {
