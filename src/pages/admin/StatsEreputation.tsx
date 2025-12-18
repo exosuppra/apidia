@@ -340,9 +340,14 @@ export default function StatsEreputation() {
                   </SelectContent>
                 </Select>
                 
+                <Button onClick={fetchGoogleRatings} variant="outline" size="sm">
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  Notes Google
+                </Button>
+                
                 <Button onClick={fetchStats} variant="outline" size="sm">
                   <RefreshCw className="w-4 h-4 mr-2" />
-                  Actualiser
+                  Données
                 </Button>
               </div>
             </div>
@@ -573,7 +578,7 @@ export default function StatsEreputation() {
                       </div>
 
                       {/* Google Maps Rating Input */}
-                      <GoogleRatingInput establishmentName={establishment.name} />
+                      <GoogleRatingInput establishmentName={establishment.name} onRatingUpdated={fetchGoogleRatings} />
                       
                       {/* Recent entries table */}
                       <div className="overflow-x-auto">
