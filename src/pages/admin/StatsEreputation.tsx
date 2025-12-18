@@ -55,6 +55,7 @@ export default function StatsEreputation() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [establishments, setEstablishments] = useState<EstablishmentData[]>([]);
   const [googleRatings, setGoogleRatings] = useState<GoogleRatingRecord[]>([]);
@@ -103,12 +104,86 @@ export default function StatsEreputation() {
     try {
       const { data, error } = await supabase
         .from("ereputation_google_ratings")
-        .select("establishment_name, current_rating, total_reviews, last_updated_at");
+        .select("establishment_name, current_rating, total_reviews, last_updated_at, google_maps_url");
       
       if (error) throw error;
-      setGoogleRatings(data || []);
+      return data || [];
     } catch (err) {
       console.error("Erreur chargement notes Google:", err);
+      return [];
+    }
+  };
+
+  // Sync all Google ratings automatically using Firecrawl
+  const syncAllGoogleRatings = async () => {
+    setSyncing(true);
+    try {
+      // Get all establishments with Google Maps URLs
+      const { data: ratings, error } = await supabase
+        .from("ereputation_google_ratings")
+        .select("*")
+        .not("google_maps_url", "is", null);
+
+      if (error) throw error;
+      if (!ratings || ratings.length === 0) {
+        console.log("Aucun établissement avec URL Google Maps");
+        return;
+      }
+
+      console.log(`Synchronisation de ${ratings.length} établissements...`);
+      let successCount = 0;
+      let errorCount = 0;
+
+      // Process each establishment
+      for (const rating of ratings) {
+        try {
+          const { data: result, error: scrapeError } = await supabase.functions.invoke("scrape-google-rating", {
+            body: { googleMapsUrl: rating.google_maps_url },
+          });
+
+          if (scrapeError || result?.error) {
+            console.error(`Erreur scraping ${rating.establishment_name}:`, scrapeError || result?.error);
+            errorCount++;
+            continue;
+          }
+
+          // Update the database with scraped data
+          const { data: userData } = await supabase.auth.getUser();
+          await supabase
+            .from("ereputation_google_ratings")
+            .update({
+              current_rating: result.rating ?? rating.current_rating,
+              total_reviews: result.reviewCount ?? rating.total_reviews,
+              last_updated_at: new Date().toISOString(),
+              updated_by: userData.user?.id || null,
+            })
+            .eq("id", rating.id);
+
+          successCount++;
+          console.log(`✓ ${rating.establishment_name}: ${result.rating}/5`);
+        } catch (err) {
+          console.error(`Erreur pour ${rating.establishment_name}:`, err);
+          errorCount++;
+        }
+      }
+
+      // Reload ratings after sync
+      const updatedRatings = await fetchGoogleRatings();
+      setGoogleRatings(updatedRatings);
+
+      toast({
+        title: "Synchronisation terminée",
+        description: `${successCount} établissement(s) mis à jour${errorCount > 0 ? `, ${errorCount} erreur(s)` : ""}`,
+      });
+    } catch (err: any) {
+      console.error("Erreur synchronisation:", err);
+      toast({
+        title: "Erreur de synchronisation",
+        description: err.message || "Impossible de synchroniser les notes",
+        variant: "destructive",
+      });
+    } finally {
+      setSyncing(false);
     }
   };
 
@@ -153,8 +228,14 @@ export default function StatsEreputation() {
   };
 
   useEffect(() => {
-    fetchStats();
-    fetchGoogleRatings();
+    const init = async () => {
+      await fetchStats();
+      const ratings = await fetchGoogleRatings();
+      setGoogleRatings(ratings);
+      // Auto-sync Google ratings on page load
+      syncAllGoogleRatings();
+    };
+    init();
   }, []);
 
   // Calculate KPIs
@@ -318,7 +399,15 @@ export default function StatsEreputation() {
                   <ArrowLeft className="w-5 h-5" />
                 </Button>
                 <div>
-                  <h1 className="text-2xl font-bold">Statistiques E-réputation</h1>
+                  <h1 className="text-2xl font-bold flex items-center gap-2">
+                    Statistiques E-réputation
+                    {syncing && (
+                      <span className="inline-flex items-center gap-1 text-sm font-normal text-muted-foreground">
+                        <RefreshCw className="w-4 h-4 animate-spin" />
+                        Synchronisation...
+                      </span>
+                    )}
+                  </h1>
                   <p className="text-sm text-muted-foreground">
                     Suivi des avis Google par établissement
                   </p>
@@ -340,9 +429,9 @@ export default function StatsEreputation() {
                   </SelectContent>
                 </Select>
                 
-                <Button onClick={fetchGoogleRatings} variant="outline" size="sm">
-                  <RefreshCw className="w-4 h-4 mr-2" />
-                  Notes Google
+                <Button onClick={syncAllGoogleRatings} variant="outline" size="sm" disabled={syncing}>
+                  <RefreshCw className={`w-4 h-4 mr-2 ${syncing ? "animate-spin" : ""}`} />
+                  {syncing ? "Sync..." : "Sync Google"}
                 </Button>
                 
                 <Button onClick={fetchStats} variant="outline" size="sm">
