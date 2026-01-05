@@ -63,7 +63,9 @@ export default function FloatingChat() {
   const [isLoadingConversations, setIsLoadingConversations] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
   const [isListening, setIsListening] = useState(false);
+  const [loadingMessage, setLoadingMessage] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
+  const loadingTimerRef = useRef<NodeJS.Timeout | null>(null);
   const recognitionRef = useRef<SpeechRecognitionInstance | null>(null);
   const { toast } = useToast();
 
@@ -285,6 +287,22 @@ export default function FloatingChat() {
     );
     setInput("");
     setIsLoading(true);
+    setLoadingMessage("Analyse de votre demande...");
+
+    // Start loading message rotation
+    const loadingMessages = [
+      "Analyse de votre demande...",
+      "Recherche d'informations...",
+      "Connexion à Make en cours...",
+      "Patientez, traitement en cours...",
+      "Make prépare la réponse...",
+      "Presque terminé..."
+    ];
+    let messageIndex = 0;
+    loadingTimerRef.current = setInterval(() => {
+      messageIndex = (messageIndex + 1) % loadingMessages.length;
+      setLoadingMessage(loadingMessages[messageIndex]);
+    }, 3000);
 
     try {
       // Save user message to database
@@ -355,7 +373,12 @@ export default function FloatingChat() {
         variant: "destructive",
       });
     } finally {
+      if (loadingTimerRef.current) {
+        clearInterval(loadingTimerRef.current);
+        loadingTimerRef.current = null;
+      }
       setIsLoading(false);
+      setLoadingMessage("");
     }
   };
 
@@ -575,8 +598,13 @@ export default function FloatingChat() {
                     ))}
                     {isLoading && (
                       <div className="flex justify-start">
-                        <div className="bg-muted rounded-lg px-3 py-2">
-                          <Loader2 className="h-4 w-4 animate-spin" />
+                        <div className="bg-muted rounded-lg px-3 py-3 max-w-[85%]">
+                          <div className="flex items-center gap-2">
+                            <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                            <span className="text-sm text-muted-foreground animate-pulse">
+                              {loadingMessage}
+                            </span>
+                          </div>
                         </div>
                       </div>
                     )}
