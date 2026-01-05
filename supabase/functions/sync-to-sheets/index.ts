@@ -181,29 +181,108 @@ Deno.serve(async (req: Request) => {
       // Create sheet name (sanitize for Google Sheets)
       const sheetName = `BACKUP_${ficheType.replace(/[^a-zA-Z0-9_]/g, "_")}`;
 
-      // Define structured headers for APIDAE data
+      // Define comprehensive headers for APIDAE data
       const headers = [
         "fiche_id",
         "synced_at",
         "nom",
         "state",
         "identifier",
-        "adresse",
+        // Localisation
+        "adresse1",
+        "adresse2",
         "code_postal",
         "commune",
+        "pays",
         "latitude",
         "longitude",
+        "altitude",
+        // Contact
         "telephone",
+        "telephone2",
+        "fax",
         "email",
+        "email2",
         "site_web",
+        "facebook",
+        "instagram",
+        "twitter",
+        // Présentation
         "description_courte",
+        "description_detaillee",
+        // Ouverture
         "periode_ouverture",
+        "complement_ouverture",
+        // Tarifs
+        "tarifs_en_clair",
+        "modes_paiement",
+        // Capacités
+        "capacite_totale",
+        "nombre_chambres",
+        "nombre_emplacements",
+        // Classement
+        "classement",
+        "labels",
+        // Gestion
         "date_creation",
         "date_modification",
-        "proprietaire"
+        "proprietaire",
+        "email_signalement",
+        // Métadonnées
+        "categories",
+        "themes",
+        "activites",
+        "equipements",
+        "services",
+        "langues_parlees",
+        "animaux_acceptes",
+        // Données complètes JSON
+        "data_json_complet"
       ];
 
-      // Prepare rows with structured data
+      // Helper to extract array of labels
+      const extractLabels = (data: Record<string, unknown>, path: string): string => {
+        const keys = path.split('.');
+        let result: unknown = data;
+        for (const key of keys) {
+          if (result && typeof result === 'object' && key in result) {
+            result = (result as Record<string, unknown>)[key];
+          } else {
+            return '';
+          }
+        }
+        if (!Array.isArray(result)) return '';
+        return result.map((item: Record<string, unknown>) => {
+          if (item.libelleFr) return item.libelleFr;
+          if (item.nom) return item.nom;
+          return '';
+        }).filter(Boolean).join(', ');
+      };
+
+      // Extract all contacts of a type
+      const extractAllContacts = (data: Record<string, unknown>, contactType: string): string => {
+        const moyens = (data.informations as Record<string, unknown>)?.moyensCommunication as Array<Record<string, unknown>> | undefined;
+        if (!moyens) return '';
+        const matches = moyens.filter(m => {
+          const type = (m.type as Record<string, unknown>)?.libelleFr;
+          return type === contactType;
+        });
+        return matches.map(m => {
+          const coordonnees = m.coordonnees as Record<string, string> | string;
+          return typeof coordonnees === 'object' ? coordonnees.fr || '' : coordonnees || '';
+        }).filter(Boolean).join(', ');
+      };
+
+      // Extract payment modes
+      const extractPaymentModes = (data: Record<string, unknown>): string => {
+        const tarifs = data.descriptionTarif as Record<string, unknown> | undefined;
+        if (!tarifs) return '';
+        const modes = tarifs.modesPaiement as Array<Record<string, unknown>> | undefined;
+        if (!modes) return '';
+        return modes.map(m => m.libelleFr || '').filter(Boolean).join(', ');
+      };
+
+      // Prepare rows with comprehensive data
       const rows = fiches.map((fiche) => {
         const data = fiche.data as Record<string, unknown> || {};
         const coords = extractValue(data, 'localisation.geolocalisation.geoJson.coordinates');
@@ -218,25 +297,71 @@ Deno.serve(async (req: Request) => {
           } catch { /* ignore */ }
         }
 
+        // Truncate JSON to avoid Google Sheets cell limit (50000 chars)
+        let fullJson = '';
+        try {
+          const jsonStr = JSON.stringify(data);
+          fullJson = jsonStr.length > 45000 ? jsonStr.substring(0, 45000) + '...[TRUNCATED]' : jsonStr;
+        } catch { fullJson = ''; }
+
         return [
           fiche.fiche_id,
           new Date().toISOString(),
           extractValue(data, 'nom.libelleFr'),
           extractValue(data, 'state'),
           extractValue(data, 'identifier'),
+          // Localisation
           extractValue(data, 'localisation.adresse.adresse1'),
+          extractValue(data, 'localisation.adresse.adresse2'),
           extractValue(data, 'localisation.adresse.codePostal'),
           extractValue(data, 'localisation.adresse.commune.nom'),
+          extractValue(data, 'localisation.adresse.commune.pays.libelleFr'),
           lat,
           lng,
-          extractContact(data, 'Téléphone'),
-          extractContact(data, 'Mél'),
-          extractContact(data, 'Site web (URL)'),
+          extractValue(data, 'localisation.geolocalisation.altitude'),
+          // Contact
+          extractAllContacts(data, 'Téléphone'),
+          extractAllContacts(data, 'Téléphone / Fax'),
+          extractAllContacts(data, 'Fax'),
+          extractAllContacts(data, 'Mél'),
+          extractAllContacts(data, 'Mél secondaire'),
+          extractAllContacts(data, 'Site web (URL)'),
+          extractAllContacts(data, 'Page facebook'),
+          extractAllContacts(data, 'Instagram'),
+          extractAllContacts(data, 'Twitter'),
+          // Présentation
           extractValue(data, 'presentation.descriptifCourt.libelleFr'),
+          extractValue(data, 'presentation.descriptifDetaille.libelleFr'),
+          // Ouverture
           extractValue(data, 'ouverture.periodeEnClair.libelleFr'),
+          extractValue(data, 'ouverture.complementHoraire.libelleFr'),
+          // Tarifs
+          extractValue(data, 'descriptionTarif.tarifsEnClair.libelleFr'),
+          extractPaymentModes(data),
+          // Capacités
+          extractValue(data, 'capacite.capaciteTotale'),
+          extractValue(data, 'capacite.nombreChambres'),
+          extractValue(data, 'capacite.nombreEmplacements'),
+          // Classement
+          extractValue(data, 'informationsHebergementCollectif.classement.libelleFr') || 
+            extractValue(data, 'informationsHotellerie.classement.libelleFr'),
+          extractLabels(data, 'labels'),
+          // Gestion
           extractValue(data, 'gestion.dateCreation'),
           extractValue(data, 'gestion.dateModification'),
-          extractValue(data, 'gestion.membreProprietaire.nom')
+          extractValue(data, 'gestion.membreProprietaire.nom'),
+          extractValue(data, 'gestion.signalerUnProblemeMails'),
+          // Métadonnées
+          extractLabels(data, 'informations.typesClientele'),
+          extractLabels(data, 'presentation.typologiesPromoSitra'),
+          extractLabels(data, 'prestations.activites'),
+          extractLabels(data, 'prestations.equipements'),
+          extractLabels(data, 'prestations.services'),
+          extractLabels(data, 'prestations.languesParlees'),
+          extractValue(data, 'prestations.animauxAcceptes') === 'ACCEPTES' ? 'Oui' : 
+            (extractValue(data, 'prestations.animauxAcceptes') === 'NON_ACCEPTES' ? 'Non' : ''),
+          // JSON complet
+          fullJson
         ];
       });
 
