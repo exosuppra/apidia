@@ -13,6 +13,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import FloatingChat from "@/components/FloatingChat";
 
 export default function AdminDashboard() {
   const { user } = useAuth();
@@ -365,6 +366,9 @@ export default function AdminDashboard() {
           )}
         </div>
       </div>
+
+      {/* Chat flottant Agent IA Make */}
+      <FloatingChat />
     </>
   );
 }
