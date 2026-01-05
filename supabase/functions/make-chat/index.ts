@@ -408,7 +408,23 @@ serve(async (req) => {
     // Create admin Supabase client for database queries
     const supabaseAdmin = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!);
 
-    const systemPrompt = `Tu es un assistant IA intelligent pour le tableau de bord Apidia. Tu as deux types de capacités :
+    // Get current date/time in Paris timezone
+    const now = new Date();
+    const parisTime = now.toLocaleString("fr-FR", { 
+      timeZone: "Europe/Paris",
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit"
+    });
+
+    const systemPrompt = `Tu es un assistant IA intelligent pour le tableau de bord Apidia.
+
+**DATE ET HEURE ACTUELLES : ${parisTime} (heure de Paris)**
+
+Tu as deux types de capacités :
 
 **1. AUTOMATISATIONS MAKE (via call_make_webhook)**
 Utilise cet outil pour :
