@@ -271,11 +271,17 @@ async function executeTool(toolName: string, args: any, supabaseAdmin: any, thre
           responseData = await response.json();
         } else {
           const textResponse = await response.text();
-          responseData = { response: textResponse || "Action exécutée avec succès" };
+          responseData = { message: textResponse || "Action exécutée avec succès" };
         }
         
         console.log("Make webhook response:", responseData);
-        return JSON.stringify(responseData);
+        
+        // Format the response to clearly indicate it should be shown to user
+        return JSON.stringify({
+          success: response.ok,
+          make_response: responseData,
+          instruction: "IMPORTANT: Transmets directement cette réponse de Make à l'utilisateur. Le contenu de 'make_response' est la réponse officielle à afficher."
+        });
       }
       
       case "query_tasks": {
@@ -569,7 +575,13 @@ Tu peux interroger directement :
 - Pour les actions/automatisations → récupère d'abord les données nécessaires, puis call_make_webhook
 - Sois précis et donne des chiffres concrets
 - Réponds toujours en français
-- Formate tes réponses avec des listes à puces et des titres pour plus de lisibilité`;
+- Formate tes réponses avec des listes à puces et des titres pour plus de lisibilité
+
+**⚠️ RÉPONSE MAKE OBLIGATOIRE :**
+Quand tu reçois une réponse de call_make_webhook, tu DOIS transmettre le contenu de 'make_response' directement à l'utilisateur.
+- Si make_response contient un message → affiche-le tel quel
+- Si make_response contient une erreur → informe l'utilisateur de l'erreur
+- NE reformule PAS et NE résume PAS la réponse de Make, transmets-la fidèlement`;
 
     // Initial AI call with tools
     let aiMessages = [
