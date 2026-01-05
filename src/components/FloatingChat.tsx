@@ -302,9 +302,15 @@ export default function FloatingChat() {
           .eq("id", currentConversation.id);
       }
 
-      // Call Make webhook
+      // Prepare messages history for AI with tools
+      const messagesHistory = [...currentConversation.messages, userMessage].map(msg => ({
+        role: msg.role,
+        content: msg.content,
+      }));
+
+      // Call AI chat function with full conversation history
       const { data, error } = await supabase.functions.invoke("make-chat", {
-        body: { message: userMessage.content, threadId: currentConversation.threadId },
+        body: { messages: messagesHistory, threadId: currentConversation.threadId },
       });
 
       if (error) throw error;
