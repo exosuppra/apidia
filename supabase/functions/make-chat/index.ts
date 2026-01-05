@@ -28,13 +28,16 @@ const tools = [
     type: "function",
     function: {
       name: "query_tasks",
-      description: "Recherche des tâches dans la base de données. Permet de filtrer par statut, priorité, planning, etc.",
+      description: "Recherche des tâches dans la base de données. Permet de filtrer par statut, priorité, planning, date d'échéance, etc.",
       parameters: {
         type: "object",
         properties: {
           status: { type: "string", enum: ["todo", "in_progress", "done"], description: "Filtrer par statut" },
           priority: { type: "string", enum: ["low", "medium", "high"], description: "Filtrer par priorité" },
           planning_id: { type: "string", description: "Filtrer par ID de planning" },
+          due_date: { type: "string", description: "Date d'échéance exacte au format YYYY-MM-DD (ex: 2026-01-05 pour aujourd'hui)" },
+          due_date_from: { type: "string", description: "Date d'échéance minimum au format YYYY-MM-DD" },
+          due_date_to: { type: "string", description: "Date d'échéance maximum au format YYYY-MM-DD" },
           limit: { type: "number", description: "Nombre maximum de résultats (défaut: 20)" }
         }
       }
@@ -197,7 +200,23 @@ async function executeTool(toolName: string, args: any, supabaseAdmin: any, thre
         if (args.status) query = query.eq("status", args.status);
         if (args.priority) query = query.eq("priority", args.priority);
         if (args.planning_id) query = query.eq("planning_id", args.planning_id);
-        query = query.order("created_at", { ascending: false }).limit(args.limit || 20);
+        
+        // Date filtering
+        if (args.due_date) {
+          // Filter for exact date (start of day to end of day)
+          const startOfDay = `${args.due_date}T00:00:00`;
+          const endOfDay = `${args.due_date}T23:59:59`;
+          query = query.gte("due_date", startOfDay).lte("due_date", endOfDay);
+        } else {
+          if (args.due_date_from) {
+            query = query.gte("due_date", `${args.due_date_from}T00:00:00`);
+          }
+          if (args.due_date_to) {
+            query = query.lte("due_date", `${args.due_date_to}T23:59:59`);
+          }
+        }
+        
+        query = query.order("due_date", { ascending: true }).limit(args.limit || 20);
         const { data, error } = await query;
         if (error) throw error;
         return JSON.stringify(data);
