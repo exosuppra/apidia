@@ -10,10 +10,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import { FicheDetailsDialog } from "@/components/fiches/FicheDetailsDialog";
 
 import type { Json } from "@/integrations/supabase/types";
 
@@ -299,30 +298,11 @@ export default function AllFiches() {
       </div>
 
       {/* Detail Dialog */}
-      <Dialog open={!!selectedFiche} onOpenChange={() => setSelectedFiche(null)}>
-        <DialogContent className="max-w-3xl max-h-[80vh]">
-          <DialogHeader>
-            <DialogTitle>
-              {selectedFiche && extractNom(selectedFiche.data)}
-            </DialogTitle>
-            <DialogDescription>
-              {selectedFiche && (
-                <span className="flex items-center gap-2">
-                  <Badge variant="outline">{selectedFiche.fiche_type}</Badge>
-                  <span className="font-mono text-xs">ID: {selectedFiche.fiche_id}</span>
-                </span>
-              )}
-            </DialogDescription>
-          </DialogHeader>
-          <ScrollArea className="max-h-[60vh]">
-            {selectedFiche && (
-              <pre className="text-xs bg-muted p-4 rounded-lg overflow-auto">
-                {JSON.stringify(selectedFiche.data, null, 2)}
-              </pre>
-            )}
-          </ScrollArea>
-        </DialogContent>
-      </Dialog>
+      <FicheDetailsDialog 
+        open={!!selectedFiche} 
+        onOpenChange={() => setSelectedFiche(null)}
+        fiche={selectedFiche}
+      />
     </>
   );
 }
