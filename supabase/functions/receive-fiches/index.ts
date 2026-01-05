@@ -11,8 +11,48 @@ interface FichePayload {
   [key: string]: unknown;
 }
 
-interface RequestBody {
-  fiches: FichePayload[];
+// APIDAE native format
+interface ApidaeFiche {
+  type: string;
+  id: number | string;
+  [key: string]: unknown;
+}
+
+type RequestBody = { fiches: FichePayload[] } | ApidaeFiche | ApidaeFiche[];
+
+function normalizeToFiches(body: unknown): FichePayload[] {
+  // Format 1: Already wrapped with "fiches" array
+  if (body && typeof body === 'object' && 'fiches' in body && Array.isArray((body as { fiches: unknown[] }).fiches)) {
+    console.log("Detected format: fiches wrapper");
+    return (body as { fiches: FichePayload[] }).fiches;
+  }
+  
+  // Format 2: Single APIDAE object (has "type" and "id")
+  if (body && typeof body === 'object' && 'type' in body && 'id' in body) {
+    const apidae = body as ApidaeFiche;
+    console.log(`Detected format: single APIDAE object (type: ${apidae.type}, id: ${apidae.id})`);
+    const { type, id, ...rest } = apidae;
+    return [{
+      fiche_type: type,
+      fiche_id: String(id),
+      ...rest
+    }];
+  }
+  
+  // Format 3: Array of APIDAE objects
+  if (Array.isArray(body) && body.length > 0 && body[0].type && body[0].id) {
+    console.log(`Detected format: array of ${body.length} APIDAE objects`);
+    return body.map((item: ApidaeFiche) => {
+      const { type, id, ...rest } = item;
+      return {
+        fiche_type: type,
+        fiche_id: String(id),
+        ...rest
+      };
+    });
+  }
+  
+  return [];
 }
 
 Deno.serve(async (req: Request) => {
@@ -29,16 +69,23 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    const body: RequestBody = await req.json();
-    console.log("Received fiches payload:", JSON.stringify(body, null, 2));
+    const body = await req.json();
+    console.log("Received payload:", JSON.stringify(body, null, 2).substring(0, 500) + "...");
 
-    // Validate payload
-    if (!body.fiches || !Array.isArray(body.fiches)) {
+    // Normalize to fiches array (supports multiple formats)
+    const fichesToProcess = normalizeToFiches(body);
+    
+    if (fichesToProcess.length === 0) {
       return new Response(
-        JSON.stringify({ error: "Invalid payload: 'fiches' array is required" }),
+        JSON.stringify({ 
+          error: "Invalid payload format", 
+          hint: "Expected: { fiches: [...] } OR single APIDAE object with 'type' and 'id' OR array of APIDAE objects" 
+        }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+    
+    console.log(`Processing ${fichesToProcess.length} fiche(s)`);
 
     // Initialize Supabase client with service role for insert
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -52,7 +99,7 @@ Deno.serve(async (req: Request) => {
     };
 
     // Process each fiche
-    for (const fiche of body.fiches) {
+    for (const fiche of fichesToProcess) {
       if (!fiche.fiche_type || !fiche.fiche_id) {
         results.errors.push({
           fiche_id: fiche.fiche_id || "unknown",
@@ -116,7 +163,7 @@ Deno.serve(async (req: Request) => {
     return new Response(
       JSON.stringify({
         success: true,
-        message: `Processed ${body.fiches.length} fiches`,
+        message: `Processed ${fichesToProcess.length} fiche(s)`,
         results,
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
