@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import Seo from "@/components/Seo";
-import { ArrowLeft, Loader2, RefreshCw, Search, Eye, CheckCircle, XCircle, Upload, ShieldCheck, AlertTriangle } from "lucide-react";
+import { ArrowLeft, Loader2, RefreshCw, Search, Eye, CheckCircle, XCircle, Upload, ShieldCheck, AlertTriangle, EyeOff, Calendar } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
@@ -15,6 +15,7 @@ import { fr } from "date-fns/locale";
 import { FicheDetailsDialog } from "@/components/fiches/FicheDetailsDialog";
 
 import type { Json } from "@/integrations/supabase/types";
+import { isAfter, parseISO } from "date-fns";
 
 interface FicheData {
   id: string;
@@ -25,7 +26,11 @@ interface FicheData {
   created_at: string;
   updated_at: string;
   data: Json;
+  is_published: boolean;
+  hidden_reason: string | null;
 }
+
+type PublishFilter = "all" | "published" | "hidden" | "expired";
 
 export default function AllFiches() {
   const [fiches, setFiches] = useState<FicheData[]>([]);
@@ -33,9 +38,11 @@ export default function AllFiches() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [typeFilter, setTypeFilter] = useState<string>("all");
+  const [publishFilter, setPublishFilter] = useState<PublishFilter>("published");
   const [selectedFiche, setSelectedFiche] = useState<FicheData | null>(null);
   const [syncing, setSyncing] = useState(false);
   const [verifying, setVerifying] = useState(false);
+  const [togglingPublish, setTogglingPublish] = useState<string | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -135,6 +142,92 @@ export default function AllFiches() {
     }
   };
 
+  // Check if fiche opening period has expired
+  const isOpeningExpired = (data: Json): boolean => {
+    if (!data || typeof data !== 'object' || Array.isArray(data)) return false;
+    const obj = data as Record<string, unknown>;
+    const ouverture = obj.ouverture as Record<string, unknown> | undefined;
+    if (!ouverture) return false;
+    
+    const periodesOuvertures = ouverture.periodesOuvertures as Array<Record<string, unknown>> | undefined;
+    if (!periodesOuvertures || periodesOuvertures.length === 0) return false;
+    
+    const today = new Date();
+    
+    // Check if all periods have expired
+    const hasValidPeriod = periodesOuvertures.some(periode => {
+      const dateFin = periode.dateFin as string | undefined;
+      if (!dateFin) return true; // No end date = still valid
+      
+      const tousLesAns = periode.tousLesAns as boolean;
+      if (tousLesAns) return true; // Recurring yearly = still valid
+      
+      try {
+        const endDate = parseISO(dateFin);
+        return isAfter(endDate, today) || endDate.toDateString() === today.toDateString();
+      } catch {
+        return true;
+      }
+    });
+    
+    return !hasValidPeriod;
+  };
+
+  // Extract opening period dates
+  const extractPeriodeDates = (data: Json): string => {
+    if (!data || typeof data !== 'object' || Array.isArray(data)) return "-";
+    const obj = data as Record<string, unknown>;
+    const ouverture = obj.ouverture as Record<string, unknown> | undefined;
+    if (!ouverture) return "-";
+    
+    const periodesOuvertures = ouverture.periodesOuvertures as Array<Record<string, unknown>> | undefined;
+    if (!periodesOuvertures || periodesOuvertures.length === 0) return "-";
+    
+    const premiere = periodesOuvertures[0];
+    const dateDebut = premiere.dateDebut as string | undefined;
+    const dateFin = premiere.dateFin as string | undefined;
+    const tousLesAns = premiere.tousLesAns as boolean;
+    
+    if (tousLesAns) return "Toute l'année";
+    if (dateDebut && dateFin) {
+      return `${format(parseISO(dateDebut), "dd/MM/yyyy")} - ${format(parseISO(dateFin), "dd/MM/yyyy")}`;
+    }
+    return "-";
+  };
+
+  // Toggle publish status
+  const togglePublish = async (fiche: FicheData) => {
+    setTogglingPublish(fiche.id);
+    try {
+      const newStatus = !fiche.is_published;
+      const { error } = await supabase
+        .from('fiches_data')
+        .update({ 
+          is_published: newStatus,
+          hidden_reason: newStatus ? null : 'Masqué manuellement'
+        })
+        .eq('id', fiche.id);
+
+      if (error) throw error;
+
+      toast({
+        title: newStatus ? "Fiche publiée" : "Fiche masquée",
+        description: `La fiche sera ${newStatus ? 'synchronisée' : 'marquée pour synchronisation'}`,
+      });
+
+      await loadAllFiches();
+    } catch (error) {
+      console.error('Erreur lors du changement de statut:', error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de changer le statut de la fiche",
+        variant: "destructive",
+      });
+    } finally {
+      setTogglingPublish(null);
+    }
+  };
+
   useEffect(() => {
     loadAllFiches();
     loadAlertsCount();
@@ -142,6 +235,15 @@ export default function AllFiches() {
 
   useEffect(() => {
     let result = fiches;
+
+    // Filter by publish status
+    if (publishFilter === "published") {
+      result = result.filter(f => f.is_published && !isOpeningExpired(f.data));
+    } else if (publishFilter === "hidden") {
+      result = result.filter(f => !f.is_published);
+    } else if (publishFilter === "expired") {
+      result = result.filter(f => isOpeningExpired(f.data));
+    }
 
     // Filter by type
     if (typeFilter !== "all") {
@@ -163,7 +265,7 @@ export default function AllFiches() {
     }
 
     setFilteredFiches(result);
-  }, [fiches, typeFilter, searchTerm]);
+  }, [fiches, typeFilter, searchTerm, publishFilter]);
 
   // Extract name from APIDAE data structure
   const extractNom = (data: Json): string => {
@@ -309,6 +411,29 @@ export default function AllFiches() {
                 className="pl-10"
               />
             </div>
+            <Select value={publishFilter} onValueChange={(v) => setPublishFilter(v as PublishFilter)}>
+              <SelectTrigger className="w-full sm:w-[200px]">
+                <SelectValue placeholder="Statut" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Toutes les fiches</SelectItem>
+                <SelectItem value="published">
+                  <span className="flex items-center gap-2">
+                    <Eye className="w-3 h-3" /> Publiées
+                  </span>
+                </SelectItem>
+                <SelectItem value="hidden">
+                  <span className="flex items-center gap-2">
+                    <EyeOff className="w-3 h-3" /> Masquées
+                  </span>
+                </SelectItem>
+                <SelectItem value="expired">
+                  <span className="flex items-center gap-2">
+                    <Calendar className="w-3 h-3" /> Période expirée
+                  </span>
+                </SelectItem>
+              </SelectContent>
+            </Select>
             <Select value={typeFilter} onValueChange={setTypeFilter}>
               <SelectTrigger className="w-full sm:w-[250px]">
                 <SelectValue placeholder="Filtrer par type" />
@@ -351,20 +476,40 @@ export default function AllFiches() {
                   <Table>
                     <TableHeader>
                       <TableRow>
+                        <TableHead>Statut</TableHead>
                         <TableHead>Type</TableHead>
                         <TableHead>ID</TableHead>
                         <TableHead>Nom</TableHead>
                         <TableHead>Commune</TableHead>
-                        <TableHead>Téléphone</TableHead>
-                        <TableHead>Email</TableHead>
+                        <TableHead>Période</TableHead>
                         <TableHead className="text-center">Sync</TableHead>
                         <TableHead>Dernière MAJ</TableHead>
                         <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filteredFiches.map((fiche) => (
-                        <TableRow key={fiche.id}>
+                      {filteredFiches.map((fiche) => {
+                        const expired = isOpeningExpired(fiche.data);
+                        return (
+                        <TableRow key={fiche.id} className={expired ? "opacity-60" : ""}>
+                          <TableCell>
+                            {expired ? (
+                              <Badge variant="secondary" className="text-xs">
+                                <Calendar className="w-3 h-3 mr-1" />
+                                Expiré
+                              </Badge>
+                            ) : fiche.is_published ? (
+                              <Badge className="text-xs bg-green-500/20 text-green-700 border-green-500/30">
+                                <Eye className="w-3 h-3 mr-1" />
+                                Publié
+                              </Badge>
+                            ) : (
+                              <Badge variant="secondary" className="text-xs">
+                                <EyeOff className="w-3 h-3 mr-1" />
+                                Masqué
+                              </Badge>
+                            )}
+                          </TableCell>
                           <TableCell>
                             <Badge variant="outline" className="text-xs whitespace-nowrap">
                               {fiche.fiche_type.replace(/_/g, ' ')}
@@ -379,11 +524,8 @@ export default function AllFiches() {
                           <TableCell>
                             {extractCommune(fiche.data)}
                           </TableCell>
-                          <TableCell className="text-sm">
-                            {extractContact(fiche.data, "Téléphone")}
-                          </TableCell>
-                          <TableCell className="text-sm max-w-[150px] truncate">
-                            {extractContact(fiche.data, "Mél")}
+                          <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
+                            {extractPeriodeDates(fiche.data)}
                           </TableCell>
                           <TableCell className="text-center">
                             {fiche.synced_to_sheets ? (
@@ -396,16 +538,34 @@ export default function AllFiches() {
                             {format(new Date(fiche.updated_at), "dd/MM/yyyy HH:mm", { locale: fr })}
                           </TableCell>
                           <TableCell className="text-right">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => setSelectedFiche(fiche)}
-                            >
-                              <Eye className="w-4 h-4" />
-                            </Button>
+                            <div className="flex items-center justify-end gap-1">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => togglePublish(fiche)}
+                                disabled={togglingPublish === fiche.id}
+                                title={fiche.is_published ? "Masquer" : "Publier"}
+                              >
+                                {togglingPublish === fiche.id ? (
+                                  <Loader2 className="w-4 h-4 animate-spin" />
+                                ) : fiche.is_published ? (
+                                  <EyeOff className="w-4 h-4" />
+                                ) : (
+                                  <Eye className="w-4 h-4" />
+                                )}
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setSelectedFiche(fiche)}
+                              >
+                                <Search className="w-4 h-4" />
+                              </Button>
+                            </div>
                           </TableCell>
                         </TableRow>
-                      ))}
+                        );
+                      })}
                     </TableBody>
                   </Table>
                 </div>
