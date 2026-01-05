@@ -26,29 +26,36 @@ const tools = [
       name: "call_make_webhook",
       description: `Appelle le webhook Make pour exécuter des automatisations externes.
 
-IMPORTANT - AVANT D'APPELER CET OUTIL :
+**CAPACITÉS DE MAKE :**
+- Envoyer des emails à n'importe quelle adresse
+- Créer des pages Notion
+- Envoyer des notifications (Slack, Teams, etc.)
+- Exporter des données vers d'autres services
+- Toute automatisation configurée dans Make
+
+**IMPORTANT - AVANT D'APPELER CET OUTIL :**
 1. Make n'a PAS accès aux données d'Apidia ni à ta mémoire de conversation
 2. Tu DOIS fournir TOUTES les informations nécessaires dans le paramètre 'data'
-3. Si l'action nécessite des données d'Apidia (listes, contenus, stats), récupère-les D'ABORD avec les outils query_* ou get_apidia_info
+3. Si l'action nécessite des données d'Apidia (stats, listes, contenus), récupère-les D'ABORD avec les outils query_*
 4. Le paramètre 'data' doit contenir le contenu COMPLET et PRÊT À L'EMPLOI
 
-Exemples d'utilisation correcte :
-- "Crée une page Notion sur les fonctionnalités" → D'abord get_apidia_info, puis call_make_webhook avec le contenu complet
-- "Envoie un récap des tâches par email" → D'abord query_tasks, puis call_make_webhook avec les données`,
+**Exemples d'utilisation :**
+- "Envoie les stats par email à user@email.com" → D'abord query_stats_web, puis call_make_webhook avec action="Envoyer un email", data={email:"user@email.com", subject:"Stats", content:"<données récupérées>"}
+- "Crée une page Notion sur les fonctionnalités" → D'abord get_apidia_info, puis call_make_webhook avec le contenu complet`,
       parameters: {
         type: "object",
         properties: {
           action: { 
             type: "string", 
-            description: "Description précise de l'action à exécuter (ex: 'Créer une page Notion', 'Envoyer un email')" 
+            description: "Action à exécuter: 'Envoyer un email', 'Créer une page Notion', 'Envoyer une notification', etc." 
           },
           context: { 
             type: "string", 
-            description: "Contexte complet de la demande utilisateur - reformule la demande originale avec tous les détails de la conversation" 
+            description: "Contexte complet de la demande utilisateur - reformule la demande originale avec tous les détails" 
           },
           data: { 
             type: "object", 
-            description: "OBLIGATOIRE : Toutes les données nécessaires à l'exécution. Doit contenir le contenu complet (textes, listes, etc.)" 
+            description: "OBLIGATOIRE : Toutes les données pour l'action. Pour un email: {email, subject, content}. Pour Notion: {title, content}." 
           }
         },
         required: ["action", "context", "data"]
@@ -149,12 +156,12 @@ Exemples d'utilisation correcte :
     type: "function",
     function: {
       name: "query_stats_web",
-      description: "Récupère les statistiques web depuis Google Sheets (fréquentation des sites web).",
+      description: "Récupère les statistiques web depuis Google Sheets (fréquentation des sites web). Les données contiennent les utilisateurs actifs, sessions, pages vues par mois/année pour chaque site (Gréoux-les-Bains, Manosque, Pays de Manosque, etc.).",
       parameters: {
         type: "object",
         properties: {
-          site_name: { type: "string", description: "Nom du site spécifique" },
-          limit: { type: "number", description: "Nombre maximum de résultats (défaut: 20)" }
+          site_name: { type: "string", description: "Nom du site: 'Gréoux', 'Manosque', 'Pays de Manosque', etc." },
+          limit: { type: "number", description: "Nombre maximum de résultats (défaut: 100 pour avoir toutes les données annuelles)" }
         }
       }
     }
@@ -532,29 +539,9 @@ serve(async (req) => {
 
 **DATE ET HEURE ACTUELLES : ${parisTime} (heure de Paris)**
 
-Tu as deux types de capacités :
+Tu as trois types de capacités :
 
-**1. INFORMATIONS APIDIA (via get_apidia_info)**
-Utilise cet outil quand l'utilisateur pose des questions sur Apidia, ses fonctionnalités, ou ce que la plateforme peut faire.
-
-**2. AUTOMATISATIONS MAKE (via call_make_webhook)**
-Utilise cet outil pour :
-- Exécuter des workflows automatisés (création Notion, envoi emails, etc.)
-- Intégrations avec des services tiers
-
-⚠️ **RÈGLE CRITIQUE POUR MAKE :**
-Make n'a PAS accès aux données d'Apidia ni à l'historique de conversation.
-AVANT d'appeler call_make_webhook :
-1. Identifie si l'action nécessite des données (fonctionnalités Apidia, listes de tâches, stats, etc.)
-2. Si OUI → Récupère D'ABORD ces données avec get_apidia_info ou query_*
-3. Inclus TOUTES les données récupérées dans le paramètre 'data' du webhook
-4. Le champ 'context' doit contenir la demande complète reformulée
-
-Exemple : "Crée une page Notion sur les fonctionnalités d'Apidia"
-→ Étape 1 : Appeler get_apidia_info pour obtenir les fonctionnalités
-→ Étape 2 : Appeler call_make_webhook avec data: { title: "...", content: "<contenu récupéré>" }
-
-**3. CONSULTATION DE DONNÉES (via les outils query_*)**
+**1. CONSULTATION DE DONNÉES (via les outils query_*)**
 Tu peux interroger directement :
 
 *Base de données Apidia :*
@@ -566,22 +553,42 @@ Tu peux interroger directement :
 
 *Google Sheets :*
 - Fiches touristiques (query_fiches_sheets) : BD COS, BD FETE_ET_MANIFESTATION
-- Statistiques web (query_stats_web) : données de fréquentation
+- Statistiques web (query_stats_web) : utilisateurs actifs, sessions, pages vues par site (Gréoux-les-Bains, Manosque, etc.) et par période
 - E-réputation (query_stats_ereputation) : statistiques de réputation
 - Données RH (query_rh_data) : informations RH
 
+**2. INFORMATIONS APIDIA (via get_apidia_info)**
+Utilise cet outil quand l'utilisateur pose des questions sur Apidia, ses fonctionnalités, ou ce que la plateforme peut faire.
+
+**3. AUTOMATISATIONS MAKE (via call_make_webhook)**
+⚡ Tu PEUX et DOIS utiliser cet outil pour :
+- **Envoyer des emails** à n'importe quelle adresse (action: "Envoyer un email")
+- **Créer des pages Notion** 
+- **Envoyer des notifications** (Slack, Teams, etc.)
+- **Exporter des données** vers d'autres services
+
+**EXEMPLE : Demande d'envoi d'email avec des stats**
+"Envoie les utilisateurs actifs 2025 de Gréoux par email à user@email.com"
+→ Étape 1 : query_stats_web(site_name: "Gréoux", limit: 100) pour récupérer les données
+→ Étape 2 : Filtrer/calculer les stats pour l'année 2025
+→ Étape 3 : call_make_webhook avec :
+   - action: "Envoyer un email"
+   - data: { email: "user@email.com", subject: "Stats Gréoux 2025", content: "<données formatées>" }
+
+⚠️ **RÈGLE CRITIQUE POUR MAKE :**
+Make n'a PAS accès aux données d'Apidia. Tu DOIS :
+1. Récupérer D'ABORD les données avec query_* ou get_apidia_info
+2. Formater les données de manière lisible
+3. Inclure le contenu COMPLET dans le paramètre 'data' du webhook
+
 **RÈGLES GÉNÉRALES :**
-- Pour les questions sur les données → utilise les outils query_*
-- Pour les actions/automatisations → récupère d'abord les données nécessaires, puis call_make_webhook
+- Tu PEUX envoyer des emails → utilise call_make_webhook avec action "Envoyer un email"
+- Tu PEUX récupérer des stats par site et par année → utilise query_stats_web avec site_name
 - Sois précis et donne des chiffres concrets
 - Réponds toujours en français
-- Formate tes réponses avec des listes à puces et des titres pour plus de lisibilité
 
 **⚠️ RÉPONSE MAKE OBLIGATOIRE :**
-Quand tu reçois une réponse de call_make_webhook, tu DOIS transmettre le contenu de 'make_response' directement à l'utilisateur.
-- Si make_response contient un message → affiche-le tel quel
-- Si make_response contient une erreur → informe l'utilisateur de l'erreur
-- NE reformule PAS et NE résume PAS la réponse de Make, transmets-la fidèlement`;
+Quand tu reçois une réponse de call_make_webhook, transmets le contenu de 'make_response' à l'utilisateur tel quel.`;
 
     // Initial AI call with tools
     let aiMessages = [
