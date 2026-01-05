@@ -4,41 +4,57 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import Seo from "@/components/Seo";
-import { ArrowLeft, Loader2, RefreshCw } from "lucide-react";
+import { ArrowLeft, Loader2, RefreshCw, Search, Eye, CheckCircle, XCircle } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { format } from "date-fns";
+import { fr } from "date-fns/locale";
+
+import type { Json } from "@/integrations/supabase/types";
 
 interface FicheData {
-  sheetName: string;
-  data: Record<string, string>;
+  id: string;
+  fiche_type: string;
+  fiche_id: string;
+  source: string;
+  synced_to_sheets: boolean;
+  created_at: string;
+  updated_at: string;
+  data: Json;
 }
 
 export default function AllFiches() {
   const [fiches, setFiches] = useState<FicheData[]>([]);
+  const [filteredFiches, setFilteredFiches] = useState<FicheData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [typeFilter, setTypeFilter] = useState<string>("all");
+  const [selectedFiche, setSelectedFiche] = useState<FicheData | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
 
   const loadAllFiches = async () => {
     setLoading(true);
     try {
-      console.log("Calling list-all-fiches function...");
-      const { data, error } = await supabase.functions.invoke('list-all-fiches', {
-        body: {}
-      });
+      const { data, error } = await supabase
+        .from('fiches_data')
+        .select('*')
+        .order('updated_at', { ascending: false });
 
-      if (error) {
-        console.error("Supabase function error:", error);
-        throw error;
-      }
+      if (error) throw error;
       
-      console.log("Function response:", data);
-      setFiches(data.data || []);
+      setFiches(data || []);
+      setFilteredFiches(data || []);
       toast({
         title: "Fiches chargées",
-        description: `${data.data?.length || 0} fiches trouvées`,
+        description: `${data?.length || 0} fiches trouvées`,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Erreur lors du chargement des fiches:', error);
       toast({
         title: "Erreur",
@@ -54,11 +70,79 @@ export default function AllFiches() {
     loadAllFiches();
   }, []);
 
+  useEffect(() => {
+    let result = fiches;
+
+    // Filter by type
+    if (typeFilter !== "all") {
+      result = result.filter(f => f.fiche_type === typeFilter);
+    }
+
+    // Filter by search term
+    if (searchTerm) {
+      const search = searchTerm.toLowerCase();
+      result = result.filter(f => {
+        const nom = extractNom(f.data);
+        const commune = extractCommune(f.data);
+        return (
+          nom.toLowerCase().includes(search) ||
+          commune.toLowerCase().includes(search) ||
+          f.fiche_id.includes(search)
+        );
+      });
+    }
+
+    setFilteredFiches(result);
+  }, [fiches, typeFilter, searchTerm]);
+
+  // Extract name from APIDAE data structure
+  const extractNom = (data: Json): string => {
+    if (!data || typeof data !== 'object' || Array.isArray(data)) return "-";
+    const obj = data as Record<string, unknown>;
+    const nom = obj.nom as Record<string, unknown> | undefined;
+    if (nom?.libelleFr) return nom.libelleFr as string;
+    if (typeof nom === 'string') return nom;
+    return "-";
+  };
+
+  // Extract commune from APIDAE data structure
+  const extractCommune = (data: Json): string => {
+    if (!data || typeof data !== 'object' || Array.isArray(data)) return "-";
+    const obj = data as Record<string, unknown>;
+    const localisation = obj.localisation as Record<string, unknown> | undefined;
+    const adresse = localisation?.adresse as Record<string, unknown> | undefined;
+    const commune = adresse?.commune as Record<string, unknown> | undefined;
+    return (commune?.nom as string) || "-";
+  };
+
+  // Extract contact info from APIDAE data structure
+  const extractContact = (data: Json, type: string): string => {
+    if (!data || typeof data !== 'object' || Array.isArray(data)) return "-";
+    const obj = data as Record<string, unknown>;
+    const informations = obj.informations as Record<string, unknown> | undefined;
+    const moyens = informations?.moyensCommunication as Array<Record<string, unknown>> | undefined;
+    if (!moyens) return "-";
+    
+    const moyen = moyens.find(m => {
+      const moyenType = m.type as Record<string, unknown> | undefined;
+      return moyenType?.libelleFr === type;
+    });
+    
+    if (moyen) {
+      const coordonnees = moyen.coordonnees as Record<string, string> | undefined;
+      return coordonnees?.fr || (moyen.coordonnees as string) || "-";
+    }
+    return "-";
+  };
+
+  // Get unique fiche types for filter
+  const ficheTypes = [...new Set(fiches.map(f => f.fiche_type))].sort();
+
   return (
     <>
       <Seo 
-        title="Toutes les fiches - Administration"
-        description="Vue d'ensemble de toutes les fiches du Google Sheet"
+        title="Fiches synchronisées - Administration"
+        description="Gestion des fiches APIDAE synchronisées"
       />
       
       <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/5">
@@ -75,9 +159,9 @@ export default function AllFiches() {
                 Retour au tableau de bord
               </Button>
               <div>
-                <h1 className="text-2xl font-bold">Toutes les fiches</h1>
+                <h1 className="text-2xl font-bold">Fiches synchronisées</h1>
                 <p className="text-sm text-muted-foreground">
-                  Vue d'ensemble des données du Google Sheet
+                  Données reçues via Make/APIDAE
                 </p>
               </div>
             </div>
@@ -97,14 +181,42 @@ export default function AllFiches() {
             </Button>
           </div>
 
+          {/* Filters */}
+          <div className="flex flex-col sm:flex-row gap-4 mb-6">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                placeholder="Rechercher par nom, commune ou ID..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            <Select value={typeFilter} onValueChange={setTypeFilter}>
+              <SelectTrigger className="w-full sm:w-[250px]">
+                <SelectValue placeholder="Filtrer par type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tous les types</SelectItem>
+                {ficheTypes.map(type => (
+                  <SelectItem key={type} value={type}>
+                    {type.replace(/_/g, ' ')}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
           {/* Fiches Display */}
           <Card>
             <CardHeader>
               <CardTitle>
-                {loading ? "Chargement..." : `Fiches trouvées (${fiches.length})`}
+                {loading ? "Chargement..." : `${filteredFiches.length} fiche(s)`}
               </CardTitle>
               <CardDescription>
-                Données du Google Sheet (exclut les feuilles contenant "SOURCING")
+                {filteredFiches.length !== fiches.length && 
+                  `(${fiches.length} au total)`
+                }
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -113,53 +225,70 @@ export default function AllFiches() {
                   <Loader2 className="w-8 h-8 animate-spin text-primary" />
                   <span className="ml-2">Chargement des fiches...</span>
                 </div>
-              ) : fiches.length === 0 ? (
+              ) : filteredFiches.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
-                  Aucune fiche trouvée
+                  {fiches.length === 0 ? "Aucune fiche trouvée" : "Aucun résultat pour cette recherche"}
                 </div>
               ) : (
-                <div className="max-h-96 overflow-auto">
+                <div className="overflow-auto">
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Feuille</TableHead>
-                        <TableHead>Email</TableHead>
+                        <TableHead>Type</TableHead>
+                        <TableHead>ID</TableHead>
                         <TableHead>Nom</TableHead>
-                        <TableHead>Autres données</TableHead>
+                        <TableHead>Commune</TableHead>
+                        <TableHead>Téléphone</TableHead>
+                        <TableHead>Email</TableHead>
+                        <TableHead className="text-center">Sync</TableHead>
+                        <TableHead>Dernière MAJ</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {fiches.map((fiche, index) => {
-                        const email = fiche.data.email || fiche.data["e-mail"] || fiche.data.mail || "";
-                        const nom = fiche.data.nom || fiche.data.name || fiche.data.nomcomplet || "";
-                        const otherFields = Object.entries(fiche.data)
-                          .filter(([key]) => !["feuille", "email", "e-mail", "mail", "nom", "name", "nomcomplet"].includes(key.toLowerCase()))
-                          .filter(([, value]) => value && value.trim() !== "")
-                          .slice(0, 3); // Limiter à 3 champs supplémentaires
-
-                        return (
-                          <TableRow key={`${fiche.sheetName}-${index}`}>
-                            <TableCell className="font-medium">
-                              {fiche.sheetName}
-                            </TableCell>
-                            <TableCell>{email}</TableCell>
-                            <TableCell>{nom}</TableCell>
-                            <TableCell>
-                              {otherFields.length > 0 ? (
-                                <div className="text-xs text-muted-foreground">
-                                  {otherFields.map(([key, value]) => (
-                                    <div key={key}>
-                                      <strong>{key}:</strong> {value.length > 30 ? `${value.substring(0, 30)}...` : value}
-                                    </div>
-                                  ))}
-                                </div>
-                              ) : (
-                                <span className="text-muted-foreground">-</span>
-                              )}
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
+                      {filteredFiches.map((fiche) => (
+                        <TableRow key={fiche.id}>
+                          <TableCell>
+                            <Badge variant="outline" className="text-xs whitespace-nowrap">
+                              {fiche.fiche_type.replace(/_/g, ' ')}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="font-mono text-xs">
+                            {fiche.fiche_id}
+                          </TableCell>
+                          <TableCell className="font-medium max-w-[200px] truncate">
+                            {extractNom(fiche.data)}
+                          </TableCell>
+                          <TableCell>
+                            {extractCommune(fiche.data)}
+                          </TableCell>
+                          <TableCell className="text-sm">
+                            {extractContact(fiche.data, "Téléphone")}
+                          </TableCell>
+                          <TableCell className="text-sm max-w-[150px] truncate">
+                            {extractContact(fiche.data, "Mél")}
+                          </TableCell>
+                          <TableCell className="text-center">
+                            {fiche.synced_to_sheets ? (
+                              <CheckCircle className="w-4 h-4 text-green-500 mx-auto" />
+                            ) : (
+                              <XCircle className="w-4 h-4 text-muted-foreground mx-auto" />
+                            )}
+                          </TableCell>
+                          <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
+                            {format(new Date(fiche.updated_at), "dd/MM/yyyy HH:mm", { locale: fr })}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setSelectedFiche(fiche)}
+                            >
+                              <Eye className="w-4 h-4" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
                     </TableBody>
                   </Table>
                 </div>
@@ -168,6 +297,32 @@ export default function AllFiches() {
           </Card>
         </div>
       </div>
+
+      {/* Detail Dialog */}
+      <Dialog open={!!selectedFiche} onOpenChange={() => setSelectedFiche(null)}>
+        <DialogContent className="max-w-3xl max-h-[80vh]">
+          <DialogHeader>
+            <DialogTitle>
+              {selectedFiche && extractNom(selectedFiche.data)}
+            </DialogTitle>
+            <DialogDescription>
+              {selectedFiche && (
+                <span className="flex items-center gap-2">
+                  <Badge variant="outline">{selectedFiche.fiche_type}</Badge>
+                  <span className="font-mono text-xs">ID: {selectedFiche.fiche_id}</span>
+                </span>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <ScrollArea className="max-h-[60vh]">
+            {selectedFiche && (
+              <pre className="text-xs bg-muted p-4 rounded-lg overflow-auto">
+                {JSON.stringify(selectedFiche.data, null, 2)}
+              </pre>
+            )}
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
