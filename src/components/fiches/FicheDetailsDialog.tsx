@@ -260,20 +260,27 @@ export function FicheDetailsDialog({ open, onOpenChange, fiche }: FicheDetailsDi
                       const isMail = type.toLowerCase().includes('mel') || type.toLowerCase().includes('mail');
                       
                       return (
-                        <div key={index} className="flex items-center gap-2 text-sm">
-                          <Icon className="h-3.5 w-3.5 text-muted-foreground" />
-                          <span className="text-muted-foreground min-w-[100px]">{type}:</span>
-                          {isLink ? (
-                            <a href={value} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline truncate">
-                              {value}
-                            </a>
-                          ) : isMail ? (
-                            <a href={`mailto:${value}`} className="text-primary hover:underline">
-                              {value}
-                            </a>
-                          ) : (
-                            <span>{value}</span>
-                          )}
+                        <div key={index} className="flex items-start gap-2 text-sm">
+                          <Icon className="h-3.5 w-3.5 text-muted-foreground mt-0.5 shrink-0" />
+                          <span className="text-muted-foreground min-w-[100px] shrink-0">{type}:</span>
+                          <div className="min-w-0 flex-1">
+                            {isLink ? (
+                              <a 
+                                href={value} 
+                                target="_blank" 
+                                rel="noopener noreferrer" 
+                                className="text-primary hover:underline break-all"
+                              >
+                                {value}
+                              </a>
+                            ) : isMail ? (
+                              <a href={`mailto:${value}`} className="text-primary hover:underline break-all">
+                                {value}
+                              </a>
+                            ) : (
+                              <span className="break-all">{value}</span>
+                            )}
+                          </div>
                         </div>
                       );
                     })}
