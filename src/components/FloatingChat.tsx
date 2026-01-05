@@ -1,5 +1,5 @@
-import { useState, useRef, useEffect } from "react";
-import { MessageCircle, X, Send, Loader2, Plus, History, ChevronLeft, Search } from "lucide-react";
+import { useState, useRef, useEffect, useCallback } from "react";
+import { MessageCircle, X, Send, Loader2, Plus, History, ChevronLeft, Search, Mic, MicOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -7,6 +7,34 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+
+// Web Speech API types
+interface SpeechRecognitionEvent extends Event {
+  resultIndex: number;
+  results: SpeechRecognitionResultList;
+}
+
+interface SpeechRecognitionErrorEvent extends Event {
+  error: string;
+}
+
+interface SpeechRecognitionInstance extends EventTarget {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  start: () => void;
+  stop: () => void;
+  onresult: ((event: SpeechRecognitionEvent) => void) | null;
+  onerror: ((event: SpeechRecognitionErrorEvent) => void) | null;
+  onend: (() => void) | null;
+}
+
+declare global {
+  interface Window {
+    SpeechRecognition?: new () => SpeechRecognitionInstance;
+    webkitSpeechRecognition?: new () => SpeechRecognitionInstance;
+  }
+}
 
 interface Message {
   id: string;
@@ -33,8 +61,94 @@ export default function FloatingChat() {
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingConversations, setIsLoadingConversations] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
+  const [isListening, setIsListening] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const recognitionRef = useRef<SpeechRecognitionInstance | null>(null);
   const { toast } = useToast();
+
+  // Initialize speech recognition
+  const initSpeechRecognition = useCallback(() => {
+    if (!("webkitSpeechRecognition" in window) && !("SpeechRecognition" in window)) {
+      return null;
+    }
+
+    const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognitionAPI) return null;
+    const recognition = new SpeechRecognitionAPI();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = "fr-FR";
+
+    recognition.onresult = (event: SpeechRecognitionEvent) => {
+      let finalTranscript = "";
+      let interimTranscript = "";
+
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const transcript = event.results[i][0].transcript;
+        if (event.results[i].isFinal) {
+          finalTranscript += transcript;
+        } else {
+          interimTranscript += transcript;
+        }
+      }
+
+      if (finalTranscript) {
+        setInput((prev) => prev + finalTranscript);
+      }
+    };
+
+    recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
+      console.error("Speech recognition error:", event.error);
+      setIsListening(false);
+      if (event.error !== "aborted") {
+        toast({
+          title: "Erreur de reconnaissance vocale",
+          description: "Impossible d'accéder au microphone.",
+          variant: "destructive",
+        });
+      }
+    };
+
+    recognition.onend = () => {
+      setIsListening(false);
+    };
+
+    return recognition;
+  }, [toast]);
+
+  const toggleListening = useCallback(() => {
+    if (isListening) {
+      recognitionRef.current?.stop();
+      setIsListening(false);
+    } else {
+      if (!recognitionRef.current) {
+        recognitionRef.current = initSpeechRecognition();
+      }
+      
+      if (!recognitionRef.current) {
+        toast({
+          title: "Non supporté",
+          description: "La reconnaissance vocale n'est pas supportée par votre navigateur.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      try {
+        recognitionRef.current.start();
+        setIsListening(true);
+      } catch (error) {
+        console.error("Error starting speech recognition:", error);
+      }
+    }
+  }, [isListening, initSpeechRecognition, toast]);
+
+  // Cleanup speech recognition on unmount
+  useEffect(() => {
+    return () => {
+      recognitionRef.current?.stop();
+    };
+  }, []);
 
   // Get current user
   useEffect(() => {
@@ -466,12 +580,26 @@ export default function FloatingChat() {
               {/* Input */}
               <form onSubmit={sendMessage} className="p-3 border-t bg-background">
                 <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant={isListening ? "destructive" : "outline"}
+                    onClick={toggleListening}
+                    disabled={isLoading}
+                    className="shrink-0"
+                  >
+                    {isListening ? (
+                      <MicOff className="h-4 w-4" />
+                    ) : (
+                      <Mic className="h-4 w-4" />
+                    )}
+                  </Button>
                   <Input
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
-                    placeholder="Écrivez votre message..."
+                    placeholder={isListening ? "Parlez maintenant..." : "Écrivez votre message..."}
                     disabled={isLoading}
-                    className="flex-1"
+                    className={`flex-1 ${isListening ? "border-destructive" : ""}`}
                   />
                   <Button type="submit" size="icon" disabled={isLoading || !input.trim()}>
                     {isLoading ? (
@@ -481,6 +609,11 @@ export default function FloatingChat() {
                     )}
                   </Button>
                 </div>
+                {isListening && (
+                  <p className="text-xs text-destructive mt-2 text-center animate-pulse">
+                    🎤 Écoute en cours...
+                  </p>
+                )}
               </form>
             </>
           )}
