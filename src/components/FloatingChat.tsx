@@ -18,6 +18,7 @@ export default function FloatingChat() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [threadId] = useState(() => crypto.randomUUID());
   const scrollRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -44,7 +45,7 @@ export default function FloatingChat() {
 
     try {
       const { data, error } = await supabase.functions.invoke("make-chat", {
-        body: { message: userMessage.content },
+        body: { message: userMessage.content, threadId },
       });
 
       if (error) throw error;
