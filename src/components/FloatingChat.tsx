@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import MessageContent from "@/components/chat/MessageContent";
+import { useChatContext } from "@/context/ChatContext";
 
 // Web Speech API types
 interface SpeechRecognitionEvent extends Event {
@@ -53,15 +54,22 @@ interface Conversation {
 }
 
 export default function FloatingChat() {
-  const [isOpen, setIsOpen] = useState(false);
-  const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [currentConversation, setCurrentConversation] = useState<Conversation | null>(null);
-  const [showHistory, setShowHistory] = useState(false);
+  const {
+    isOpen,
+    setIsOpen,
+    conversations,
+    setConversations,
+    currentConversation,
+    setCurrentConversation,
+    showHistory,
+    setShowHistory,
+    userId,
+    isLoadingConversations,
+  } = useChatContext();
+  
   const [input, setInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [isLoadingConversations, setIsLoadingConversations] = useState(false);
-  const [userId, setUserId] = useState<string | null>(null);
   const [isListening, setIsListening] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -152,64 +160,6 @@ export default function FloatingChat() {
       recognitionRef.current?.stop();
     };
   }, []);
-
-  // Get current user
-  useEffect(() => {
-    const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      setUserId(user?.id || null);
-    };
-    getUser();
-  }, []);
-
-  // Load conversations from database
-  useEffect(() => {
-    if (!userId) return;
-
-    const loadConversations = async () => {
-      setIsLoadingConversations(true);
-      try {
-        const { data: convData, error: convError } = await supabase
-          .from("chat_conversations")
-          .select("*")
-          .eq("user_id", userId)
-          .order("updated_at", { ascending: false });
-
-        if (convError) throw convError;
-
-        const conversationsWithMessages: Conversation[] = await Promise.all(
-          (convData || []).map(async (conv) => {
-            const { data: msgData } = await supabase
-              .from("chat_messages")
-              .select("*")
-              .eq("conversation_id", conv.id)
-              .order("created_at", { ascending: true });
-
-            return {
-              id: conv.id,
-              threadId: conv.thread_id,
-              title: conv.title,
-              createdAt: new Date(conv.created_at),
-              messages: (msgData || []).map((msg) => ({
-                id: msg.id,
-                role: msg.role as "user" | "assistant",
-                content: msg.content,
-                timestamp: new Date(msg.created_at),
-              })),
-            };
-          })
-        );
-
-        setConversations(conversationsWithMessages);
-      } catch (error) {
-        console.error("Error loading conversations:", error);
-      } finally {
-        setIsLoadingConversations(false);
-      }
-    };
-
-    loadConversations();
-  }, [userId]);
 
   useEffect(() => {
     if (scrollRef.current) {
