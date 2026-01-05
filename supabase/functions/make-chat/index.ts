@@ -29,6 +29,7 @@ const tools = [
 **CAPACITÉS DE MAKE :**
 - Envoyer des emails à n'importe quelle adresse
 - Créer des pages Notion
+- Créer des designs Canva (affiches, posts réseaux sociaux, présentations, visuels)
 - Envoyer des notifications (Slack, Teams, etc.)
 - Exporter des données vers d'autres services
 - Toute automatisation configurée dans Make
@@ -41,7 +42,8 @@ const tools = [
 
 **Exemples d'utilisation :**
 - "Envoie les stats par email à user@email.com" → D'abord query_stats_web, puis call_make_webhook avec action="Envoyer un email", data={email:"user@email.com", subject:"Stats", content:"<données récupérées>"}
-- "Crée une page Notion sur les fonctionnalités" → D'abord get_apidia_info, puis call_make_webhook avec le contenu complet`,
+- "Crée une page Notion sur les fonctionnalités" → D'abord get_apidia_info, puis call_make_webhook avec le contenu complet
+- "Crée une affiche pour l'événement X" → call_make_webhook avec action="Créer un design Canva", data={type:"affiche", titre:"...", contenu:"..."}`,
       parameters: {
         type: "object",
         properties: {
@@ -564,6 +566,7 @@ Utilise cet outil quand l'utilisateur pose des questions sur Apidia, ses fonctio
 ⚡ Tu PEUX et DOIS utiliser cet outil pour :
 - **Envoyer des emails** à n'importe quelle adresse (action: "Envoyer un email")
 - **Créer des pages Notion** 
+- **Créer des designs Canva** : affiches, posts Instagram/Facebook, présentations, visuels (action: "Créer un design Canva")
 - **Envoyer des notifications** (Slack, Teams, etc.)
 - **Exporter des données** vers d'autres services
 
