@@ -10,6 +10,7 @@ import DashboardLayout from "./layouts/DashboardLayout";
 import AdminLayout from "./layouts/AdminLayout";
 import Overview from "./pages/dashboard/Overview";
 import AuthProvider from "./context/AuthProvider";
+import { ChatProvider } from "./context/ChatContext";
 import RequireAuth from "./components/RequireAuth";
 import RequireAdminAuth from "./components/RequireAdminAuth";
 import RequirePasswordChange from "./components/RequirePasswordChange";
@@ -50,7 +51,8 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
-          <Routes>
+          <ChatProvider>
+            <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/catalogue" element={<Catalogue />} />
             <Route path="/apidae-details" element={<ApidaeDetails />} />
@@ -199,7 +201,8 @@ const App = () => (
             
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
-          </Routes>
+            </Routes>
+          </ChatProvider>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
@@ -207,4 +210,3 @@ const App = () => (
 );
 
 export default App;
-

@@ -1,4 +1,3 @@
-import { Outlet } from "react-router-dom";
 import FloatingChat from "@/components/FloatingChat";
 
 interface AdminLayoutProps {
