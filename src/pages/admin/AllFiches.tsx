@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import Seo from "@/components/Seo";
-import { ArrowLeft, Loader2, RefreshCw, Search, Eye, CheckCircle, XCircle, Upload, ShieldCheck, AlertTriangle, EyeOff, Calendar } from "lucide-react";
+import { ArrowLeft, Loader2, RefreshCw, Search, Eye, CheckCircle, XCircle, Upload, ShieldCheck, AlertTriangle, EyeOff, Calendar, Radar } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
@@ -28,9 +28,11 @@ interface FicheData {
   data: Json;
   is_published: boolean;
   hidden_reason: string | null;
+  last_verified_at: string | null;
+  verification_status: string | null;
 }
 
-type PublishFilter = "all" | "published" | "hidden" | "expired";
+type PublishFilter = "all" | "published" | "hidden" | "expired" | "verified";
 
 export default function AllFiches() {
   const [fiches, setFiches] = useState<FicheData[]>([]);
@@ -243,6 +245,8 @@ export default function AllFiches() {
       result = result.filter(f => !f.is_published);
     } else if (publishFilter === "expired") {
       result = result.filter(f => isOpeningExpired(f.data));
+    } else if (publishFilter === "verified") {
+      result = result.filter(f => f.last_verified_at !== null);
     }
 
     // Filter by type
@@ -432,6 +436,11 @@ export default function AllFiches() {
                     <Calendar className="w-3 h-3" /> Période expirée
                   </span>
                 </SelectItem>
+                <SelectItem value="verified">
+                  <span className="flex items-center gap-2">
+                    <Radar className="w-3 h-3" /> Vérifiées (Firecrawl)
+                  </span>
+                </SelectItem>
               </SelectContent>
             </Select>
             <Select value={typeFilter} onValueChange={setTypeFilter}>
@@ -483,7 +492,7 @@ export default function AllFiches() {
                         <TableHead>Commune</TableHead>
                         <TableHead>Période</TableHead>
                         <TableHead className="text-center">Sync</TableHead>
-                        <TableHead>Dernière MAJ</TableHead>
+                        <TableHead className="text-center">Vérifié</TableHead>
                         <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -534,8 +543,17 @@ export default function AllFiches() {
                               <XCircle className="w-4 h-4 text-muted-foreground mx-auto" />
                             )}
                           </TableCell>
-                          <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
-                            {format(new Date(fiche.updated_at), "dd/MM/yyyy HH:mm", { locale: fr })}
+                          <TableCell className="text-center">
+                            {fiche.last_verified_at ? (
+                              <div className="flex flex-col items-center">
+                                <Radar className="w-4 h-4 text-blue-500" />
+                                <span className="text-[10px] text-muted-foreground">
+                                  {format(new Date(fiche.last_verified_at), "dd/MM", { locale: fr })}
+                                </span>
+                              </div>
+                            ) : (
+                              <span className="text-muted-foreground text-xs">-</span>
+                            )}
                           </TableCell>
                           <TableCell className="text-right">
                             <div className="flex items-center justify-end gap-1">

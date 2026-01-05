@@ -13,7 +13,8 @@ import {
   Calendar,
   Globe,
   FileText,
-  Info
+  Info,
+  Image as ImageIcon
 } from "lucide-react";
 import { Json } from "@/integrations/supabase/types";
 
@@ -119,6 +120,30 @@ export function FicheDetailsDialog({ open, onOpenChange, fiche }: FicheDetailsDi
   const descriptionCourte = getString(data, 'presentation.descriptifCourt.libelleFr');
   const descriptionDetaille = getString(data, 'presentation.descriptifDetaille.libelleFr');
 
+  // Médias - stored media (images stockées localement)
+  const storedMedia = getArray(data, '_stored_media') as Array<{
+    stored_url?: string;
+    original_url?: string;
+    nom?: string;
+    legende?: string;
+    copyright?: string;
+    type?: string;
+  }>;
+  
+  // Illustrations APIDAE (images originales)
+  const illustrations = getArray(data, 'illustrations') as Array<{
+    traductionFichiers?: Array<{
+      url?: string;
+      urlFiche?: string;
+      urlListe?: string;
+      urlDiaporama?: string;
+    }>;
+    nom?: { libelleFr?: string };
+    legende?: { libelleFr?: string };
+    copyright?: { libelleFr?: string };
+    type?: string;
+  }>;
+
   const formatDate = (dateStr: string) => {
     if (!dateStr) return '';
     try {
@@ -177,8 +202,9 @@ export function FicheDetailsDialog({ open, onOpenChange, fiche }: FicheDetailsDi
         </DialogHeader>
 
         <Tabs defaultValue="general" className="mt-4">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="general">Général</TabsTrigger>
+            <TabsTrigger value="media">Médias</TabsTrigger>
             <TabsTrigger value="contact">Contact</TabsTrigger>
             <TabsTrigger value="horaires">Horaires</TabsTrigger>
             <TabsTrigger value="json">JSON</TabsTrigger>
@@ -238,6 +264,79 @@ export function FicheDetailsDialog({ open, onOpenChange, fiche }: FicheDetailsDi
                     </Badge>
                   } 
                 />
+              </Section>
+            </TabsContent>
+
+            <TabsContent value="media" className="space-y-6 mt-0">
+              <Section title="Médias" icon={ImageIcon}>
+                {storedMedia.length > 0 || illustrations.length > 0 ? (
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    {/* Afficher les médias stockés en priorité */}
+                    {storedMedia.map((media, index) => (
+                      <div key={`stored-${index}`} className="space-y-2">
+                        <a 
+                          href={media.stored_url || media.original_url} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="block"
+                        >
+                          <img 
+                            src={media.stored_url || media.original_url} 
+                            alt={media.legende || media.nom || 'Image'}
+                            className="w-full h-32 object-cover rounded-lg border hover:opacity-90 transition-opacity"
+                            loading="lazy"
+                          />
+                        </a>
+                        <div className="text-xs space-y-0.5">
+                          {media.legende && (
+                            <p className="text-foreground line-clamp-2">{media.legende}</p>
+                          )}
+                          {media.copyright && (
+                            <p className="text-muted-foreground">© {media.copyright}</p>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                    
+                    {/* Si pas de médias stockés, afficher les illustrations APIDAE */}
+                    {storedMedia.length === 0 && illustrations.map((illus, index) => {
+                      const fichier = illus.traductionFichiers?.[0];
+                      const imageUrl = fichier?.urlFiche || fichier?.url;
+                      if (!imageUrl) return null;
+                      
+                      return (
+                        <div key={`illus-${index}`} className="space-y-2">
+                          <a 
+                            href={fichier?.url || imageUrl} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="block"
+                          >
+                            <img 
+                              src={imageUrl} 
+                              alt={illus.legende?.libelleFr || illus.nom?.libelleFr || 'Image'}
+                              className="w-full h-32 object-cover rounded-lg border hover:opacity-90 transition-opacity"
+                              loading="lazy"
+                            />
+                          </a>
+                          <div className="text-xs space-y-0.5">
+                            {illus.legende?.libelleFr && (
+                              <p className="text-foreground line-clamp-2">{illus.legende.libelleFr}</p>
+                            )}
+                            {illus.copyright?.libelleFr && (
+                              <p className="text-muted-foreground">© {illus.copyright.libelleFr}</p>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <ImageIcon className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                    <p>Aucun média disponible</p>
+                  </div>
+                )}
               </Section>
             </TabsContent>
 
