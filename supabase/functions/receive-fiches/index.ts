@@ -26,6 +26,15 @@ interface ApidaeNotification {
   timestamp: number;
 }
 
+interface MediaInfo {
+  original_url: string;
+  stored_url: string;
+  type: string;
+  nom?: string;
+  legende?: string;
+  copyright?: string;
+}
+
 type RequestBody = { fiches: FichePayload[] } | ApidaeFiche | ApidaeFiche[] | ApidaeNotification;
 
 function isApidaeNotification(body: unknown): body is ApidaeNotification {
@@ -71,6 +80,126 @@ function normalizeToFiches(body: unknown): FichePayload[] {
   }
   
   return [];
+}
+
+// Extract media URLs from APIDAE data
+function extractMediaUrls(data: Record<string, unknown>): Array<{ url: string; type: string; nom?: string; legende?: string; copyright?: string }> {
+  const medias: Array<{ url: string; type: string; nom?: string; legende?: string; copyright?: string }> = [];
+  
+  // Check illustrations array
+  const illustrations = data.illustrations as Array<Record<string, unknown>> | undefined;
+  if (illustrations && Array.isArray(illustrations)) {
+    for (const illus of illustrations) {
+      const traductionFichiers = illus.traductionFichiers as Array<Record<string, unknown>> | undefined;
+      if (traductionFichiers && Array.isArray(traductionFichiers)) {
+        for (const trad of traductionFichiers) {
+          const url = trad.url as string;
+          if (url) {
+            medias.push({
+              url,
+              type: 'illustration',
+              nom: (illus.nom as Record<string, string>)?.libelleFr || '',
+              legende: (illus.legende as Record<string, string>)?.libelleFr || '',
+              copyright: (illus.copyright as Record<string, string>)?.libelleFr || ''
+            });
+          }
+        }
+      }
+      // Also check direct link field
+      const link = illus.link as string;
+      if (link) {
+        medias.push({
+          url: link,
+          type: 'illustration',
+          nom: (illus.nom as Record<string, string>)?.libelleFr || '',
+          legende: (illus.legende as Record<string, string>)?.libelleFr || '',
+          copyright: (illus.copyright as Record<string, string>)?.libelleFr || ''
+        });
+      }
+    }
+  }
+  
+  // Check multimedias array
+  const multimedias = data.multimedias as Array<Record<string, unknown>> | undefined;
+  if (multimedias && Array.isArray(multimedias)) {
+    for (const media of multimedias) {
+      const traductionFichiers = media.traductionFichiers as Array<Record<string, unknown>> | undefined;
+      if (traductionFichiers && Array.isArray(traductionFichiers)) {
+        for (const trad of traductionFichiers) {
+          const url = trad.url as string;
+          if (url) {
+            medias.push({
+              url,
+              type: 'multimedia',
+              nom: (media.nom as Record<string, string>)?.libelleFr || '',
+              legende: (media.legende as Record<string, string>)?.libelleFr || '',
+              copyright: (media.copyright as Record<string, string>)?.libelleFr || ''
+            });
+          }
+        }
+      }
+    }
+  }
+  
+  return medias;
+}
+
+// Download and store media to Supabase Storage
+async function downloadAndStoreMedia(
+  supabase: ReturnType<typeof createClient>,
+  ficheId: string,
+  mediaUrl: string,
+  mediaIndex: number
+): Promise<string | null> {
+  try {
+    console.log(`Downloading media ${mediaIndex} for fiche ${ficheId}: ${mediaUrl}`);
+    
+    // Download the file
+    const response = await fetch(mediaUrl);
+    if (!response.ok) {
+      console.error(`Failed to download media: ${response.status} ${response.statusText}`);
+      return null;
+    }
+    
+    const contentType = response.headers.get('content-type') || 'image/jpeg';
+    const arrayBuffer = await response.arrayBuffer();
+    const uint8Array = new Uint8Array(arrayBuffer);
+    
+    // Determine file extension
+    let extension = 'jpg';
+    if (contentType.includes('png')) extension = 'png';
+    else if (contentType.includes('gif')) extension = 'gif';
+    else if (contentType.includes('webp')) extension = 'webp';
+    else if (contentType.includes('svg')) extension = 'svg';
+    else if (contentType.includes('pdf')) extension = 'pdf';
+    
+    // Create file path
+    const fileName = `${ficheId}/${mediaIndex}.${extension}`;
+    
+    // Upload to Supabase Storage
+    const { error: uploadError } = await supabase.storage
+      .from('fiche-media')
+      .upload(fileName, uint8Array, {
+        contentType,
+        upsert: true
+      });
+    
+    if (uploadError) {
+      console.error(`Failed to upload media: ${uploadError.message}`);
+      return null;
+    }
+    
+    // Get public URL
+    const { data: publicUrl } = supabase.storage
+      .from('fiche-media')
+      .getPublicUrl(fileName);
+    
+    console.log(`Stored media at: ${publicUrl.publicUrl}`);
+    return publicUrl.publicUrl;
+  } catch (error) {
+    console.error(`Error downloading/storing media: ${error}`);
+    return null;
+  }
 }
 
 Deno.serve(async (req: Request) => {
@@ -120,6 +249,17 @@ Deno.serve(async (req: Request) => {
             deleteResults.notFound++;
             console.log(`Fiche not found for deletion: ${ficheId}`);
             continue;
+          }
+
+          // Delete associated media from storage
+          const { data: files } = await supabase.storage
+            .from('fiche-media')
+            .list(ficheId);
+          
+          if (files && files.length > 0) {
+            const filePaths = files.map(f => `${ficheId}/${f.name}`);
+            await supabase.storage.from('fiche-media').remove(filePaths);
+            console.log(`Deleted ${files.length} media files for fiche ${ficheId}`);
           }
 
           // Delete the fiche
@@ -179,6 +319,8 @@ Deno.serve(async (req: Request) => {
     const results = {
       inserted: 0,
       updated: 0,
+      mediaDownloaded: 0,
+      mediaErrors: 0,
       errors: [] as { fiche_id: string; error: string }[],
     };
 
@@ -195,6 +337,39 @@ Deno.serve(async (req: Request) => {
       // Extract fiche_type and fiche_id, rest goes to data
       const { fiche_type, fiche_id, ...data } = fiche;
 
+      // Extract and download media
+      const mediaUrls = extractMediaUrls(data as Record<string, unknown>);
+      const storedMedia: MediaInfo[] = [];
+      
+      if (mediaUrls.length > 0) {
+        console.log(`Found ${mediaUrls.length} media items for fiche ${fiche_id}`);
+        
+        for (let i = 0; i < mediaUrls.length; i++) {
+          const media = mediaUrls[i];
+          const storedUrl = await downloadAndStoreMedia(supabase, fiche_id, media.url, i);
+          
+          if (storedUrl) {
+            storedMedia.push({
+              original_url: media.url,
+              stored_url: storedUrl,
+              type: media.type,
+              nom: media.nom,
+              legende: media.legende,
+              copyright: media.copyright
+            });
+            results.mediaDownloaded++;
+          } else {
+            results.mediaErrors++;
+          }
+        }
+      }
+
+      // Add stored media URLs to data
+      const enrichedData = {
+        ...data,
+        _stored_media: storedMedia
+      };
+
       // Check if exists
       const { data: existing } = await supabase
         .from("fiches_data")
@@ -208,7 +383,7 @@ Deno.serve(async (req: Request) => {
         const { error } = await supabase
           .from("fiches_data")
           .update({
-            data,
+            data: enrichedData,
             synced_to_sheets: false,
             source: "make_webhook",
           })
@@ -220,14 +395,14 @@ Deno.serve(async (req: Request) => {
           results.errors.push({ fiche_id, error: error.message });
         } else {
           results.updated++;
-          console.log(`Updated fiche: ${fiche_type}/${fiche_id}`);
+          console.log(`Updated fiche: ${fiche_type}/${fiche_id} with ${storedMedia.length} media`);
         }
       } else {
         // Insert new
         const { error } = await supabase.from("fiches_data").insert({
           fiche_type,
           fiche_id,
-          data,
+          data: enrichedData,
           synced_to_sheets: false,
           source: "make_webhook",
         });
@@ -237,7 +412,7 @@ Deno.serve(async (req: Request) => {
           results.errors.push({ fiche_id, error: error.message });
         } else {
           results.inserted++;
-          console.log(`Inserted fiche: ${fiche_type}/${fiche_id}`);
+          console.log(`Inserted fiche: ${fiche_type}/${fiche_id} with ${storedMedia.length} media`);
         }
       }
     }

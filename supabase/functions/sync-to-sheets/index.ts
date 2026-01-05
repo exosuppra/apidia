@@ -236,6 +236,17 @@ Deno.serve(async (req: Request) => {
         "services",
         "langues_parlees",
         "animaux_acceptes",
+        // Médias stockés
+        "media_url_1",
+        "media_url_2",
+        "media_url_3",
+        "media_url_4",
+        "media_url_5",
+        "media_legende_1",
+        "media_legende_2",
+        "media_legende_3",
+        "media_legende_4",
+        "media_legende_5",
         // Données complètes JSON
         "data_json_complet"
       ];
@@ -282,6 +293,16 @@ Deno.serve(async (req: Request) => {
         return modes.map(m => m.libelleFr || '').filter(Boolean).join(', ');
       };
 
+      // Helper to extract stored media
+      const extractStoredMedia = (data: Record<string, unknown>): Array<{ url: string; legende: string }> => {
+        const storedMedia = data._stored_media as Array<{ stored_url: string; legende?: string }> | undefined;
+        if (!storedMedia || !Array.isArray(storedMedia)) return [];
+        return storedMedia.map(m => ({
+          url: m.stored_url || '',
+          legende: m.legende || ''
+        }));
+      };
+
       // Prepare rows with comprehensive data
       const rows = fiches.map((fiche) => {
         const data = fiche.data as Record<string, unknown> || {};
@@ -303,6 +324,9 @@ Deno.serve(async (req: Request) => {
           const jsonStr = JSON.stringify(data);
           fullJson = jsonStr.length > 45000 ? jsonStr.substring(0, 45000) + '...[TRUNCATED]' : jsonStr;
         } catch { fullJson = ''; }
+
+        // Get stored media URLs
+        const storedMedia = extractStoredMedia(data);
 
         return [
           fiche.fiche_id,
@@ -360,6 +384,17 @@ Deno.serve(async (req: Request) => {
           extractLabels(data, 'prestations.languesParlees'),
           extractValue(data, 'prestations.animauxAcceptes') === 'ACCEPTES' ? 'Oui' : 
             (extractValue(data, 'prestations.animauxAcceptes') === 'NON_ACCEPTES' ? 'Non' : ''),
+          // Médias stockés (5 premiers)
+          storedMedia[0]?.url || '',
+          storedMedia[1]?.url || '',
+          storedMedia[2]?.url || '',
+          storedMedia[3]?.url || '',
+          storedMedia[4]?.url || '',
+          storedMedia[0]?.legende || '',
+          storedMedia[1]?.legende || '',
+          storedMedia[2]?.legende || '',
+          storedMedia[3]?.legende || '',
+          storedMedia[4]?.legende || '',
           // JSON complet
           fullJson
         ];
