@@ -243,9 +243,9 @@ export default function FloatingChat() {
     const loadingMessages = [
       "Analyse de votre demande...",
       "Recherche d'informations...",
-      "Connexion à Make en cours...",
+      "Connexion à Apidia en cours...",
       "Patientez, traitement en cours...",
-      "Make prépare la réponse...",
+      "Apidia prépare la réponse...",
       "Presque terminé..."
     ];
     let messageIndex = 0;
@@ -402,7 +402,7 @@ export default function FloatingChat() {
               </div>
               <div>
                 <h3 className="font-semibold">
-                  {showHistory ? "Historique" : "Agent IA Make"}
+                  {showHistory ? "Historique" : "Apidia"}
                 </h3>
                 <p className="text-xs opacity-80">
                   {showHistory
@@ -524,7 +524,7 @@ export default function FloatingChat() {
                   <div className="text-center text-muted-foreground text-sm py-8">
                     <MessageCircle className="h-12 w-12 mx-auto mb-3 opacity-50" />
                     <p>Commencez la conversation</p>
-                    <p className="text-xs mt-1">Votre message sera traité par Make</p>
+                    <p className="text-xs mt-1">Votre message sera traité par Apidia</p>
                   </div>
                 ) : (
                   <div className="space-y-4">
