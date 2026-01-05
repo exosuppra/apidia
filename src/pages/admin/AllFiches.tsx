@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import Seo from "@/components/Seo";
-import { ArrowLeft, Loader2, RefreshCw, Search, Eye, CheckCircle, XCircle, Upload } from "lucide-react";
+import { ArrowLeft, Loader2, RefreshCw, Search, Eye, CheckCircle, XCircle, Upload, ShieldCheck } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
@@ -35,10 +35,39 @@ export default function AllFiches() {
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [selectedFiche, setSelectedFiche] = useState<FicheData | null>(null);
   const [syncing, setSyncing] = useState(false);
+  const [verifying, setVerifying] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
   const unsyncedCount = fiches.filter(f => !f.synced_to_sheets).length;
+
+  const verifySync = async () => {
+    setVerifying(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('verify-sheets-sync', {
+        method: 'POST'
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Vérification terminée",
+        description: data.message || `${data.results?.unmarked || 0} fiches à resynchroniser`,
+      });
+
+      // Reload fiches to update sync status
+      await loadAllFiches();
+    } catch (error: unknown) {
+      console.error('Erreur lors de la vérification:', error);
+      toast({
+        title: "Erreur de vérification",
+        description: "Impossible de vérifier la synchronisation",
+        variant: "destructive",
+      });
+    } finally {
+      setVerifying(false);
+    }
+  };
 
   const loadAllFiches = async () => {
     setLoading(true);
@@ -197,6 +226,20 @@ export default function AllFiches() {
             </div>
             
             <div className="flex items-center gap-2">
+              <Button 
+                onClick={verifySync} 
+                variant="outline" 
+                size="sm"
+                disabled={verifying || fiches.filter(f => f.synced_to_sheets).length === 0}
+                title="Vérifie si des fiches ont été supprimées du Google Sheet"
+              >
+                {verifying ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <ShieldCheck className="w-4 h-4 mr-2" />
+                )}
+                Vérifier
+              </Button>
               <Button 
                 onClick={syncToSheets} 
                 variant="default" 
