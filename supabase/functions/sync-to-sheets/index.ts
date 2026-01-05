@@ -389,8 +389,21 @@ Deno.serve(async (req: Request) => {
               requests: [{ addSheet: { properties: { title: sheetName } } }],
             }),
           });
+        }
 
-          // Add headers
+        // Check if header row exists
+        const headerCheckResponse = await fetch(
+          `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(sheetName)}!A1:B1`,
+          {
+            headers: { Authorization: `Bearer ${accessToken}` },
+          }
+        );
+        const headerCheck = await headerCheckResponse.json();
+        const hasHeader = headerCheck.values && headerCheck.values.length > 0 && headerCheck.values[0].length > 0;
+
+        // Add headers if missing
+        if (!hasHeader) {
+          console.log(`Adding headers to sheet: ${sheetName}`);
           await fetch(
             `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(sheetName)}!A1?valueInputOption=RAW`,
             {
