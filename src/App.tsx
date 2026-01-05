@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import DashboardLayout from "./layouts/DashboardLayout";
+import AdminLayout from "./layouts/AdminLayout";
 import Overview from "./pages/dashboard/Overview";
 import AuthProvider from "./context/AuthProvider";
 import RequireAuth from "./components/RequireAuth";
@@ -71,7 +72,9 @@ const App = () => (
             <Route path="/admin/dashboard" element={
               <RequireAdminAuth>
                 <RequirePasswordChange>
-                  <AdminDashboard />
+                  <AdminLayout>
+                    <AdminDashboard />
+                  </AdminLayout>
                 </RequirePasswordChange>
               </RequireAdminAuth>
             } />
@@ -79,7 +82,9 @@ const App = () => (
               <RequireAdminAuth>
                 <RequirePasswordChange>
                   <RequirePermission pageKey="users">
-                    <UsersManagement />
+                    <AdminLayout>
+                      <UsersManagement />
+                    </AdminLayout>
                   </RequirePermission>
                 </RequirePasswordChange>
               </RequireAdminAuth>
@@ -88,7 +93,9 @@ const App = () => (
               <RequireAdminAuth>
                 <RequirePasswordChange>
                   <RequirePermission pageKey="fiches">
-                    <AllFiches />
+                    <AdminLayout>
+                      <AllFiches />
+                    </AdminLayout>
                   </RequirePermission>
                 </RequirePasswordChange>
               </RequireAdminAuth>
@@ -97,7 +104,9 @@ const App = () => (
               <RequireAdminAuth>
                 <RequirePasswordChange>
                   <RequirePermission pageKey="planning">
-                    <PlanningEditorial />
+                    <AdminLayout>
+                      <PlanningEditorial />
+                    </AdminLayout>
                   </RequirePermission>
                 </RequirePasswordChange>
               </RequireAdminAuth>
@@ -106,7 +115,9 @@ const App = () => (
               <RequireAdminAuth>
                 <RequirePasswordChange>
                   <RequirePermission pageKey="requests">
-                    <UserRequests />
+                    <AdminLayout>
+                      <UserRequests />
+                    </AdminLayout>
                   </RequirePermission>
                 </RequirePasswordChange>
               </RequireAdminAuth>
@@ -115,7 +126,9 @@ const App = () => (
               <RequireAdminAuth>
                 <RequirePasswordChange>
                   <RequirePermission pageKey="logs">
-                    <UserActionLogs />
+                    <AdminLayout>
+                      <UserActionLogs />
+                    </AdminLayout>
                   </RequirePermission>
                 </RequirePasswordChange>
               </RequireAdminAuth>
@@ -124,7 +137,9 @@ const App = () => (
               <RequireAdminAuth>
                 <RequirePasswordChange>
                   <RequirePermission pageKey="rh">
-                    <SuiviRH />
+                    <AdminLayout>
+                      <SuiviRH />
+                    </AdminLayout>
                   </RequirePermission>
                 </RequirePasswordChange>
               </RequireAdminAuth>
@@ -133,7 +148,9 @@ const App = () => (
               <RequireAdminAuth>
                 <RequirePasswordChange>
                   <RequirePermission pageKey="stats-web">
-                    <StatsWeb />
+                    <AdminLayout>
+                      <StatsWeb />
+                    </AdminLayout>
                   </RequirePermission>
                 </RequirePasswordChange>
               </RequireAdminAuth>
@@ -142,7 +159,9 @@ const App = () => (
               <RequireAdminAuth>
                 <RequirePasswordChange>
                   <RequirePermission pageKey="stats-ereputation">
-                    <StatsEreputation />
+                    <AdminLayout>
+                      <StatsEreputation />
+                    </AdminLayout>
                   </RequirePermission>
                 </RequirePasswordChange>
               </RequireAdminAuth>
