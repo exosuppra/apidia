@@ -167,9 +167,11 @@ export type Database = {
           fiche_id: string
           fiche_type: string
           id: string
+          last_verified_at: string | null
           source: string
           synced_to_sheets: boolean
           updated_at: string
+          verification_status: string | null
         }
         Insert: {
           created_at?: string
@@ -177,9 +179,11 @@ export type Database = {
           fiche_id: string
           fiche_type: string
           id?: string
+          last_verified_at?: string | null
           source?: string
           synced_to_sheets?: boolean
           updated_at?: string
+          verification_status?: string | null
         }
         Update: {
           created_at?: string
@@ -187,9 +191,11 @@ export type Database = {
           fiche_id?: string
           fiche_type?: string
           id?: string
+          last_verified_at?: string | null
           source?: string
           synced_to_sheets?: boolean
           updated_at?: string
+          verification_status?: string | null
         }
         Relationships: []
       }
@@ -496,6 +502,60 @@ export type Database = {
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
+        }
+        Relationships: []
+      }
+      verification_alerts: {
+        Row: {
+          confidence_score: number | null
+          created_at: string
+          current_value: string | null
+          fiche_id: string
+          fiche_name: string | null
+          fiche_type: string | null
+          field_name: string
+          found_value: string | null
+          id: string
+          notes: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          source_name: string | null
+          source_url: string
+          status: string
+        }
+        Insert: {
+          confidence_score?: number | null
+          created_at?: string
+          current_value?: string | null
+          fiche_id: string
+          fiche_name?: string | null
+          fiche_type?: string | null
+          field_name: string
+          found_value?: string | null
+          id?: string
+          notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          source_name?: string | null
+          source_url: string
+          status?: string
+        }
+        Update: {
+          confidence_score?: number | null
+          created_at?: string
+          current_value?: string | null
+          fiche_id?: string
+          fiche_name?: string | null
+          fiche_type?: string | null
+          field_name?: string
+          found_value?: string | null
+          id?: string
+          notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          source_name?: string | null
+          source_url?: string
+          status?: string
         }
         Relationships: []
       }
