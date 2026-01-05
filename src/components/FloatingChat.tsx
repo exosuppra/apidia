@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { MessageCircle, X, Send, Loader2, Plus, History, ChevronLeft } from "lucide-react";
+import { MessageCircle, X, Send, Loader2, Plus, History, ChevronLeft, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -23,39 +23,76 @@ interface Conversation {
   title: string;
 }
 
-const STORAGE_KEY = "apidia-chat-conversations";
-
-const loadConversations = (): Conversation[] => {
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (!stored) return [];
-    const parsed = JSON.parse(stored);
-    return parsed.map((conv: any) => ({
-      ...conv,
-      createdAt: new Date(conv.createdAt),
-      messages: conv.messages.map((msg: any) => ({
-        ...msg,
-        timestamp: new Date(msg.timestamp),
-      })),
-    }));
-  } catch {
-    return [];
-  }
-};
-
-const saveConversations = (conversations: Conversation[]) => {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(conversations));
-};
-
 export default function FloatingChat() {
   const [isOpen, setIsOpen] = useState(false);
-  const [conversations, setConversations] = useState<Conversation[]>(loadConversations);
+  const [conversations, setConversations] = useState<Conversation[]>([]);
   const [currentConversation, setCurrentConversation] = useState<Conversation | null>(null);
   const [showHistory, setShowHistory] = useState(false);
   const [input, setInput] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingConversations, setIsLoadingConversations] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+
+  // Get current user
+  useEffect(() => {
+    const getUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setUserId(user?.id || null);
+    };
+    getUser();
+  }, []);
+
+  // Load conversations from database
+  useEffect(() => {
+    if (!userId) return;
+
+    const loadConversations = async () => {
+      setIsLoadingConversations(true);
+      try {
+        const { data: convData, error: convError } = await supabase
+          .from("chat_conversations")
+          .select("*")
+          .eq("user_id", userId)
+          .order("updated_at", { ascending: false });
+
+        if (convError) throw convError;
+
+        const conversationsWithMessages: Conversation[] = await Promise.all(
+          (convData || []).map(async (conv) => {
+            const { data: msgData } = await supabase
+              .from("chat_messages")
+              .select("*")
+              .eq("conversation_id", conv.id)
+              .order("created_at", { ascending: true });
+
+            return {
+              id: conv.id,
+              threadId: conv.thread_id,
+              title: conv.title,
+              createdAt: new Date(conv.created_at),
+              messages: (msgData || []).map((msg) => ({
+                id: msg.id,
+                role: msg.role as "user" | "assistant",
+                content: msg.content,
+                timestamp: new Date(msg.created_at),
+              })),
+            };
+          })
+        );
+
+        setConversations(conversationsWithMessages);
+      } catch (error) {
+        console.error("Error loading conversations:", error);
+      } finally {
+        setIsLoadingConversations(false);
+      }
+    };
+
+    loadConversations();
+  }, [userId]);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -63,29 +100,41 @@ export default function FloatingChat() {
     }
   }, [currentConversation?.messages]);
 
-  useEffect(() => {
-    if (currentConversation) {
-      const updated = conversations.map((c) =>
-        c.id === currentConversation.id ? currentConversation : c
-      );
-      if (!conversations.find((c) => c.id === currentConversation.id)) {
-        updated.push(currentConversation);
-      }
-      setConversations(updated);
-      saveConversations(updated);
-    }
-  }, [currentConversation]);
+  const startNewConversation = async () => {
+    if (!userId) return;
 
-  const startNewConversation = () => {
-    const newConv: Conversation = {
-      id: crypto.randomUUID(),
-      threadId: crypto.randomUUID(),
-      messages: [],
-      createdAt: new Date(),
-      title: "Nouvelle conversation",
-    };
-    setCurrentConversation(newConv);
-    setShowHistory(false);
+    const threadId = crypto.randomUUID();
+    const newConvId = crypto.randomUUID();
+
+    try {
+      const { error } = await supabase.from("chat_conversations").insert({
+        id: newConvId,
+        thread_id: threadId,
+        user_id: userId,
+        title: "Nouvelle conversation",
+      });
+
+      if (error) throw error;
+
+      const newConv: Conversation = {
+        id: newConvId,
+        threadId,
+        messages: [],
+        createdAt: new Date(),
+        title: "Nouvelle conversation",
+      };
+
+      setConversations((prev) => [newConv, ...prev]);
+      setCurrentConversation(newConv);
+      setShowHistory(false);
+    } catch (error) {
+      console.error("Error creating conversation:", error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de créer la conversation.",
+        variant: "destructive",
+      });
+    }
   };
 
   const selectConversation = (conv: Conversation) => {
@@ -95,7 +144,7 @@ export default function FloatingChat() {
 
   const sendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim() || isLoading || !currentConversation) return;
+    if (!input.trim() || isLoading || !currentConversation || !userId) return;
 
     const userMessage: Message = {
       id: crypto.randomUUID(),
@@ -104,20 +153,42 @@ export default function FloatingChat() {
       timestamp: new Date(),
     };
 
+    const isFirstMessage = currentConversation.messages.length === 0;
+    const newTitle = isFirstMessage
+      ? input.trim().slice(0, 30) + (input.trim().length > 30 ? "..." : "")
+      : currentConversation.title;
+
+    // Update local state immediately
     const updatedConv: Conversation = {
       ...currentConversation,
       messages: [...currentConversation.messages, userMessage],
-      title:
-        currentConversation.messages.length === 0
-          ? input.trim().slice(0, 30) + (input.trim().length > 30 ? "..." : "")
-          : currentConversation.title,
+      title: newTitle,
     };
-
     setCurrentConversation(updatedConv);
+    setConversations((prev) =>
+      prev.map((c) => (c.id === updatedConv.id ? updatedConv : c))
+    );
     setInput("");
     setIsLoading(true);
 
     try {
+      // Save user message to database
+      await supabase.from("chat_messages").insert({
+        id: userMessage.id,
+        conversation_id: currentConversation.id,
+        role: "user",
+        content: userMessage.content,
+      });
+
+      // Update title if first message
+      if (isFirstMessage) {
+        await supabase
+          .from("chat_conversations")
+          .update({ title: newTitle })
+          .eq("id", currentConversation.id);
+      }
+
+      // Call Make webhook
       const { data, error } = await supabase.functions.invoke("make-chat", {
         body: { message: userMessage.content, threadId: currentConversation.threadId },
       });
@@ -131,8 +202,29 @@ export default function FloatingChat() {
         timestamp: new Date(),
       };
 
+      // Save assistant message to database
+      await supabase.from("chat_messages").insert({
+        id: assistantMessage.id,
+        conversation_id: currentConversation.id,
+        role: "assistant",
+        content: assistantMessage.content,
+      });
+
+      // Update conversation updated_at
+      await supabase
+        .from("chat_conversations")
+        .update({ updated_at: new Date().toISOString() })
+        .eq("id", currentConversation.id);
+
       setCurrentConversation((prev) =>
         prev ? { ...prev, messages: [...prev.messages, assistantMessage] } : prev
+      );
+      setConversations((prev) =>
+        prev.map((c) =>
+          c.id === currentConversation.id
+            ? { ...c, messages: [...c.messages, assistantMessage] }
+            : c
+        )
       );
     } catch (error) {
       console.error("Erreur lors de l'envoi:", error);
@@ -146,14 +238,39 @@ export default function FloatingChat() {
     }
   };
 
-  const deleteConversation = (id: string) => {
-    const updated = conversations.filter((c) => c.id !== id);
-    setConversations(updated);
-    saveConversations(updated);
-    if (currentConversation?.id === id) {
-      setCurrentConversation(null);
+  const deleteConversation = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from("chat_conversations")
+        .delete()
+        .eq("id", id);
+
+      if (error) throw error;
+
+      setConversations((prev) => prev.filter((c) => c.id !== id));
+      if (currentConversation?.id === id) {
+        setCurrentConversation(null);
+      }
+    } catch (error) {
+      console.error("Error deleting conversation:", error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de supprimer la conversation.",
+        variant: "destructive",
+      });
     }
   };
+
+  // Filter conversations based on search
+  const filteredConversations = conversations.filter((conv) => {
+    if (!searchQuery.trim()) return true;
+    const query = searchQuery.toLowerCase();
+    const titleMatch = conv.title.toLowerCase().includes(query);
+    const messageMatch = conv.messages.some((msg) =>
+      msg.content.toLowerCase().includes(query)
+    );
+    return titleMatch || messageMatch;
+  });
 
   return (
     <>
@@ -195,7 +312,7 @@ export default function FloatingChat() {
                 </h3>
                 <p className="text-xs opacity-80">
                   {showHistory
-                    ? `${conversations.length} conversation(s)`
+                    ? `${filteredConversations.length} conversation(s)`
                     : "Posez vos questions"}
                 </p>
               </div>
@@ -222,17 +339,33 @@ export default function FloatingChat() {
 
           {/* Historique */}
           {showHistory ? (
-            <ScrollArea className="flex-1 p-4">
-              {conversations.length === 0 ? (
-                <div className="text-center text-muted-foreground text-sm py-8">
-                  <History className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                  <p>Aucune conversation</p>
+            <div className="flex-1 flex flex-col">
+              {/* Search bar */}
+              <div className="p-3 border-b">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Rechercher..."
+                    className="pl-9"
+                  />
                 </div>
-              ) : (
-                <div className="space-y-2">
-                  {conversations
-                    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-                    .map((conv) => (
+              </div>
+
+              <ScrollArea className="flex-1 p-4">
+                {isLoadingConversations ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                  </div>
+                ) : filteredConversations.length === 0 ? (
+                  <div className="text-center text-muted-foreground text-sm py-8">
+                    <History className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                    <p>{searchQuery ? "Aucun résultat" : "Aucune conversation"}</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {filteredConversations.map((conv) => (
                       <div
                         key={conv.id}
                         className="p-3 rounded-lg border bg-background hover:bg-muted cursor-pointer transition-colors group"
@@ -264,9 +397,10 @@ export default function FloatingChat() {
                         </div>
                       </div>
                     ))}
-                </div>
-              )}
-            </ScrollArea>
+                  </div>
+                )}
+              </ScrollArea>
+            </div>
           ) : !currentConversation ? (
             /* Écran d'accueil */
             <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
