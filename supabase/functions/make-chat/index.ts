@@ -12,15 +12,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "get_apidia_info",
+      description: "Récupère les informations complètes sur la plateforme Apidia elle-même : fonctionnalités, modules, capacités. Utilise cet outil quand l'utilisateur demande des informations sur ce que fait Apidia ou ses fonctionnalités.",
+      parameters: {
+        type: "object",
+        properties: {}
+      }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "call_make_webhook",
-      description: "Appelle le webhook Make pour exécuter des automatisations externes (envoi d'emails, intégrations tierces, workflows complexes, actions qui ne sont pas des requêtes de données). Utilise cet outil pour toute action qui nécessite une intégration externe.",
+      description: `Appelle le webhook Make pour exécuter des automatisations externes.
+
+IMPORTANT - AVANT D'APPELER CET OUTIL :
+1. Make n'a PAS accès aux données d'Apidia ni à ta mémoire de conversation
+2. Tu DOIS fournir TOUTES les informations nécessaires dans le paramètre 'data'
+3. Si l'action nécessite des données d'Apidia (listes, contenus, stats), récupère-les D'ABORD avec les outils query_* ou get_apidia_info
+4. Le paramètre 'data' doit contenir le contenu COMPLET et PRÊT À L'EMPLOI
+
+Exemples d'utilisation correcte :
+- "Crée une page Notion sur les fonctionnalités" → D'abord get_apidia_info, puis call_make_webhook avec le contenu complet
+- "Envoie un récap des tâches par email" → D'abord query_tasks, puis call_make_webhook avec les données`,
       parameters: {
         type: "object",
         properties: {
-          action: { type: "string", description: "L'action ou commande à exécuter via Make" },
-          data: { type: "object", description: "Données additionnelles à envoyer au webhook" }
+          action: { 
+            type: "string", 
+            description: "Description précise de l'action à exécuter (ex: 'Créer une page Notion', 'Envoyer un email')" 
+          },
+          context: { 
+            type: "string", 
+            description: "Contexte complet de la demande utilisateur - reformule la demande originale avec tous les détails de la conversation" 
+          },
+          data: { 
+            type: "object", 
+            description: "OBLIGATOIRE : Toutes les données nécessaires à l'exécution. Doit contenir le contenu complet (textes, listes, etc.)" 
+          }
         },
-        required: ["action"]
+        required: ["action", "context", "data"]
       }
     }
   },
@@ -164,6 +195,57 @@ async function executeTool(toolName: string, args: any, supabaseAdmin: any, thre
   
   try {
     switch (toolName) {
+      case "get_apidia_info": {
+        const apidiaInfo = `# Plateforme Apidia - Fonctionnalités
+
+## 1. Planification Éditoriale
+- Gestion de calendriers éditoriaux pour les réseaux sociaux et contenus
+- Création et suivi de tâches avec statuts (À faire, En cours, Terminé)
+- Attribution de priorités (Basse, Moyenne, Haute)
+- Dates d'échéance et assignation aux membres de l'équipe
+- Système de tags/étiquettes pour organiser les contenus
+- Pièces jointes et commentaires sur les tâches
+- Partage public de plannings avec lien sécurisé
+
+## 2. Gestion des Fiches Touristiques
+- Consultation des fiches des établissements, événements, hébergements
+- Données issues du système APIDAE (référentiel touristique)
+- Demandes de modification par les professionnels du tourisme
+- Workflow de validation des modifications
+- Catégories : BD COS, BD FETE_ET_MANIFESTATION, etc.
+
+## 3. Suivi de l'E-réputation
+- Suivi des notes Google des établissements
+- Historique des évaluations et nombre d'avis
+- Alertes sur les évolutions de notes
+- Statistiques d'e-réputation consolidées
+
+## 4. Statistiques Web
+- Tableau de bord de fréquentation des sites web
+- Graphiques d'évolution des visites
+- Comparaison entre périodes
+- Données par site (pays-de-manosque.fr, manosque-tourisme.com, etc.)
+
+## 5. Gestion RH
+- Suivi des données collaborateurs
+- Planning et organisation des équipes
+- Informations ressources humaines
+
+## 6. Agent IA Conversationnel
+- Assistant intelligent intégré au tableau de bord
+- Interrogation des données en langage naturel
+- Historique des conversations
+- Reconnaissance vocale
+
+## 7. Intégrations Make (Automatisations)
+- Création automatique de pages Notion
+- Envoi d'emails et notifications
+- Connexion avec des services tiers
+- Workflows personnalisés`;
+
+        return apidiaInfo;
+      }
+
       case "call_make_webhook": {
         const MAKE_WEBHOOK_URL = Deno.env.get("MAKE_WEBHOOK_URL");
         if (!MAKE_WEBHOOK_URL) {
@@ -175,6 +257,7 @@ async function executeTool(toolName: string, args: any, supabaseAdmin: any, thre
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             action: args.action,
+            context: args.context || "",
             data: args.data || {},
             threadId,
             timestamp: new Date().toISOString(),
@@ -445,14 +528,27 @@ serve(async (req) => {
 
 Tu as deux types de capacités :
 
-**1. AUTOMATISATIONS MAKE (via call_make_webhook)**
-Utilise cet outil pour :
-- Exécuter des workflows automatisés
-- Envoyer des notifications ou emails
-- Intégrations avec des services tiers
-- Toute action qui nécessite une automatisation externe
+**1. INFORMATIONS APIDIA (via get_apidia_info)**
+Utilise cet outil quand l'utilisateur pose des questions sur Apidia, ses fonctionnalités, ou ce que la plateforme peut faire.
 
-**2. CONSULTATION DE DONNÉES (via les outils query_*)**
+**2. AUTOMATISATIONS MAKE (via call_make_webhook)**
+Utilise cet outil pour :
+- Exécuter des workflows automatisés (création Notion, envoi emails, etc.)
+- Intégrations avec des services tiers
+
+⚠️ **RÈGLE CRITIQUE POUR MAKE :**
+Make n'a PAS accès aux données d'Apidia ni à l'historique de conversation.
+AVANT d'appeler call_make_webhook :
+1. Identifie si l'action nécessite des données (fonctionnalités Apidia, listes de tâches, stats, etc.)
+2. Si OUI → Récupère D'ABORD ces données avec get_apidia_info ou query_*
+3. Inclus TOUTES les données récupérées dans le paramètre 'data' du webhook
+4. Le champ 'context' doit contenir la demande complète reformulée
+
+Exemple : "Crée une page Notion sur les fonctionnalités d'Apidia"
+→ Étape 1 : Appeler get_apidia_info pour obtenir les fonctionnalités
+→ Étape 2 : Appeler call_make_webhook avec data: { title: "...", content: "<contenu récupéré>" }
+
+**3. CONSULTATION DE DONNÉES (via les outils query_*)**
 Tu peux interroger directement :
 
 *Base de données Apidia :*
@@ -463,17 +559,17 @@ Tu peux interroger directement :
 - Logs d'actions (query_action_logs) : historique des actions utilisateurs
 
 *Google Sheets :*
-- Fiches touristiques (query_fiches_sheets) : BD COS, BD FETE_ET_MANIFESTATION (établissements, événements)
-- Statistiques web (query_stats_web) : données de fréquentation des sites
-- E-réputation (query_stats_ereputation) : statistiques de réputation en ligne
-- Données RH (query_rh_data) : informations sur les ressources humaines
+- Fiches touristiques (query_fiches_sheets) : BD COS, BD FETE_ET_MANIFESTATION
+- Statistiques web (query_stats_web) : données de fréquentation
+- E-réputation (query_stats_ereputation) : statistiques de réputation
+- Données RH (query_rh_data) : informations RH
 
-**RÈGLES :**
+**RÈGLES GÉNÉRALES :**
 - Pour les questions sur les données → utilise les outils query_*
-- Pour les actions/automatisations → utilise call_make_webhook
+- Pour les actions/automatisations → récupère d'abord les données nécessaires, puis call_make_webhook
 - Sois précis et donne des chiffres concrets
 - Réponds toujours en français
-- Si tu ne trouves pas les données, indique-le clairement`;
+- Formate tes réponses avec des listes à puces et des titres pour plus de lisibilité`;
 
     // Initial AI call with tools
     let aiMessages = [
