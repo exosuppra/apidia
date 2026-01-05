@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import MessageContent from "@/components/chat/MessageContent";
 
 // Web Speech API types
 interface SpeechRecognitionEvent extends Event {
@@ -562,13 +563,13 @@ export default function FloatingChat() {
                         }`}
                       >
                         <div
-                          className={`max-w-[80%] rounded-lg px-3 py-2 text-sm ${
+                          className={`max-w-[85%] rounded-lg px-3 py-2 ${
                             msg.role === "user"
                               ? "bg-primary text-primary-foreground"
                               : "bg-muted text-foreground"
                           }`}
                         >
-                          {msg.content}
+                          <MessageContent content={msg.content} isUser={msg.role === "user"} />
                         </div>
                       </div>
                     ))}
