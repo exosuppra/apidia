@@ -11,7 +11,7 @@ serve(async (req) => {
   }
 
   try {
-    const { message } = await req.json();
+    const { message, threadId } = await req.json();
     const MAKE_WEBHOOK_URL = Deno.env.get("MAKE_WEBHOOK_URL");
 
     if (!MAKE_WEBHOOK_URL) {
@@ -31,6 +31,7 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         message,
+        threadId,
         timestamp: new Date().toISOString(),
         source: "apidia-dashboard",
       }),
