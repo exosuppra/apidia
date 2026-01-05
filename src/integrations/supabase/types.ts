@@ -166,7 +166,9 @@ export type Database = {
           data: Json
           fiche_id: string
           fiche_type: string
+          hidden_reason: string | null
           id: string
+          is_published: boolean | null
           last_verified_at: string | null
           source: string
           synced_to_sheets: boolean
@@ -178,7 +180,9 @@ export type Database = {
           data?: Json
           fiche_id: string
           fiche_type: string
+          hidden_reason?: string | null
           id?: string
+          is_published?: boolean | null
           last_verified_at?: string | null
           source?: string
           synced_to_sheets?: boolean
@@ -190,7 +194,9 @@ export type Database = {
           data?: Json
           fiche_id?: string
           fiche_type?: string
+          hidden_reason?: string | null
           id?: string
+          is_published?: boolean | null
           last_verified_at?: string | null
           source?: string
           synced_to_sheets?: boolean
