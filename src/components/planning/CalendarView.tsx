@@ -62,21 +62,27 @@ function DraggableTask({ task, onTaskClick, onMarkDone, onDelete }: DraggableTas
           {...attributes}
           className={`text-xs p-1.5 rounded truncate cursor-grab hover:opacity-90 transition-all duration-200 hover:shadow-sm ${
             isDragging ? "opacity-50 shadow-lg" : ""
-          } ${isDone ? "opacity-60 grayscale" : ""}`}
+          }`}
           onClick={(e) => {
             e.stopPropagation();
             onTaskClick?.(task);
           }}
         >
           <div
-            className={`rounded px-1.5 py-1 ${isDone ? "line-through" : ""}`}
+            className={`rounded px-1.5 py-1 relative overflow-hidden ${isDone ? "line-through" : ""}`}
             style={{
               backgroundColor: task.tags?.[0]?.color || "#3b82f6",
               color: "white",
             }}
             title={task.title}
           >
-            {task.title}
+            {isDone && (
+              <div 
+                className="absolute inset-0 bg-gray-500/50 pointer-events-none"
+                aria-hidden="true"
+              />
+            )}
+            <span className="relative">{task.title}</span>
           </div>
         </div>
       </ContextMenuTrigger>
