@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import Seo from "@/components/Seo";
-import { ArrowLeft, Loader2, RefreshCw, Search, Eye, CheckCircle, XCircle, Upload, ShieldCheck } from "lucide-react";
+import { ArrowLeft, Loader2, RefreshCw, Search, Eye, CheckCircle, XCircle, Upload, ShieldCheck, AlertTriangle } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
@@ -39,7 +39,17 @@ export default function AllFiches() {
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  const [alertsCount, setAlertsCount] = useState(0);
   const unsyncedCount = fiches.filter(f => !f.synced_to_sheets).length;
+
+  // Load pending alerts count
+  const loadAlertsCount = async () => {
+    const { count } = await supabase
+      .from('verification_alerts')
+      .select('*', { count: 'exact', head: true })
+      .eq('status', 'pending');
+    setAlertsCount(count || 0);
+  };
 
   const verifySync = async () => {
     setVerifying(true);
@@ -127,6 +137,7 @@ export default function AllFiches() {
 
   useEffect(() => {
     loadAllFiches();
+    loadAlertsCount();
   }, []);
 
   useEffect(() => {
@@ -226,6 +237,19 @@ export default function AllFiches() {
             </div>
             
             <div className="flex items-center gap-2">
+              <Button
+                onClick={() => navigate("/admin/verification-alerts")}
+                variant="outline"
+                size="sm"
+              >
+                <AlertTriangle className="w-4 h-4 mr-2" />
+                Alertes
+                {alertsCount > 0 && (
+                  <Badge variant="destructive" className="ml-2">
+                    {alertsCount}
+                  </Badge>
+                )}
+              </Button>
               <Button 
                 onClick={verifySync} 
                 variant="outline" 

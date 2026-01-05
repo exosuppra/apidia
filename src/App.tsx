@@ -28,6 +28,7 @@ import UserActionLogs from "./pages/admin/UserActionLogs";
 import SuiviRH from "./pages/admin/SuiviRH";
 import StatsWeb from "./pages/admin/StatsWeb";
 import StatsEreputation from "./pages/admin/StatsEreputation";
+import VerificationAlerts from "./pages/admin/VerificationAlerts";
 import Fiches from "./pages/dashboard/Fiches";
 import Catalogue from "./pages/Catalogue";
 import ApidaeDetails from "./pages/ApidaeDetails";
@@ -163,6 +164,17 @@ const App = () => (
                   <RequirePermission pageKey="stats-ereputation">
                     <AdminLayout>
                       <StatsEreputation />
+                    </AdminLayout>
+                  </RequirePermission>
+                </RequirePasswordChange>
+              </RequireAdminAuth>
+            } />
+            <Route path="/admin/verification-alerts" element={
+              <RequireAdminAuth>
+                <RequirePasswordChange>
+                  <RequirePermission pageKey="fiches">
+                    <AdminLayout>
+                      <VerificationAlerts />
                     </AdminLayout>
                   </RequirePermission>
                 </RequirePasswordChange>
