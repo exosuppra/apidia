@@ -12,6 +12,21 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "call_make_webhook",
+      description: "Appelle le webhook Make pour exécuter des automatisations externes (envoi d'emails, intégrations tierces, workflows complexes, actions qui ne sont pas des requêtes de données). Utilise cet outil pour toute action qui nécessite une intégration externe.",
+      parameters: {
+        type: "object",
+        properties: {
+          action: { type: "string", description: "L'action ou commande à exécuter via Make" },
+          data: { type: "object", description: "Données additionnelles à envoyer au webhook" }
+        },
+        required: ["action"]
+      }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "query_tasks",
       description: "Recherche des tâches dans la base de données. Permet de filtrer par statut, priorité, planning, etc.",
       parameters: {
@@ -85,7 +100,7 @@ const tools = [
     type: "function",
     function: {
       name: "query_fiches_sheets",
-      description: "Récupère les fiches depuis Google Sheets (BD COS, BD FETE_ET_MANIFESTATION).",
+      description: "Récupère les fiches touristiques depuis Google Sheets (BD COS, BD FETE_ET_MANIFESTATION, etc.). Contient les informations sur les établissements, événements, hébergements.",
       parameters: {
         type: "object",
         properties: {
@@ -100,7 +115,7 @@ const tools = [
     type: "function",
     function: {
       name: "query_stats_web",
-      description: "Récupère les statistiques web depuis Google Sheets.",
+      description: "Récupère les statistiques web depuis Google Sheets (fréquentation des sites web).",
       parameters: {
         type: "object",
         properties: {
@@ -141,11 +156,42 @@ const tools = [
 ];
 
 // Execute tool calls
-async function executeTool(toolName: string, args: any, supabaseAdmin: any): Promise<string> {
+async function executeTool(toolName: string, args: any, supabaseAdmin: any, threadId: string): Promise<string> {
   console.log(`Executing tool: ${toolName} with args:`, args);
   
   try {
     switch (toolName) {
+      case "call_make_webhook": {
+        const MAKE_WEBHOOK_URL = Deno.env.get("MAKE_WEBHOOK_URL");
+        if (!MAKE_WEBHOOK_URL) {
+          return JSON.stringify({ error: "Webhook Make non configuré" });
+        }
+        
+        const response = await fetch(MAKE_WEBHOOK_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: args.action,
+            data: args.data || {},
+            threadId,
+            timestamp: new Date().toISOString(),
+            source: "apidia-dashboard-agent",
+          }),
+        });
+        
+        let responseData;
+        const contentType = response.headers.get("content-type");
+        if (contentType?.includes("application/json")) {
+          responseData = await response.json();
+        } else {
+          const textResponse = await response.text();
+          responseData = { response: textResponse || "Action exécutée avec succès" };
+        }
+        
+        console.log("Make webhook response:", responseData);
+        return JSON.stringify(responseData);
+      }
+      
       case "query_tasks": {
         let query = supabaseAdmin.from("tasks").select("*");
         if (args.status) query = query.eq("status", args.status);
@@ -346,7 +392,7 @@ serve(async (req) => {
   }
 
   try {
-    const { messages } = await req.json();
+    const { messages, threadId } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
@@ -362,24 +408,37 @@ serve(async (req) => {
     // Create admin Supabase client for database queries
     const supabaseAdmin = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!);
 
-    const systemPrompt = `Tu es un assistant IA intelligent pour le tableau de bord Apidia. Tu as accès à plusieurs sources de données :
+    const systemPrompt = `Tu es un assistant IA intelligent pour le tableau de bord Apidia. Tu as deux types de capacités :
 
-**Base de données :**
-- Tâches (tasks) : suivi des tâches avec statut, priorité, dates
-- Plannings éditoriaux (editorial_plannings) : planification de contenu
-- Demandes utilisateurs (user_requests) : demandes de modifications de fiches
-- Notes Google (ereputation_google_ratings) : notes et avis Google des établissements
-- Logs d'actions (user_action_logs) : historique des actions utilisateurs
+**1. AUTOMATISATIONS MAKE (via call_make_webhook)**
+Utilise cet outil pour :
+- Exécuter des workflows automatisés
+- Envoyer des notifications ou emails
+- Intégrations avec des services tiers
+- Toute action qui nécessite une automatisation externe
 
-**Google Sheets :**
-- Fiches touristiques : BD COS, BD FETE_ET_MANIFESTATION (informations sur les établissements)
-- Statistiques web : données de fréquentation des sites web
-- E-réputation : statistiques de réputation en ligne
-- Données RH : informations sur les ressources humaines
+**2. CONSULTATION DE DONNÉES (via les outils query_*)**
+Tu peux interroger directement :
 
-Tu peux utiliser les outils disponibles pour interroger ces données et répondre aux questions de l'utilisateur. Sois précis et donne des chiffres concrets quand c'est pertinent. Réponds toujours en français.
+*Base de données Apidia :*
+- Tâches (query_tasks) : suivi des tâches avec statut, priorité, dates
+- Plannings éditoriaux (query_plannings) : planification de contenu
+- Demandes utilisateurs (query_user_requests) : demandes de modifications de fiches
+- Notes Google (query_google_ratings) : notes et avis Google des établissements
+- Logs d'actions (query_action_logs) : historique des actions utilisateurs
 
-Si tu ne trouves pas les données demandées, indique-le clairement et propose des alternatives.`;
+*Google Sheets :*
+- Fiches touristiques (query_fiches_sheets) : BD COS, BD FETE_ET_MANIFESTATION (établissements, événements)
+- Statistiques web (query_stats_web) : données de fréquentation des sites
+- E-réputation (query_stats_ereputation) : statistiques de réputation en ligne
+- Données RH (query_rh_data) : informations sur les ressources humaines
+
+**RÈGLES :**
+- Pour les questions sur les données → utilise les outils query_*
+- Pour les actions/automatisations → utilise call_make_webhook
+- Sois précis et donne des chiffres concrets
+- Réponds toujours en français
+- Si tu ne trouves pas les données, indique-le clairement`;
 
     // Initial AI call with tools
     let aiMessages = [
@@ -437,7 +496,7 @@ Si tu ne trouves pas les données demandées, indique-le clairement et propose d
       const toolResults = await Promise.all(
         assistantMessage.tool_calls.map(async (toolCall: any) => {
           const args = JSON.parse(toolCall.function.arguments || "{}");
-          const result = await executeTool(toolCall.function.name, args, supabaseAdmin);
+          const result = await executeTool(toolCall.function.name, args, supabaseAdmin, threadId || "");
           return {
             role: "tool",
             tool_call_id: toolCall.id,
