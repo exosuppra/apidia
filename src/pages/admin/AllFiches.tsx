@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import Seo from "@/components/Seo";
-import { ArrowLeft, Loader2, RefreshCw, Search, Eye, CheckCircle, XCircle } from "lucide-react";
+import { ArrowLeft, Loader2, RefreshCw, Search, Eye, CheckCircle, XCircle, Upload } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
@@ -34,8 +34,11 @@ export default function AllFiches() {
   const [searchTerm, setSearchTerm] = useState("");
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [selectedFiche, setSelectedFiche] = useState<FicheData | null>(null);
+  const [syncing, setSyncing] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  const unsyncedCount = fiches.filter(f => !f.synced_to_sheets).length;
 
   const loadAllFiches = async () => {
     setLoading(true);
@@ -62,6 +65,34 @@ export default function AllFiches() {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const syncToSheets = async () => {
+    setSyncing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('sync-to-sheets', {
+        method: 'POST'
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Synchronisation terminée",
+        description: data.message || `${data.results?.synced || 0} fiches synchronisées`,
+      });
+
+      // Reload fiches to update sync status
+      await loadAllFiches();
+    } catch (error: unknown) {
+      console.error('Erreur lors de la synchronisation:', error);
+      toast({
+        title: "Erreur de synchronisation",
+        description: "Impossible de synchroniser vers Google Sheets",
+        variant: "destructive",
+      });
+    } finally {
+      setSyncing(false);
     }
   };
 
@@ -165,19 +196,39 @@ export default function AllFiches() {
               </div>
             </div>
             
-            <Button 
-              onClick={loadAllFiches} 
-              variant="outline" 
-              size="sm"
-              disabled={loading}
-            >
-              {loading ? (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              ) : (
-                <RefreshCw className="w-4 h-4 mr-2" />
-              )}
-              Actualiser
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button 
+                onClick={syncToSheets} 
+                variant="default" 
+                size="sm"
+                disabled={syncing || unsyncedCount === 0}
+              >
+                {syncing ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Upload className="w-4 h-4 mr-2" />
+                )}
+                Sync Sheets
+                {unsyncedCount > 0 && (
+                  <Badge variant="secondary" className="ml-2">
+                    {unsyncedCount}
+                  </Badge>
+                )}
+              </Button>
+              <Button 
+                onClick={loadAllFiches} 
+                variant="outline" 
+                size="sm"
+                disabled={loading}
+              >
+                {loading ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                )}
+                Actualiser
+              </Button>
+            </div>
           </div>
 
           {/* Filters */}

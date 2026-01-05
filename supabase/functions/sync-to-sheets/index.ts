@@ -145,6 +145,35 @@ Deno.serve(async (req: Request) => {
       errors: [] as { fiche_id: string; error: string }[],
     };
 
+    // Helper to extract nested values safely
+    const extractValue = (obj: Record<string, unknown>, path: string): string => {
+      const keys = path.split('.');
+      let result: unknown = obj;
+      for (const key of keys) {
+        if (result && typeof result === 'object' && key in result) {
+          result = (result as Record<string, unknown>)[key];
+        } else {
+          return '';
+        }
+      }
+      if (result === null || result === undefined) return '';
+      if (typeof result === 'object') return JSON.stringify(result);
+      return String(result);
+    };
+
+    // Extract contact info
+    const extractContact = (data: Record<string, unknown>, contactType: string): string => {
+      const moyens = (data.informations as Record<string, unknown>)?.moyensCommunication as Array<Record<string, unknown>> | undefined;
+      if (!moyens) return '';
+      const moyen = moyens.find(m => {
+        const type = (m.type as Record<string, unknown>)?.libelleFr;
+        return type === contactType;
+      });
+      if (!moyen) return '';
+      const coordonnees = moyen.coordonnees as Record<string, string> | string;
+      return typeof coordonnees === 'object' ? coordonnees.fr || '' : coordonnees || '';
+    };
+
     // Process each type
     for (const [ficheType, fiches] of Object.entries(grouped)) {
       console.log(`Syncing ${fiches.length} fiches of type: ${ficheType}`);
@@ -152,23 +181,63 @@ Deno.serve(async (req: Request) => {
       // Create sheet name (sanitize for Google Sheets)
       const sheetName = `BACKUP_${ficheType.replace(/[^a-zA-Z0-9_]/g, "_")}`;
 
-      // Get all unique keys from data
-      const allKeys = new Set<string>();
-      for (const fiche of fiches) {
-        if (fiche.data && typeof fiche.data === "object") {
-          Object.keys(fiche.data).forEach((key) => allKeys.add(key));
-        }
-      }
-      const headers = ["fiche_id", "synced_at", ...Array.from(allKeys).sort()];
+      // Define structured headers for APIDAE data
+      const headers = [
+        "fiche_id",
+        "synced_at",
+        "nom",
+        "state",
+        "identifier",
+        "adresse",
+        "code_postal",
+        "commune",
+        "latitude",
+        "longitude",
+        "telephone",
+        "email",
+        "site_web",
+        "description_courte",
+        "periode_ouverture",
+        "date_creation",
+        "date_modification",
+        "proprietaire"
+      ];
 
-      // Prepare rows
+      // Prepare rows with structured data
       const rows = fiches.map((fiche) => {
-        const row = [fiche.fiche_id, new Date().toISOString()];
-        for (const key of Array.from(allKeys).sort()) {
-          const value = fiche.data?.[key];
-          row.push(typeof value === "object" ? JSON.stringify(value) : String(value ?? ""));
+        const data = fiche.data as Record<string, unknown> || {};
+        const coords = extractValue(data, 'localisation.geolocalisation.geoJson.coordinates');
+        let lat = '', lng = '';
+        if (coords) {
+          try {
+            const parsed = JSON.parse(coords);
+            if (Array.isArray(parsed) && parsed.length >= 2) {
+              lng = String(parsed[0]);
+              lat = String(parsed[1]);
+            }
+          } catch { /* ignore */ }
         }
-        return row;
+
+        return [
+          fiche.fiche_id,
+          new Date().toISOString(),
+          extractValue(data, 'nom.libelleFr'),
+          extractValue(data, 'state'),
+          extractValue(data, 'identifier'),
+          extractValue(data, 'localisation.adresse.adresse1'),
+          extractValue(data, 'localisation.adresse.codePostal'),
+          extractValue(data, 'localisation.adresse.commune.nom'),
+          lat,
+          lng,
+          extractContact(data, 'Téléphone'),
+          extractContact(data, 'Mél'),
+          extractContact(data, 'Site web (URL)'),
+          extractValue(data, 'presentation.descriptifCourt.libelleFr'),
+          extractValue(data, 'ouverture.periodeEnClair.libelleFr'),
+          extractValue(data, 'gestion.dateCreation'),
+          extractValue(data, 'gestion.dateModification'),
+          extractValue(data, 'gestion.membreProprietaire.nom')
+        ];
       });
 
       try {
