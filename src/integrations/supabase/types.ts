@@ -160,6 +160,39 @@ export type Database = {
         }
         Relationships: []
       }
+      fiches_data: {
+        Row: {
+          created_at: string
+          data: Json
+          fiche_id: string
+          fiche_type: string
+          id: string
+          source: string
+          synced_to_sheets: boolean
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          data?: Json
+          fiche_id: string
+          fiche_type: string
+          id?: string
+          source?: string
+          synced_to_sheets?: boolean
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          data?: Json
+          fiche_id?: string
+          fiche_type?: string
+          id?: string
+          source?: string
+          synced_to_sheets?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string

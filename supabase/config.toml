@@ -14,3 +14,9 @@ verify_jwt = false
 
 [functions.scrape-google-rating]
 verify_jwt = true
+
+[functions.receive-fiches]
+verify_jwt = false
+
+[functions.sync-to-sheets]
+verify_jwt = false
