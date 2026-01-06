@@ -28,7 +28,23 @@ interface AIAnalysisResult {
   email?: { value: string; confidence: number; reasoning: string } | null;
   site_web?: { value: string; confidence: number; reasoning: string } | null;
   adresse?: { value: string; confidence: number; reasoning: string } | null;
+  horaires?: { value: string; confidence: number; reasoning: string } | null;
 }
+
+// Domains to exclude from search results (unreliable for official data)
+const excludedDomains = [
+  'booking.com',
+  'tripadvisor',
+  'facebook.com',
+  'instagram.com',
+  'twitter.com',
+  'linkedin.com',
+  'airbnb',
+  'hotels.com',
+  'expedia',
+  'kayak.com',
+  'trivago',
+];
 
 // Extract contact info from APIDAE data structure
 function extractApidaeData(data: Record<string, any>): Record<string, string | null> {
@@ -37,6 +53,7 @@ function extractApidaeData(data: Record<string, any>): Record<string, string | n
     email: null,
     site_web: null,
     adresse: null,
+    horaires: null,
     nom: null,
     commune: null,
   };
@@ -84,6 +101,24 @@ function extractApidaeData(data: Record<string, any>): Record<string, string | n
     result.adresse = parts.join(', ') || null;
   }
 
+  // Extract opening hours
+  if (data.ouverture?.periodesOuvertures) {
+    const periodes = data.ouverture.periodesOuvertures;
+    const horairesText = periodes.map((p: any) => {
+      const horairesDetail = p.complementHoraire?.libelleFr || '';
+      const debut = p.dateDebut || '';
+      const fin = p.dateFin || '';
+      if (horairesDetail) {
+        return horairesDetail.replace(/\r?\n/g, ' ').trim();
+      }
+      if (debut && fin) {
+        return `Du ${debut} au ${fin}`;
+      }
+      return '';
+    }).filter(Boolean).join(' | ');
+    result.horaires = horairesText || null;
+  }
+
   return result;
 }
 
@@ -116,6 +151,10 @@ function valuesMatch(current: string | null, found: string | null, fieldType: st
       return current.toLowerCase().trim() === found.toLowerCase().trim();
     case 'adresse':
       return normalizeAddress(current) === normalizeAddress(found);
+    case 'horaires':
+      // For opening hours, a simple normalized comparison
+      return current.toLowerCase().replace(/\s+/g, ' ').trim() === 
+             found.toLowerCase().replace(/\s+/g, ' ').trim();
     default:
       return current.toLowerCase().trim() === found.toLowerCase().trim();
   }
@@ -142,49 +181,70 @@ function normalizeAddress(address: string | null): string {
     .trim();
 }
 
+// Check if a domain should be excluded
+function shouldExcludeDomain(url: string): boolean {
+  try {
+    const hostname = new URL(url).hostname.toLowerCase();
+    return excludedDomains.some(excluded => hostname.includes(excluded));
+  } catch {
+    return false;
+  }
+}
+
 // Use AI to analyze web content and extract structured data with high accuracy
 async function analyzeWithAI(
   establishmentName: string,
+  commune: string | null,
   currentData: Record<string, string | null>,
   webContent: string,
   sourceUrl: string,
   lovableApiKey: string
 ): Promise<AIAnalysisResult | null> {
   try {
-    const prompt = `Tu es un expert en vérification de données d'établissements touristiques.
+    const prompt = `Tu es un expert en vérification de données d'établissements touristiques français.
 
 ÉTABLISSEMENT À VÉRIFIER: "${establishmentName}"
+LOCALISATION: ${commune || 'Non spécifiée'}
 
 DONNÉES ACTUELLES DANS NOTRE BASE:
 - Téléphone: ${currentData.telephone || 'Non renseigné'}
 - Email: ${currentData.email || 'Non renseigné'}
 - Site web: ${currentData.site_web || 'Non renseigné'}
 - Adresse: ${currentData.adresse || 'Non renseignée'}
+- Horaires: ${currentData.horaires || 'Non renseignés'}
 
 CONTENU DE LA PAGE WEB (source: ${sourceUrl}):
-${webContent.substring(0, 8000)}
+${webContent.substring(0, 10000)}
 
-INSTRUCTIONS:
-1. Analyse le contenu de la page web pour extraire les coordonnées de l'établissement "${establishmentName}"
-2. Compare UNIQUEMENT si tu trouves des informations qui concernent SPÉCIFIQUEMENT cet établissement (pas des informations génériques ou d'autres établissements)
-3. Pour chaque champ où tu trouves une DIFFÉRENCE avec nos données actuelles, indique la valeur trouvée
-4. IMPORTANT: Ne retourne un champ QUE SI:
-   - Tu as trouvé une valeur différente de celle dans notre base
-   - Tu es CERTAIN que cette valeur concerne bien l'établissement "${establishmentName}"
-   - La valeur est complète (téléphone 10 chiffres, email avec @, adresse complète avec numéro ET rue ET ville)
+RÈGLES STRICTES - ELLES SONT IMPÉRATIVES:
+1. Ne retourne JAMAIS une valeur si tu n'es pas sûr à 90%+ qu'elle concerne CET établissement précis dans CETTE ville
+2. Vérifie que la commune/ville correspond bien (ignore si c'est un homonyme ailleurs)
+3. Ignore les numéros de téléphone génériques (offices de tourisme, centrales de réservation)
+4. Pour les adresses: la rue ET le code postal doivent correspondre à la même commune
+5. Pour les horaires: ne prends que les horaires permanents, pas les événements ponctuels
+6. Ignore les informations qui semblent obsolètes (dates passées, "fermé définitivement", etc.)
 
-Réponds UNIQUEMENT en JSON valide avec ce format (omets les champs où il n'y a pas de différence):
+CRITÈRES DE VALIDATION:
+- Téléphone: doit être un numéro à 10 chiffres (ou format international +33)
+- Email: doit contenir @ et avoir un domaine valide
+- Site web: doit être une URL complète
+- Adresse: doit contenir au minimum un numéro de rue OU un lieu-dit + code postal + ville
+- Horaires: format "Lundi-Vendredi 9h-18h" ou similaire (pas de dates spécifiques d'événements)
+
+Réponds UNIQUEMENT en JSON valide:
 {
-  "telephone": { "value": "04 XX XX XX XX", "confidence": 0.9, "reasoning": "Trouvé sur la page contact..." } ou null,
-  "email": { "value": "contact@example.com", "confidence": 0.85, "reasoning": "..." } ou null,
-  "site_web": { "value": "https://...", "confidence": 0.8, "reasoning": "..." } ou null,
-  "adresse": { "value": "123 rue..., 04100 Manosque", "confidence": 0.9, "reasoning": "..." } ou null
+  "telephone": { "value": "04 XX XX XX XX", "confidence": 0.9, "reasoning": "Trouvé sur..." } ou null,
+  "email": { "value": "contact@example.com", "confidence": 0.9, "reasoning": "..." } ou null,
+  "site_web": { "value": "https://...", "confidence": 0.9, "reasoning": "..." } ou null,
+  "adresse": { "value": "123 rue..., 04100 Ville", "confidence": 0.9, "reasoning": "..." } ou null,
+  "horaires": { "value": "Lundi-Samedi 9h-18h", "confidence": 0.9, "reasoning": "..." } ou null
 }
 
 IMPORTANT: 
-- Confidence doit être entre 0 et 1 (0.8+ pour être fiable)
-- Ne retourne QUE les champs où tu as trouvé une différence significative
-- Si le contenu ne concerne pas cet établissement ou si tu ne trouves rien, retourne {}`;
+- Confidence DOIT être >= 0.85 pour être considéré fiable
+- Ne retourne QUE les champs où tu as trouvé une différence SIGNIFICATIVE avec nos données
+- Si le contenu ne concerne pas CET établissement dans CETTE ville, retourne {}
+- Si tu as le moindre doute, retourne {}`;
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -193,12 +253,11 @@ IMPORTANT:
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
+        model: 'openai/gpt-5-mini',
         messages: [
-          { role: 'system', content: 'Tu es un assistant spécialisé dans la vérification de données. Tu réponds toujours en JSON valide.' },
+          { role: 'system', content: 'Tu es un assistant spécialisé dans la vérification de données touristiques françaises. Tu réponds toujours en JSON valide. Tu es très prudent et ne signales que des différences dont tu es certain.' },
           { role: 'user', content: prompt }
         ],
-        temperature: 0.1,
       }),
     });
 
@@ -299,6 +358,7 @@ serve(async (req) => {
     console.log('Searching for:', searchQuery);
 
     // Search using Firecrawl - get markdown content for AI analysis
+    // Increased limit from 5 to 8 for better cross-validation
     const searchResponse = await fetch('https://api.firecrawl.dev/v1/search', {
       method: 'POST',
       headers: {
@@ -307,7 +367,7 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         query: searchQuery,
-        limit: 5,
+        limit: 8,
         scrapeOptions: {
           formats: ['markdown'],
           onlyMainContent: true,
@@ -333,10 +393,22 @@ serve(async (req) => {
       email: [],
       site_web: [],
       adresse: [],
+      horaires: [],
     };
 
+    // Filter out unreliable domains
+    const filteredResults = (searchResults.data || []).filter((result: any) => {
+      if (shouldExcludeDomain(result.url)) {
+        console.log(`Excluding unreliable domain: ${result.url}`);
+        return false;
+      }
+      return true;
+    });
+
+    console.log(`Filtered results: ${filteredResults.length} (excluded ${(searchResults.data?.length || 0) - filteredResults.length} unreliable sources)`);
+
     // Process each search result with AI
-    for (const result of (searchResults.data || [])) {
+    for (const result of filteredResults) {
       const sourceUrl = result.url;
       const sourceName = new URL(sourceUrl).hostname.replace('www.', '');
       const markdown = result.markdown || '';
@@ -351,6 +423,7 @@ serve(async (req) => {
       // Use AI to analyze the content
       const aiResult = await analyzeWithAI(
         apidaeData.nom,
+        apidaeData.commune,
         apidaeData,
         markdown,
         sourceUrl,
@@ -358,10 +431,11 @@ serve(async (req) => {
       );
 
       if (aiResult) {
-        // Collect findings by field
-        for (const field of ['telephone', 'email', 'site_web', 'adresse'] as const) {
+        // Collect findings by field (including horaires now)
+        for (const field of ['telephone', 'email', 'site_web', 'adresse', 'horaires'] as const) {
           const finding = aiResult[field];
-          if (finding && finding.value && finding.confidence >= 0.7) {
+          // Increased confidence threshold from 0.7 to 0.8
+          if (finding && finding.value && finding.confidence >= 0.8) {
             // Check if it's actually different from current value
             if (!valuesMatch(apidaeData[field], finding.value, field)) {
               aiFindings[field].push({
@@ -417,21 +491,30 @@ serve(async (req) => {
         }
       }
 
-      // Require at least 1 high-confidence source OR 2+ sources to create an alert
-      if (bestGroup && (bestGroup.length >= 2 || bestGroup.some(f => f.confidence >= 0.85))) {
-        const bestFinding = bestGroup.reduce((best, f) => f.confidence > best.confidence ? f : best);
-        const uniqueSources = [...new Set(bestGroup.map(f => f.source))];
-        
-        alerts.push({
-          field_name: field,
-          current_value: apidaeData[field as keyof typeof apidaeData],
-          found_value: bestFinding.value,
-          source_url: bestFinding.sourceUrl,
-          source_name: uniqueSources.join(', '),
-          confidence_score: Math.min(1, bestFinding.confidence + (uniqueSources.length - 1) * 0.1),
-        });
-        
-        console.log(`Alert created for ${field}: "${bestFinding.value}" confirmed by ${uniqueSources.length} sources`);
+      // STRENGTHENED CRITERIA:
+      // Require 1 source ≥90% confidence OR 2+ sources with average confidence ≥80%
+      if (bestGroup) {
+        const avgConfidence = bestGroup.reduce((sum, f) => sum + f.confidence, 0) / bestGroup.length;
+        const hasHighConfidenceSource = bestGroup.some(f => f.confidence >= 0.90);
+        const hasMultipleReliableSources = bestGroup.length >= 2 && avgConfidence >= 0.80;
+
+        if (hasHighConfidenceSource || hasMultipleReliableSources) {
+          const bestFinding = bestGroup.reduce((best, f) => f.confidence > best.confidence ? f : best);
+          const uniqueSources = [...new Set(bestGroup.map(f => f.source))];
+          
+          alerts.push({
+            field_name: field,
+            current_value: apidaeData[field as keyof typeof apidaeData],
+            found_value: bestFinding.value,
+            source_url: bestFinding.sourceUrl,
+            source_name: uniqueSources.join(', '),
+            confidence_score: Math.min(1, bestFinding.confidence + (uniqueSources.length - 1) * 0.05),
+          });
+          
+          console.log(`Alert created for ${field}: "${bestFinding.value}" confirmed by ${uniqueSources.length} sources (avg confidence: ${avgConfidence.toFixed(2)})`);
+        } else {
+          console.log(`Skipping ${field}: insufficient confidence (avg: ${avgConfidence.toFixed(2)}, high source: ${hasHighConfidenceSource})`);
+        }
       }
     }
 
@@ -470,14 +553,18 @@ serve(async (req) => {
 
     // Log to fiche_history
     if (alerts.length > 0) {
+      const fieldLabels: Record<string, string> = {
+        telephone: 'Téléphone',
+        email: 'Email',
+        site_web: 'Site web',
+        adresse: 'Adresse',
+        horaires: "Horaires d'ouverture",
+      };
+
       const historyChanges = {
         fields: alerts.map(alert => ({
           field: alert.field_name,
-          label: alert.field_name === 'telephone' ? 'Téléphone' 
-               : alert.field_name === 'email' ? 'Email' 
-               : alert.field_name === 'site_web' ? 'Site web'
-               : alert.field_name === 'adresse' ? 'Adresse'
-               : alert.field_name,
+          label: fieldLabels[alert.field_name] || alert.field_name,
           old_value: alert.current_value,
           new_value: alert.found_value,
         }))
@@ -494,7 +581,8 @@ serve(async (req) => {
           changes: historyChanges,
           metadata: {
             alerts_count: alerts.length,
-            sources: [...new Set(alerts.flatMap(a => a.source_name.split(', ')))]
+            sources: [...new Set(alerts.flatMap(a => a.source_name.split(', ')))],
+            model: 'openai/gpt-5-mini',
           }
         });
 

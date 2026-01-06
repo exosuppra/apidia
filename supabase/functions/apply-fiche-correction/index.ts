@@ -18,6 +18,7 @@ const fieldMappings: Record<string, { path: string[]; type: number | null }> = {
   email: { path: ['informations', 'moyensCommunication'], type: 204 },
   site_web: { path: ['informations', 'moyensCommunication'], type: 205 },
   adresse: { path: ['localisation', 'adresse'], type: null },
+  horaires: { path: ['ouverture'], type: null },
 };
 
 // Parse a full address string into components
@@ -237,6 +238,7 @@ serve(async (req) => {
       email: 'Email',
       site_web: 'Site web',
       adresse: 'Adresse',
+      horaires: "Horaires d'ouverture",
     };
 
     const { error: historyError } = await supabase
