@@ -40,6 +40,7 @@ import {
   XCircle,
   Clock,
   Play,
+  Wand2,
 } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -86,6 +87,7 @@ export default function VerificationAlerts() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [notes, setNotes] = useState("");
   const [updating, setUpdating] = useState(false);
+  const [applyingCorrection, setApplyingCorrection] = useState(false);
   const [runningVerification, setRunningVerification] = useState(false);
   const [stats, setStats] = useState({
     total: 0,
@@ -170,6 +172,48 @@ export default function VerificationAlerts() {
       toast.error("Erreur lors de la mise à jour");
     } finally {
       setUpdating(false);
+    }
+  };
+
+  const handleApplyCorrection = async () => {
+    if (!selectedAlert) return;
+
+    setApplyingCorrection(true);
+    try {
+      // Get current user info
+      const { data: userData } = await supabase.auth.getUser();
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('first_name, last_name')
+        .eq('id', userData?.user?.id)
+        .single();
+      
+      const actorName = profileData?.first_name && profileData?.last_name 
+        ? `${profileData.first_name} ${profileData.last_name}`
+        : userData?.user?.email || 'Admin';
+
+      const { data, error } = await supabase.functions.invoke('apply-fiche-correction', {
+        body: {
+          alert_id: selectedAlert.id,
+          actor_id: userData?.user?.id,
+          actor_name: actorName,
+        }
+      });
+
+      if (error) throw error;
+
+      if (data.success) {
+        toast.success(`Correction appliquée : ${data.field} mis à jour`);
+        setDialogOpen(false);
+        loadAlerts();
+      } else {
+        toast.error(data.error || "Erreur lors de l'application");
+      }
+    } catch (error) {
+      console.error("Error applying correction:", error);
+      toast.error("Erreur lors de l'application de la correction");
+    } finally {
+      setApplyingCorrection(false);
     }
   };
 
@@ -479,7 +523,7 @@ export default function VerificationAlerts() {
             <Button
               variant="outline"
               onClick={() => handleUpdateStatus("ignored")}
-              disabled={updating}
+              disabled={updating || applyingCorrection}
               className="flex-1"
             >
               <XCircle className="h-4 w-4 mr-2" />
@@ -488,20 +532,24 @@ export default function VerificationAlerts() {
             <Button
               variant="destructive"
               onClick={() => handleUpdateStatus("confirmed")}
-              disabled={updating}
+              disabled={updating || applyingCorrection}
               className="flex-1"
             >
               <AlertTriangle className="h-4 w-4 mr-2" />
               Confirmer le problème
             </Button>
             <Button
-              variant="default"
-              onClick={() => handleUpdateStatus("fixed")}
-              disabled={updating}
-              className="flex-1"
+              variant="secondary"
+              onClick={handleApplyCorrection}
+              disabled={updating || applyingCorrection || selectedAlert?.status === 'fixed'}
+              className="flex-1 bg-green-600 hover:bg-green-700 text-white"
             >
-              {updating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <CheckCircle className="h-4 w-4 mr-2" />}
-              Marquer comme corrigé
+              {applyingCorrection ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Wand2 className="h-4 w-4 mr-2" />
+              )}
+              Appliquer la correction
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -32,3 +32,6 @@ verify_jwt = false
 
 [functions.log-fiche-history]
 verify_jwt = false
+
+[functions.apply-fiche-correction]
+verify_jwt = false
