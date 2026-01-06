@@ -35,3 +35,6 @@ verify_jwt = false
 
 [functions.apply-fiche-correction]
 verify_jwt = false
+
+[functions.import-fiches]
+verify_jwt = false
