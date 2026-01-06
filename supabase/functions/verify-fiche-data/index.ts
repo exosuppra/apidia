@@ -86,6 +86,14 @@ function normalizePhone(phone: string | null): string {
   return phone.replace(/[\s\.\-\(\)]/g, '').replace(/^\+33/, '0');
 }
 
+// Check if a phone number is complete (10 digits for French numbers)
+function isCompletePhone(phone: string | null): boolean {
+  if (!phone) return false;
+  const normalized = normalizePhone(phone);
+  // French phone: 10 digits starting with 0, or international format
+  return /^0\d{9}$/.test(normalized) || /^\+?\d{10,14}$/.test(normalized);
+}
+
 // Normalize URLs for comparison
 function normalizeUrl(url: string | null): string {
   if (!url) return '';
@@ -93,6 +101,21 @@ function normalizeUrl(url: string | null): string {
     .replace(/^https?:\/\//, '')
     .replace(/^www\./, '')
     .replace(/\/$/, '');
+}
+
+// Check if a website URL is complete
+function isCompleteWebsite(url: string | null): boolean {
+  if (!url) return false;
+  // Must have a domain with at least one dot, and look like a URL
+  const normalized = normalizeUrl(url);
+  return /^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z]{2,})+/.test(normalized);
+}
+
+// Check if an email is complete and valid
+function isCompleteEmail(email: string | null): boolean {
+  if (!email) return false;
+  // Basic email validation: something@something.something
+  return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email.trim());
 }
 
 // Compare values and determine if they differ significantly
@@ -393,49 +416,59 @@ serve(async (req) => {
       
       console.log(`Processing result from ${sourceName}:`, extractedData);
 
-      // Check telephone
-      if (extractedData.telephone && !valuesMatch(apidaeData.telephone, extractedData.telephone, 'telephone')) {
-        alerts.push({
-          field_name: 'telephone',
-          current_value: apidaeData.telephone,
-          found_value: extractedData.telephone,
-          source_url: sourceUrl,
-          source_name: sourceName,
-          confidence_score: 0.7,
-        });
-      }
-
-      // Check email - skip if from aggregator OR if it's the establishment's own domain
-      if (extractedData.email && 
-          !valuesMatch(apidaeData.email, extractedData.email, 'email') &&
-          !isAggregatorEmail(extractedData.email, sourceUrl) &&
-          !isEstablishmentRelatedEmail(extractedData.email, apidaeData.nom || '', apidaeData.site_web)) {
-        alerts.push({
-          field_name: 'email',
-          current_value: apidaeData.email,
-          found_value: extractedData.email,
-          source_url: sourceUrl,
-          source_name: sourceName,
-          confidence_score: 0.8,
-        });
-      } else if (extractedData.email) {
-        if (isAggregatorEmail(extractedData.email, sourceUrl)) {
-          console.log(`Skipping aggregator email: ${extractedData.email} from ${sourceName}`);
-        } else if (isEstablishmentRelatedEmail(extractedData.email, apidaeData.nom || '', apidaeData.site_web)) {
-          console.log(`Skipping establishment-related email: ${extractedData.email} (same domain as official site)`);
+      // Check telephone - only if extracted value is complete
+      if (extractedData.telephone) {
+        if (!isCompletePhone(extractedData.telephone)) {
+          console.log(`Skipping incomplete phone from ${sourceName}: "${extractedData.telephone}"`);
+        } else if (!valuesMatch(apidaeData.telephone, extractedData.telephone, 'telephone')) {
+          console.log(`Phone discrepancy from ${sourceName}: "${apidaeData.telephone}" vs "${extractedData.telephone}"`);
+          alerts.push({
+            field_name: 'telephone',
+            current_value: apidaeData.telephone,
+            found_value: extractedData.telephone,
+            source_url: sourceUrl,
+            source_name: sourceName,
+            confidence_score: 0.7,
+          });
         }
       }
 
-      // Check website
-      if (extractedData.website && !valuesMatch(apidaeData.site_web, extractedData.website, 'site_web')) {
-        alerts.push({
-          field_name: 'site_web',
-          current_value: apidaeData.site_web,
-          found_value: extractedData.website,
-          source_url: sourceUrl,
-          source_name: sourceName,
-          confidence_score: 0.6,
-        });
+      // Check email - only if complete and not from aggregator
+      if (extractedData.email) {
+        if (!isCompleteEmail(extractedData.email)) {
+          console.log(`Skipping incomplete email from ${sourceName}: "${extractedData.email}"`);
+        } else if (isAggregatorEmail(extractedData.email, sourceUrl)) {
+          console.log(`Skipping aggregator email: ${extractedData.email} from ${sourceName}`);
+        } else if (isEstablishmentRelatedEmail(extractedData.email, apidaeData.nom || '', apidaeData.site_web)) {
+          console.log(`Skipping establishment-related email: ${extractedData.email} (same domain as official site)`);
+        } else if (!valuesMatch(apidaeData.email, extractedData.email, 'email')) {
+          console.log(`Email discrepancy from ${sourceName}: "${apidaeData.email}" vs "${extractedData.email}"`);
+          alerts.push({
+            field_name: 'email',
+            current_value: apidaeData.email,
+            found_value: extractedData.email,
+            source_url: sourceUrl,
+            source_name: sourceName,
+            confidence_score: 0.8,
+          });
+        }
+      }
+
+      // Check website - only if complete URL
+      if (extractedData.website) {
+        if (!isCompleteWebsite(extractedData.website)) {
+          console.log(`Skipping incomplete website from ${sourceName}: "${extractedData.website}"`);
+        } else if (!valuesMatch(apidaeData.site_web, extractedData.website, 'site_web')) {
+          console.log(`Website discrepancy from ${sourceName}: "${apidaeData.site_web}" vs "${extractedData.website}"`);
+          alerts.push({
+            field_name: 'site_web',
+            current_value: apidaeData.site_web,
+            found_value: extractedData.website,
+            source_url: sourceUrl,
+            source_name: sourceName,
+            confidence_score: 0.6,
+          });
+        }
       }
 
       // Check address - only if extracted address is substantial
