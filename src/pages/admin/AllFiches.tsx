@@ -503,7 +503,9 @@ export default function AllFiches() {
                     </TableHeader>
                     <TableBody>
                       {filteredFiches.map((fiche) => {
-                        const expired = isOpeningExpired(fiche.data);
+                        // Only FMA fiches should show as expired
+                        const isFMA = fiche.fiche_type === "FETE_ET_MANIFESTATION";
+                        const expired = isFMA && isOpeningExpired(fiche.data);
                         return (
                         <TableRow key={fiche.id} className={expired ? "opacity-60" : ""}>
                           <TableCell>
