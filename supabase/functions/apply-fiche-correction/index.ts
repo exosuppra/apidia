@@ -17,7 +17,30 @@ const fieldMappings: Record<string, { path: string[]; type: number | null }> = {
   telephone: { path: ['informations', 'moyensCommunication'], type: 201 },
   email: { path: ['informations', 'moyensCommunication'], type: 204 },
   site_web: { path: ['informations', 'moyensCommunication'], type: 205 },
+  adresse: { path: ['localisation', 'adresse'], type: null },
 };
+
+// Parse a full address string into components
+function parseAddress(fullAddress: string): { adresse1: string | null; codePostal: string | null; commune: string | null } {
+  // Extract postal code (5 digits)
+  const postalMatch = fullAddress.match(/\b(\d{5})\b/);
+  const codePostal = postalMatch ? postalMatch[1] : null;
+  
+  let commune = null;
+  let adresse1 = fullAddress;
+  
+  if (postalMatch) {
+    // Extract commune (after postal code)
+    const afterPostal = fullAddress.substring(fullAddress.indexOf(postalMatch[0]) + 5).trim();
+    commune = afterPostal.replace(/^[,\s]+/, '').trim() || null;
+    
+    // Extract address (before postal code)
+    adresse1 = fullAddress.substring(0, fullAddress.indexOf(postalMatch[0])).trim();
+    adresse1 = adresse1.replace(/[,\s]+$/, '') || null;
+  }
+  
+  return { adresse1, codePostal, commune };
+}
 
 // Get nested value from object
 function getNestedValue(obj: Record<string, any>, path: string[]): any {
@@ -109,8 +132,32 @@ serve(async (req) => {
     const oldValue = alert.current_value;
     const newValue = alert.found_value;
 
+    // Handle address field
+    if (alert.field_name === 'adresse') {
+      const parsed = parseAddress(newValue);
+      
+      if (!updatedData.localisation) {
+        updatedData.localisation = {};
+      }
+      if (!updatedData.localisation.adresse) {
+        updatedData.localisation.adresse = {};
+      }
+      
+      if (parsed.adresse1) {
+        updatedData.localisation.adresse.adresse1 = parsed.adresse1;
+      }
+      if (parsed.codePostal) {
+        updatedData.localisation.adresse.codePostal = parsed.codePostal;
+      }
+      if (parsed.commune) {
+        if (!updatedData.localisation.adresse.commune) {
+          updatedData.localisation.adresse.commune = {};
+        }
+        updatedData.localisation.adresse.commune.nom = parsed.commune;
+      }
+    }
     // Handle moyensCommunication fields (telephone, email, site_web)
-    if (fieldMapping.path.includes('moyensCommunication') && fieldMapping.type !== null) {
+    else if (fieldMapping.path.includes('moyensCommunication') && fieldMapping.type !== null) {
       // Ensure the path exists
       if (!updatedData.informations) {
         updatedData.informations = {};
@@ -189,6 +236,7 @@ serve(async (req) => {
       telephone: 'Téléphone',
       email: 'Email',
       site_web: 'Site web',
+      adresse: 'Adresse',
     };
 
     const { error: historyError } = await supabase

@@ -148,7 +148,7 @@ async function analyzeWithAI(
   currentData: Record<string, string | null>,
   webContent: string,
   sourceUrl: string,
-  openaiApiKey: string
+  lovableApiKey: string
 ): Promise<AIAnalysisResult | null> {
   try {
     const prompt = `Tu es un expert en vérification de données d'établissements touristiques.
@@ -186,25 +186,25 @@ IMPORTANT:
 - Ne retourne QUE les champs où tu as trouvé une différence significative
 - Si le contenu ne concerne pas cet établissement ou si tu ne trouves rien, retourne {}`;
 
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${openaiApiKey}`,
+        'Authorization': `Bearer ${lovableApiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'google/gemini-2.5-flash',
         messages: [
           { role: 'system', content: 'Tu es un assistant spécialisé dans la vérification de données. Tu réponds toujours en JSON valide.' },
           { role: 'user', content: prompt }
         ],
         temperature: 0.1,
-        max_tokens: 1000,
       }),
     });
 
     if (!response.ok) {
-      console.error('OpenAI API error:', await response.text());
+      const errorText = await response.text();
+      console.error('Lovable AI API error:', response.status, errorText);
       return null;
     }
 
@@ -248,7 +248,7 @@ serve(async (req) => {
     }
 
     const firecrawlApiKey = Deno.env.get('FIRECRAWL_API_KEY');
-    const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
+    const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
     
     if (!firecrawlApiKey) {
       console.error('FIRECRAWL_API_KEY not configured');
@@ -258,10 +258,10 @@ serve(async (req) => {
       );
     }
 
-    if (!openaiApiKey) {
-      console.error('OPENAI_API_KEY not configured');
+    if (!lovableApiKey) {
+      console.error('LOVABLE_API_KEY not configured');
       return new Response(
-        JSON.stringify({ success: false, error: 'OpenAI API key not configured' }),
+        JSON.stringify({ success: false, error: 'Lovable AI not configured' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -354,7 +354,7 @@ serve(async (req) => {
         apidaeData,
         markdown,
         sourceUrl,
-        openaiApiKey
+        lovableApiKey
       );
 
       if (aiResult) {
