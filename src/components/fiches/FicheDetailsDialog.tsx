@@ -14,9 +14,11 @@ import {
   Globe,
   FileText,
   Info,
-  Image as ImageIcon
+  Image as ImageIcon,
+  History
 } from "lucide-react";
 import { Json } from "@/integrations/supabase/types";
+import { FicheHistoryPanel } from "./FicheHistoryPanel";
 
 interface FicheDetailsDialogProps {
   open: boolean;
@@ -202,11 +204,15 @@ export function FicheDetailsDialog({ open, onOpenChange, fiche }: FicheDetailsDi
         </DialogHeader>
 
         <Tabs defaultValue="general" className="mt-4">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="general">Général</TabsTrigger>
             <TabsTrigger value="media">Médias</TabsTrigger>
             <TabsTrigger value="contact">Contact</TabsTrigger>
             <TabsTrigger value="horaires">Horaires</TabsTrigger>
+            <TabsTrigger value="history" className="flex items-center gap-1">
+              <History className="h-3 w-3" />
+              Historique
+            </TabsTrigger>
             <TabsTrigger value="json">JSON</TabsTrigger>
           </TabsList>
 
@@ -471,6 +477,10 @@ export function FicheDetailsDialog({ open, onOpenChange, fiche }: FicheDetailsDi
                   </Section>
                 </>
               )}
+            </TabsContent>
+
+            <TabsContent value="history" className="mt-0">
+              <FicheHistoryPanel ficheId={fiche.fiche_id} />
             </TabsContent>
 
             <TabsContent value="json" className="mt-0">
