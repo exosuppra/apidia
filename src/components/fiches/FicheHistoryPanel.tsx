@@ -145,12 +145,14 @@ export function FicheHistoryPanel({ ficheId }: FicheHistoryPanelProps) {
         return <Plus className="h-4 w-4 text-green-600" />;
       case 'update':
         return <Edit className="h-4 w-4 text-blue-600" />;
+      case 'import':
+        return <Plus className="h-4 w-4 text-emerald-600" />;
       default:
         return <Clock className="h-4 w-4 text-muted-foreground" />;
     }
   };
 
-  const getActionLabel = (actionType: string) => {
+  const getActionLabel = (actionType: string, metadata?: Record<string, unknown> | null) => {
     switch (actionType) {
       case 'publish':
         return 'Fiche publiée';
@@ -164,6 +166,11 @@ export function FicheHistoryPanel({ ficheId }: FicheHistoryPanelProps) {
         return 'Fiche créée';
       case 'update':
         return 'Mise à jour';
+      case 'import':
+        const source = metadata?.source;
+        if (source === 'json_import') return 'Importation JSON';
+        if (source === 'make_webhook') return 'Importation Webhook';
+        return 'Importation initiale';
       default:
         return actionType;
     }
@@ -225,7 +232,7 @@ export function FicheHistoryPanel({ ficheId }: FicheHistoryPanelProps) {
               <div className="flex-1 space-y-1.5 pb-4">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="font-medium text-sm">
-                    {getActionLabel(entry.action_type)}
+                    {getActionLabel(entry.action_type, entry.metadata)}
                   </span>
                   <Badge 
                     variant={getActorBadgeVariant(entry.actor_type)} 

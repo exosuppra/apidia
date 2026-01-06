@@ -399,13 +399,13 @@ Deno.serve(async (req: Request) => {
         }
       } else {
         // Insert new
-        const { error } = await supabase.from("fiches_data").insert({
+        const { data: insertedFiche, error } = await supabase.from("fiches_data").insert({
           fiche_type,
           fiche_id,
           data: enrichedData,
           synced_to_sheets: false,
           source: "make_webhook",
-        });
+        }).select('id').single();
 
         if (error) {
           console.error("Error inserting fiche:", error);
@@ -413,6 +413,30 @@ Deno.serve(async (req: Request) => {
         } else {
           results.inserted++;
           console.log(`Inserted fiche: ${fiche_type}/${fiche_id} with ${storedMedia.length} media`);
+          
+          // Log history for new fiche
+          const ficheName = (data as Record<string, unknown>).nom 
+            ? ((data as Record<string, unknown>).nom as Record<string, string>)?.libelleFr || 'Sans nom'
+            : 'Sans nom';
+          
+          try {
+            await supabase.from('fiche_history').insert({
+              fiche_id: fiche_id,
+              fiche_uuid: insertedFiche?.id || null,
+              action_type: 'import',
+              actor_type: 'system',
+              actor_name: 'Webhook Make',
+              metadata: {
+                source: 'make_webhook',
+                fiche_type: fiche_type,
+                fiche_name: ficheName,
+                media_count: storedMedia.length
+              }
+            });
+            console.log(`Logged import history for fiche ${fiche_id}`);
+          } catch (historyError) {
+            console.error(`Failed to log history for fiche ${fiche_id}:`, historyError);
+          }
         }
       }
     }
