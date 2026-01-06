@@ -253,7 +253,7 @@ IMPORTANT:
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'openai/gpt-5-mini',
+        model: 'google/gemini-2.5-flash',
         messages: [
           { role: 'system', content: 'Tu es un assistant spécialisé dans la vérification de données touristiques françaises. Tu réponds toujours en JSON valide. Tu es très prudent et ne signales que des différences dont tu es certain.' },
           { role: 'user', content: prompt }
