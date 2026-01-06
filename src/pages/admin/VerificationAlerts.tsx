@@ -2,9 +2,11 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -43,6 +45,9 @@ import {
   Clock,
   Play,
   Wand2,
+  Settings,
+  Save,
+  Calendar,
 } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -65,6 +70,18 @@ interface VerificationAlert {
   notes: string | null;
 }
 
+interface VerificationConfig {
+  id: string;
+  is_enabled: boolean;
+  schedule_type: string;
+  fiches_per_run: number;
+  days_between_verification: number;
+  exclude_recently_modified: boolean;
+  days_consider_recent: number;
+  last_run_at: string | null;
+  next_run_at: string | null;
+}
+
 const fieldLabels: Record<string, string> = {
   telephone: "Téléphone",
   email: "Email",
@@ -78,6 +95,12 @@ const statusLabels: Record<string, { label: string; variant: "default" | "second
   confirmed: { label: "Confirmé", variant: "destructive" },
   ignored: { label: "Ignoré", variant: "secondary" },
   fixed: { label: "Corrigé", variant: "outline" },
+};
+
+const scheduleLabels: Record<string, string> = {
+  daily: "Quotidien",
+  weekly: "Hebdomadaire",
+  monthly: "Mensuel",
 };
 
 export default function VerificationAlerts() {
@@ -101,6 +124,73 @@ export default function VerificationAlerts() {
     fixed: 0,
   });
 
+  // Configuration state
+  const [config, setConfig] = useState<VerificationConfig | null>(null);
+  const [configLoading, setConfigLoading] = useState(true);
+  const [savingConfig, setSavingConfig] = useState(false);
+  const [pendingFichesCount, setPendingFichesCount] = useState(0);
+
+  const loadConfig = async () => {
+    setConfigLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from("verification_config")
+        .select("*")
+        .limit(1)
+        .single();
+
+      if (error && error.code !== 'PGRST116') throw error;
+
+      if (data) {
+        setConfig(data as VerificationConfig);
+      }
+
+      // Compter les fiches en attente de vérification
+      const thresholdDate = new Date();
+      thresholdDate.setDate(thresholdDate.getDate() - (data?.days_between_verification || 30));
+
+      const { count } = await supabase
+        .from("fiches_data")
+        .select("*", { count: "exact", head: true })
+        .or(`last_verified_at.is.null,last_verified_at.lt.${thresholdDate.toISOString()}`);
+
+      setPendingFichesCount(count || 0);
+    } catch (error) {
+      console.error("Error loading config:", error);
+      toast.error("Erreur lors du chargement de la configuration");
+    } finally {
+      setConfigLoading(false);
+    }
+  };
+
+  const saveConfig = async () => {
+    if (!config) return;
+
+    setSavingConfig(true);
+    try {
+      const { error } = await supabase
+        .from("verification_config")
+        .update({
+          is_enabled: config.is_enabled,
+          schedule_type: config.schedule_type,
+          fiches_per_run: config.fiches_per_run,
+          days_between_verification: config.days_between_verification,
+          exclude_recently_modified: config.exclude_recently_modified,
+          days_consider_recent: config.days_consider_recent,
+        })
+        .eq("id", config.id);
+
+      if (error) throw error;
+
+      toast.success("Configuration sauvegardée");
+    } catch (error) {
+      console.error("Error saving config:", error);
+      toast.error("Erreur lors de la sauvegarde");
+    } finally {
+      setSavingConfig(false);
+    }
+  };
+
   const loadAlerts = async () => {
     setLoading(true);
     try {
@@ -111,11 +201,9 @@ export default function VerificationAlerts() {
 
       if (error) throw error;
 
-      // Type assertion since we know the structure
       const typedData = (data || []) as VerificationAlert[];
       setAlerts(typedData);
 
-      // Calculate stats
       const newStats = {
         total: typedData.length,
         pending: typedData.filter((a) => a.status === "pending").length,
@@ -134,6 +222,7 @@ export default function VerificationAlerts() {
 
   useEffect(() => {
     loadAlerts();
+    loadConfig();
   }, []);
 
   const filteredAlerts = alerts.filter((alert) => {
@@ -184,7 +273,6 @@ export default function VerificationAlerts() {
 
     setApplyingCorrection(true);
     try {
-      // Get current user info
       const { data: userData } = await supabase.auth.getUser();
       const { data: profileData } = await supabase
         .from('profiles')
@@ -225,16 +313,21 @@ export default function VerificationAlerts() {
     setRunningVerification(true);
     try {
       const { data, error } = await supabase.functions.invoke("verify-all-fiches", {
-        body: { limit: 10, days_since_verification: 30 },
+        body: { 
+          manual: true,
+          limit: config?.fiches_per_run || 10, 
+          days_since_verification: config?.days_between_verification || 30 
+        },
       });
 
       if (error) throw error;
 
       if (data.success) {
         toast.success(
-          `Vérification terminée : ${data.verified} fiches vérifiées, ${data.details?.filter((d: any) => d.alerts_count > 0).length || 0} avec alertes`
+          `Vérification terminée : ${data.verified} fiches vérifiées, ${data.details?.filter((d: { alerts_count?: number }) => d.alerts_count && d.alerts_count > 0).length || 0} avec alertes`
         );
         loadAlerts();
+        loadConfig(); // Recharger la config pour mettre à jour les dates
       } else {
         toast.error(data.error || "Erreur lors de la vérification");
       }
@@ -289,60 +382,227 @@ export default function VerificationAlerts() {
             </div>
           </div>
 
+          {/* Configuration Card */}
+          <Card className="mb-6">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Settings className="h-5 w-5 text-muted-foreground" />
+                  <CardTitle className="text-lg">Configuration automatique</CardTitle>
+                </div>
+                <Button 
+                  onClick={saveConfig} 
+                  disabled={savingConfig || !config}
+                  size="sm"
+                >
+                  {savingConfig ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Save className="h-4 w-4 mr-2" />
+                  )}
+                  Sauvegarder
+                </Button>
+              </div>
+              <CardDescription>
+                Configurez la vérification automatique des fiches
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {configLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                </div>
+              ) : config ? (
+                <div className="space-y-6">
+                  {/* Activation toggle */}
+                  <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
+                    <div className="space-y-0.5">
+                      <Label className="text-base font-medium">Vérification automatique</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Activer la vérification automatique des fiches selon le planning configuré
+                      </p>
+                    </div>
+                    <Switch
+                      checked={config.is_enabled}
+                      onCheckedChange={(checked) => setConfig({ ...config, is_enabled: checked })}
+                    />
+                  </div>
+
+                  {/* Configuration grid */}
+                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                    {/* Fréquence */}
+                    <div className="space-y-2">
+                      <Label>Fréquence</Label>
+                      <Select
+                        value={config.schedule_type}
+                        onValueChange={(value) => setConfig({ ...config, schedule_type: value })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="daily">Quotidien</SelectItem>
+                          <SelectItem value="weekly">Hebdomadaire</SelectItem>
+                          <SelectItem value="monthly">Mensuel</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Fiches par exécution */}
+                    <div className="space-y-2">
+                      <Label>Fiches par exécution</Label>
+                      <Input
+                        type="number"
+                        min={1}
+                        max={100}
+                        value={config.fiches_per_run}
+                        onChange={(e) => setConfig({ ...config, fiches_per_run: parseInt(e.target.value) || 30 })}
+                      />
+                    </div>
+
+                    {/* Jours entre vérifications */}
+                    <div className="space-y-2">
+                      <Label>Jours entre vérifications</Label>
+                      <Input
+                        type="number"
+                        min={1}
+                        max={365}
+                        value={config.days_between_verification}
+                        onChange={(e) => setConfig({ ...config, days_between_verification: parseInt(e.target.value) || 30 })}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Options avancées */}
+                  <div className="space-y-4 pt-4 border-t">
+                    <h4 className="text-sm font-medium text-muted-foreground">Options avancées</h4>
+                    
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label>Exclure les fiches récemment modifiées</Label>
+                        <p className="text-xs text-muted-foreground">
+                          Ne pas vérifier les fiches modifiées manuellement récemment
+                        </p>
+                      </div>
+                      <Switch
+                        checked={config.exclude_recently_modified}
+                        onCheckedChange={(checked) => setConfig({ ...config, exclude_recently_modified: checked })}
+                      />
+                    </div>
+
+                    {config.exclude_recently_modified && (
+                      <div className="space-y-2 ml-4 pl-4 border-l-2">
+                        <Label className="text-sm">Considérer comme "récente" si modifiée dans les derniers</Label>
+                        <div className="flex items-center gap-2">
+                          <Input
+                            type="number"
+                            min={1}
+                            max={90}
+                            className="w-20"
+                            value={config.days_consider_recent}
+                            onChange={(e) => setConfig({ ...config, days_consider_recent: parseInt(e.target.value) || 7 })}
+                          />
+                          <span className="text-sm text-muted-foreground">jours</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Status info */}
+                  <div className="grid gap-4 md:grid-cols-3 pt-4 border-t">
+                    <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
+                      <Calendar className="h-5 w-5 text-muted-foreground" />
+                      <div>
+                        <p className="text-xs text-muted-foreground">Dernière exécution</p>
+                        <p className="text-sm font-medium">
+                          {config.last_run_at 
+                            ? format(new Date(config.last_run_at), "dd MMM yyyy 'à' HH:mm", { locale: fr })
+                            : "Jamais"
+                          }
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
+                      <Clock className="h-5 w-5 text-muted-foreground" />
+                      <div>
+                        <p className="text-xs text-muted-foreground">Prochaine exécution</p>
+                        <p className="text-sm font-medium">
+                          {config.is_enabled && config.next_run_at
+                            ? format(new Date(config.next_run_at), "dd MMM yyyy 'à' HH:mm", { locale: fr })
+                            : "Non planifiée"
+                          }
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
+                      <AlertTriangle className="h-5 w-5 text-orange-500" />
+                      <div>
+                        <p className="text-xs text-muted-foreground">Fiches en attente</p>
+                        <p className="text-sm font-medium">{pendingFichesCount} fiches</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-muted-foreground text-center py-4">Configuration non disponible</p>
+              )}
+            </CardContent>
+          </Card>
+
           {/* Stats cards */}
           <div className="grid gap-4 md:grid-cols-5 mb-6">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Total</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.total}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-              <Clock className="h-4 w-4 text-yellow-500" />
-              En attente
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-yellow-600">{stats.pending}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-              <AlertTriangle className="h-4 w-4 text-red-500" />
-              Confirmés
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-red-600">{stats.confirmed}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-              <XCircle className="h-4 w-4 text-gray-500" />
-              Ignorés
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-gray-600">{stats.ignored}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-              <CheckCircle className="h-4 w-4 text-green-500" />
-              Corrigés
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">{stats.fixed}</div>
-          </CardContent>
-        </Card>
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Total</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{stats.total}</div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                  <Clock className="h-4 w-4 text-yellow-500" />
+                  En attente
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-yellow-600">{stats.pending}</div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4 text-red-500" />
+                  Confirmés
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-red-600">{stats.confirmed}</div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                  <XCircle className="h-4 w-4 text-gray-500" />
+                  Ignorés
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-gray-600">{stats.ignored}</div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                  <CheckCircle className="h-4 w-4 text-green-500" />
+                  Corrigés
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-green-600">{stats.fixed}</div>
+              </CardContent>
+            </Card>
           </div>
 
           {/* Filters */}
@@ -472,110 +732,110 @@ export default function VerificationAlerts() {
 
           {/* Detail Dialog */}
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Détail de l'alerte</DialogTitle>
-            <DialogDescription>
-              {selectedAlert?.fiche_name} - {fieldLabels[selectedAlert?.field_name || ""] || selectedAlert?.field_name}
-            </DialogDescription>
-          </DialogHeader>
+            <DialogContent className="max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>Détail de l'alerte</DialogTitle>
+                <DialogDescription>
+                  {selectedAlert?.fiche_name} - {fieldLabels[selectedAlert?.field_name || ""] || selectedAlert?.field_name}
+                </DialogDescription>
+              </DialogHeader>
 
-          {selectedAlert && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-muted-foreground">Valeur actuelle (APIDAE)</label>
-                  <div className="p-3 bg-muted rounded-md">
-                    {selectedAlert.current_value || (
-                      <span className="text-muted-foreground italic">Non renseigné</span>
-                    )}
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-orange-600">Valeur trouvée sur internet</label>
-                  <div className="p-3 bg-orange-50 border border-orange-200 rounded-md text-orange-800">
-                    {selectedAlert.found_value}
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-muted-foreground">Source</label>
-                <a
-                  href={selectedAlert.source_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2 p-3 bg-muted rounded-md text-primary hover:underline break-all"
-                >
-                  {selectedAlert.source_url}
-                  <ExternalLink className="h-4 w-4 flex-shrink-0" />
-                </a>
-              </div>
-
-              {selectedAlert.confidence_score !== null && (
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-muted-foreground">Score de confiance</label>
-                  <div className="flex items-center gap-2">
-                    <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-primary"
-                        style={{ width: `${(selectedAlert.confidence_score || 0) * 100}%` }}
-                      />
+              {selectedAlert && (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-muted-foreground">Valeur actuelle (APIDAE)</label>
+                      <div className="p-3 bg-muted rounded-md">
+                        {selectedAlert.current_value || (
+                          <span className="text-muted-foreground italic">Non renseigné</span>
+                        )}
+                      </div>
                     </div>
-                    <span className="text-sm font-medium">
-                      {Math.round((selectedAlert.confidence_score || 0) * 100)}%
-                    </span>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-orange-600">Valeur trouvée sur internet</label>
+                      <div className="p-3 bg-orange-50 border border-orange-200 rounded-md text-orange-800">
+                        {selectedAlert.found_value}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-muted-foreground">Source</label>
+                    <a
+                      href={selectedAlert.source_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 p-3 bg-muted rounded-md text-primary hover:underline break-all"
+                    >
+                      {selectedAlert.source_url}
+                      <ExternalLink className="h-4 w-4 flex-shrink-0" />
+                    </a>
+                  </div>
+
+                  {selectedAlert.confidence_score !== null && (
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-muted-foreground">Score de confiance</label>
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-primary"
+                            style={{ width: `${(selectedAlert.confidence_score || 0) * 100}%` }}
+                          />
+                        </div>
+                        <span className="text-sm font-medium">
+                          {Math.round((selectedAlert.confidence_score || 0) * 100)}%
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-muted-foreground">Notes</label>
+                    <Textarea
+                      value={notes}
+                      onChange={(e) => setNotes(e.target.value)}
+                      placeholder="Ajoutez des notes sur cette alerte..."
+                      rows={3}
+                    />
                   </div>
                 </div>
               )}
 
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-muted-foreground">Notes</label>
-                <Textarea
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Ajoutez des notes sur cette alerte..."
-                  rows={3}
-                />
-              </div>
-            </div>
-          )}
-
-          <DialogFooter className="flex-col sm:flex-row gap-2">
-            <Button
-              variant="outline"
-              onClick={() => handleUpdateStatus("ignored")}
-              disabled={updating || applyingCorrection}
-              className="flex-1"
-            >
-              <XCircle className="h-4 w-4 mr-2" />
-              Ignorer
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={() => handleUpdateStatus("confirmed")}
-              disabled={updating || applyingCorrection}
-              className="flex-1"
-            >
-              <AlertTriangle className="h-4 w-4 mr-2" />
-              Confirmer le problème
-            </Button>
-            <Button
-              variant="secondary"
-              onClick={handleApplyCorrection}
-              disabled={updating || applyingCorrection || selectedAlert?.status === 'fixed'}
-              className="flex-1 bg-green-600 hover:bg-green-700 text-white"
-            >
-              {applyingCorrection ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              ) : (
-                <Wand2 className="h-4 w-4 mr-2" />
-              )}
-              Appliquer la correction
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+              <DialogFooter className="flex-col sm:flex-row gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => handleUpdateStatus("ignored")}
+                  disabled={updating || applyingCorrection}
+                  className="flex-1"
+                >
+                  <XCircle className="h-4 w-4 mr-2" />
+                  Ignorer
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={() => handleUpdateStatus("confirmed")}
+                  disabled={updating || applyingCorrection}
+                  className="flex-1"
+                >
+                  <AlertTriangle className="h-4 w-4 mr-2" />
+                  Confirmer le problème
+                </Button>
+                <Button
+                  variant="secondary"
+                  onClick={handleApplyCorrection}
+                  disabled={updating || applyingCorrection || selectedAlert?.status === 'fixed'}
+                  className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+                >
+                  {applyingCorrection ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Wand2 className="h-4 w-4 mr-2" />
+                  )}
+                  Appliquer la correction
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
     </>
