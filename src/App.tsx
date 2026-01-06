@@ -29,6 +29,7 @@ import SuiviRH from "./pages/admin/SuiviRH";
 import StatsWeb from "./pages/admin/StatsWeb";
 import StatsEreputation from "./pages/admin/StatsEreputation";
 import VerificationAlerts from "./pages/admin/VerificationAlerts";
+import ImportFiches from "./pages/admin/ImportFiches";
 import Fiches from "./pages/dashboard/Fiches";
 import Catalogue from "./pages/Catalogue";
 import ApidaeDetails from "./pages/ApidaeDetails";
@@ -175,6 +176,17 @@ const App = () => (
                   <RequirePermission pageKey="fiches">
                     <AdminLayout>
                       <VerificationAlerts />
+                    </AdminLayout>
+                  </RequirePermission>
+                </RequirePasswordChange>
+              </RequireAdminAuth>
+            } />
+            <Route path="/admin/import-fiches" element={
+              <RequireAdminAuth>
+                <RequirePasswordChange>
+                  <RequirePermission pageKey="fiches">
+                    <AdminLayout>
+                      <ImportFiches />
                     </AdminLayout>
                   </RequirePermission>
                 </RequirePasswordChange>
