@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -31,6 +32,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import {
   AlertTriangle,
+  ArrowLeft,
   CheckCircle,
   ExternalLink,
   Eye,
@@ -44,6 +46,7 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import Seo from "@/components/Seo";
 
 interface VerificationAlert {
   id: string;
@@ -78,6 +81,7 @@ const statusLabels: Record<string, { label: string; variant: "default" | "second
 };
 
 export default function VerificationAlerts() {
+  const navigate = useNavigate();
   const [alerts, setAlerts] = useState<VerificationAlert[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -243,32 +247,50 @@ export default function VerificationAlerts() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Alertes de vérification</h1>
-          <p className="text-muted-foreground">
-            Différences détectées entre les données APIDAE et les sources internet
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={loadAlerts} disabled={loading}>
-            <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
-            Actualiser
-          </Button>
-          <Button onClick={handleRunVerification} disabled={runningVerification}>
-            {runningVerification ? (
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            ) : (
-              <Play className="h-4 w-4 mr-2" />
-            )}
-            Lancer une vérification
-          </Button>
-        </div>
-      </div>
+    <>
+      <Seo 
+        title="Alertes de vérification - Administration"
+        description="Gestion des alertes de vérification des fiches APIDAE"
+      />
+      
+      <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/5">
+        <div className="container mx-auto p-6">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-8">
+            <div className="flex items-center gap-3">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => navigate("/admin/fiches")}
+              >
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Retour aux fiches
+              </Button>
+              <div>
+                <h1 className="text-2xl font-bold">Alertes de vérification</h1>
+                <p className="text-sm text-muted-foreground">
+                  Différences détectées entre les données APIDAE et les sources internet
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={loadAlerts} disabled={loading}>
+                <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
+                Actualiser
+              </Button>
+              <Button onClick={handleRunVerification} disabled={runningVerification}>
+                {runningVerification ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Play className="h-4 w-4 mr-2" />
+                )}
+                Lancer une vérification
+              </Button>
+            </div>
+          </div>
 
-      {/* Stats cards */}
-      <div className="grid gap-4 md:grid-cols-5">
+          {/* Stats cards */}
+          <div className="grid gap-4 md:grid-cols-5 mb-6">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">Total</CardTitle>
@@ -321,135 +343,135 @@ export default function VerificationAlerts() {
             <div className="text-2xl font-bold text-green-600">{stats.fixed}</div>
           </CardContent>
         </Card>
-      </div>
-
-      {/* Filters */}
-      <Card>
-        <CardContent className="pt-6">
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Rechercher par nom ou ID de fiche..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-            </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Statut" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Tous les statuts</SelectItem>
-                <SelectItem value="pending">En attente</SelectItem>
-                <SelectItem value="confirmed">Confirmé</SelectItem>
-                <SelectItem value="ignored">Ignoré</SelectItem>
-                <SelectItem value="fixed">Corrigé</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={fieldFilter} onValueChange={setFieldFilter}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Champ" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Tous les champs</SelectItem>
-                <SelectItem value="telephone">Téléphone</SelectItem>
-                <SelectItem value="email">Email</SelectItem>
-                <SelectItem value="site_web">Site web</SelectItem>
-                <SelectItem value="adresse">Adresse</SelectItem>
-              </SelectContent>
-            </Select>
           </div>
-        </CardContent>
-      </Card>
 
-      {/* Alerts table */}
-      <Card>
-        <CardContent className="p-0">
-          {loading ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-            </div>
-          ) : filteredAlerts.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
-              <CheckCircle className="h-12 w-12 mb-4 opacity-50" />
-              <p>Aucune alerte trouvée</p>
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Fiche</TableHead>
-                  <TableHead>Champ</TableHead>
-                  <TableHead>Valeur actuelle</TableHead>
-                  <TableHead>Valeur trouvée</TableHead>
-                  <TableHead>Source</TableHead>
-                  <TableHead>Statut</TableHead>
-                  <TableHead>Date</TableHead>
-                  <TableHead className="w-[100px]">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredAlerts.map((alert) => (
-                  <TableRow key={alert.id}>
-                    <TableCell>
-                      <div>
-                        <div className="font-medium truncate max-w-[200px]">
-                          {alert.fiche_name || alert.fiche_id}
-                        </div>
-                        <div className="text-xs text-muted-foreground">{alert.fiche_type}</div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline">{fieldLabels[alert.field_name] || alert.field_name}</Badge>
-                    </TableCell>
-                    <TableCell>
-                      <span className="text-sm truncate max-w-[150px] block">
-                        {alert.current_value || <span className="text-muted-foreground italic">Non renseigné</span>}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <span className="text-sm truncate max-w-[150px] block text-orange-600 font-medium">
-                        {alert.found_value}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <a
-                        href={alert.source_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-sm text-primary hover:underline flex items-center gap-1"
-                      >
-                        {alert.source_name || "Source"}
-                        <ExternalLink className="h-3 w-3" />
-                      </a>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={statusLabels[alert.status]?.variant || "default"}>
-                        {statusLabels[alert.status]?.label || alert.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      {format(new Date(alert.created_at), "dd MMM yyyy", { locale: fr })}
-                    </TableCell>
-                    <TableCell>
-                      <Button variant="ghost" size="sm" onClick={() => handleViewDetails(alert)}>
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+          {/* Filters */}
+          <Card className="mb-6">
+            <CardContent className="pt-6">
+              <div className="flex flex-col md:flex-row gap-4">
+                <div className="flex-1">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Rechercher par nom ou ID de fiche..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
+                </div>
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="Statut" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Tous les statuts</SelectItem>
+                    <SelectItem value="pending">En attente</SelectItem>
+                    <SelectItem value="confirmed">Confirmé</SelectItem>
+                    <SelectItem value="ignored">Ignoré</SelectItem>
+                    <SelectItem value="fixed">Corrigé</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Select value={fieldFilter} onValueChange={setFieldFilter}>
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="Champ" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Tous les champs</SelectItem>
+                    <SelectItem value="telephone">Téléphone</SelectItem>
+                    <SelectItem value="email">Email</SelectItem>
+                    <SelectItem value="site_web">Site web</SelectItem>
+                    <SelectItem value="adresse">Adresse</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </CardContent>
+          </Card>
 
-      {/* Detail Dialog */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          {/* Alerts table */}
+          <Card>
+            <CardContent className="p-0">
+              {loading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                </div>
+              ) : filteredAlerts.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+                  <CheckCircle className="h-12 w-12 mb-4 opacity-50" />
+                  <p>Aucune alerte trouvée</p>
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Fiche</TableHead>
+                      <TableHead>Champ</TableHead>
+                      <TableHead>Valeur actuelle</TableHead>
+                      <TableHead>Valeur trouvée</TableHead>
+                      <TableHead>Source</TableHead>
+                      <TableHead>Statut</TableHead>
+                      <TableHead>Date</TableHead>
+                      <TableHead className="w-[100px]">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredAlerts.map((alert) => (
+                      <TableRow key={alert.id}>
+                        <TableCell>
+                          <div>
+                            <div className="font-medium truncate max-w-[200px]">
+                              {alert.fiche_name || alert.fiche_id}
+                            </div>
+                            <div className="text-xs text-muted-foreground">{alert.fiche_type}</div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline">{fieldLabels[alert.field_name] || alert.field_name}</Badge>
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-sm truncate max-w-[150px] block">
+                            {alert.current_value || <span className="text-muted-foreground italic">Non renseigné</span>}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-sm truncate max-w-[150px] block text-orange-600 font-medium">
+                            {alert.found_value}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <a
+                            href={alert.source_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-sm text-primary hover:underline flex items-center gap-1"
+                          >
+                            {alert.source_name || "Source"}
+                            <ExternalLink className="h-3 w-3" />
+                          </a>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={statusLabels[alert.status]?.variant || "default"}>
+                            {statusLabels[alert.status]?.label || alert.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {format(new Date(alert.created_at), "dd MMM yyyy", { locale: fr })}
+                        </TableCell>
+                        <TableCell>
+                          <Button variant="ghost" size="sm" onClick={() => handleViewDetails(alert)}>
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Detail Dialog */}
+          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Détail de l'alerte</DialogTitle>
@@ -554,6 +576,8 @@ export default function VerificationAlerts() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+        </div>
+      </div>
+    </>
   );
 }
