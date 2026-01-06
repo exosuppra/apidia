@@ -179,8 +179,8 @@ serve(async (req) => {
         query: searchQuery,
         limit: 5,
         scrapeOptions: {
-          formats: ['markdown', { 
-            type: 'json', 
+          formats: ['markdown', 'extract'],
+          extract: {
             schema: {
               type: 'object',
               properties: {
@@ -190,7 +190,7 @@ serve(async (req) => {
                 address: { type: 'string', description: 'Full address of the establishment' },
               }
             }
-          }]
+          }
         }
       }),
     });
@@ -213,7 +213,7 @@ serve(async (req) => {
     for (const result of (searchResults.data || [])) {
       const sourceUrl = result.url;
       const sourceName = new URL(sourceUrl).hostname.replace('www.', '');
-      const extractedData = result.json || {};
+      const extractedData = result.extract || {};
       
       console.log(`Processing result from ${sourceName}:`, extractedData);
 
