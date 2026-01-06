@@ -509,20 +509,20 @@ export default function AllFiches() {
                         return (
                         <TableRow key={fiche.id} className={expired ? "opacity-60" : ""}>
                           <TableCell>
-                            {expired ? (
+                            {!fiche.is_published ? (
+                              <Badge variant="secondary" className="text-xs">
+                                <EyeOff className="w-3 h-3 mr-1" />
+                                Masqué
+                              </Badge>
+                            ) : expired ? (
                               <Badge variant="secondary" className="text-xs">
                                 <Calendar className="w-3 h-3 mr-1" />
                                 Expiré
                               </Badge>
-                            ) : fiche.is_published ? (
+                            ) : (
                               <Badge className="text-xs bg-green-500/20 text-green-700 border-green-500/30">
                                 <Eye className="w-3 h-3 mr-1" />
                                 Publié
-                              </Badge>
-                            ) : (
-                              <Badge variant="secondary" className="text-xs">
-                                <EyeOff className="w-3 h-3 mr-1" />
-                                Masqué
                               </Badge>
                             )}
                           </TableCell>
