@@ -43,8 +43,25 @@ const getChangesFields = (changes: HistoryEntry['changes']): ChangeField[] => {
   return [];
 };
 
+// Helper to parse value (handles stringified JSON)
+const parseValue = (value: unknown): unknown => {
+  if (typeof value === 'string') {
+    // Try to parse if it looks like JSON
+    if (value.startsWith('[') || value.startsWith('{')) {
+      try {
+        return JSON.parse(value);
+      } catch {
+        return value;
+      }
+    }
+  }
+  return value;
+};
+
 // Helper to format value for display - human readable
-const formatValue = (value: unknown): string => {
+const formatValue = (rawValue: unknown): string => {
+  const value = parseValue(rawValue);
+  
   if (value === null || value === undefined) return '(vide)';
   if (typeof value === 'string') return value || '(vide)';
   
