@@ -378,17 +378,40 @@ serve(async (req) => {
       }
     }
 
-    // Deduplicate alerts by field_name (keep highest confidence)
-    const uniqueAlerts = Object.values(
-      alerts.reduce((acc, alert) => {
-        if (!acc[alert.field_name] || acc[alert.field_name].confidence_score < alert.confidence_score) {
-          acc[alert.field_name] = alert;
-        }
-        return acc;
-      }, {} as Record<string, VerificationResult>)
-    );
+    // Group alerts by field_name and normalize found values for comparison
+    const alertsByField: Record<string, VerificationResult[]> = {};
+    for (const alert of alerts) {
+      if (!alertsByField[alert.field_name]) {
+        alertsByField[alert.field_name] = [];
+      }
+      alertsByField[alert.field_name].push(alert);
+    }
 
-    console.log(`Found ${uniqueAlerts.length} unique alerts`);
+    // Only keep alerts where at least 2 independent sources report a discrepancy
+    const confirmedAlerts: VerificationResult[] = [];
+    
+    for (const [fieldName, fieldAlerts] of Object.entries(alertsByField)) {
+      // Get unique sources for this field
+      const uniqueSources = new Set(fieldAlerts.map(a => a.source_name));
+      
+      console.log(`Field "${fieldName}": ${fieldAlerts.length} alerts from ${uniqueSources.size} unique sources`);
+      
+      if (uniqueSources.size >= 2) {
+        // At least 2 sources confirm there's a discrepancy
+        // Keep the alert with highest confidence, but boost its score
+        const bestAlert = fieldAlerts.reduce((best, current) => 
+          current.confidence_score > best.confidence_score ? current : best
+        );
+        bestAlert.confidence_score = Math.min(1, bestAlert.confidence_score + 0.15); // Boost confidence
+        confirmedAlerts.push(bestAlert);
+        console.log(`  → Confirmed by ${uniqueSources.size} sources: ${Array.from(uniqueSources).join(', ')}`);
+      } else {
+        console.log(`  → Skipped: only ${uniqueSources.size} source(s), need at least 2 to confirm`);
+      }
+    }
+
+    const uniqueAlerts = confirmedAlerts;
+    console.log(`Found ${uniqueAlerts.length} confirmed alerts (from ${alerts.length} total candidates)`);
 
     // Insert alerts into database
     if (uniqueAlerts.length > 0) {
