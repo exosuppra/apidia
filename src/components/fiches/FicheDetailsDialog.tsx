@@ -18,11 +18,15 @@ import {
   Info,
   Image as ImageIcon,
   History,
-  Pencil
+  Pencil,
+  Radar,
+  Loader2
 } from "lucide-react";
 import { Json } from "@/integrations/supabase/types";
 import { FicheHistoryPanel } from "./FicheHistoryPanel";
 import { FicheEditForm } from "./FicheEditForm";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface FicheDetailsDialogProps {
   open: boolean;
@@ -94,6 +98,7 @@ const InfoRow = ({ label, value }: { label: string; value: string | React.ReactN
 
 export function FicheDetailsDialog({ open, onOpenChange, fiche, onFicheUpdated }: FicheDetailsDialogProps) {
   const [isEditing, setIsEditing] = useState(false);
+  const [isVerifying, setIsVerifying] = useState(false);
   
   if (!fiche) return null;
 
@@ -102,6 +107,39 @@ export function FicheDetailsDialog({ open, onOpenChange, fiche, onFicheUpdated }
   const handleSave = () => {
     setIsEditing(false);
     onFicheUpdated?.();
+  };
+
+  const handleVerify = async () => {
+    setIsVerifying(true);
+    try {
+      const { data: result, error } = await supabase.functions.invoke('verify-fiche-data', {
+        body: { fiche_id: fiche.fiche_id }
+      });
+
+      if (error) throw error;
+
+      if (result.success) {
+        if (result.alerts_count > 0) {
+          toast.warning(`${result.alerts_count} différence(s) trouvée(s)`, {
+            description: "Consultez les alertes pour plus de détails"
+          });
+        } else {
+          toast.success("Aucune différence trouvée", {
+            description: "Les informations sont cohérentes"
+          });
+        }
+        onFicheUpdated?.();
+      } else {
+        throw new Error(result.error || "Erreur lors de la vérification");
+      }
+    } catch (error) {
+      console.error('Verification error:', error);
+      toast.error("Erreur lors de la vérification", {
+        description: error instanceof Error ? error.message : "Impossible de vérifier la fiche"
+      });
+    } finally {
+      setIsVerifying(false);
+    }
   };
   
   // Extract main info
@@ -208,10 +246,26 @@ export function FicheDetailsDialog({ open, onOpenChange, fiche, onFicheUpdated }
               </Badge>
             </DialogTitle>
             {!isEditing && (
-              <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
-                <Pencil className="w-4 h-4 mr-2" />
-                Modifier
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={handleVerify}
+                  disabled={isVerifying}
+                  title="Rechercher des informations sur le web"
+                >
+                  {isVerifying ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <Radar className="w-4 h-4 mr-2" />
+                  )}
+                  {isVerifying ? "Recherche..." : "Vérifier"}
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
+                  <Pencil className="w-4 h-4 mr-2" />
+                  Modifier
+                </Button>
+              </div>
             )}
           </div>
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
