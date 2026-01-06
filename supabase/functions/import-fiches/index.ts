@@ -72,7 +72,7 @@ serve(async (req: Request) => {
         }
 
         // Insert new fiche
-        const { error: insertError } = await supabase
+        const { data: insertedFiche, error: insertError } = await supabase
           .from("fiches_data")
           .insert({
             fiche_id: ficheId,
@@ -82,7 +82,9 @@ serve(async (req: Request) => {
             is_published: isPublished,
             synced_to_sheets: false,
             verification_status: "not_verified",
-          });
+          })
+          .select('id')
+          .single();
 
         if (insertError) {
           console.error(`Error inserting fiche ${ficheId}:`, insertError.message);
@@ -94,6 +96,25 @@ serve(async (req: Request) => {
         console.log(`Successfully imported fiche ${ficheId}: ${ficheName}`);
         results.imported++;
         results.details.push({ fiche_id: ficheId, status: "imported", name: ficheName });
+
+        // Log history for new fiche
+        try {
+          await supabase.from('fiche_history').insert({
+            fiche_id: ficheId,
+            fiche_uuid: insertedFiche?.id || null,
+            action_type: 'import',
+            actor_type: 'system',
+            actor_name: 'Import JSON',
+            metadata: {
+              source: 'json_import',
+              fiche_type: ficheType,
+              fiche_name: ficheName
+            }
+          });
+          console.log(`Logged import history for fiche ${ficheId}`);
+        } catch (historyError) {
+          console.error(`Failed to log history for fiche ${ficheId}:`, historyError);
+        }
 
       } catch (ficheError: any) {
         const ficheId = fiche.identifier || fiche.id || "unknown";
