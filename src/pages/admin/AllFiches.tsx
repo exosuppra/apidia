@@ -239,12 +239,17 @@ export default function AllFiches() {
     let result = fiches;
 
     // Filter by publish status
+    // Only FMA (Fête et manifestation) fiches should be considered expired
+    const isFMAExpired = (fiche: FicheData) => 
+      fiche.fiche_type === "FETE_ET_MANIFESTATION" && isOpeningExpired(fiche.data);
+    
     if (publishFilter === "published") {
-      result = result.filter(f => f.is_published && !isOpeningExpired(f.data));
+      result = result.filter(f => f.is_published && !isFMAExpired(f));
     } else if (publishFilter === "hidden") {
       result = result.filter(f => !f.is_published);
     } else if (publishFilter === "expired") {
-      result = result.filter(f => isOpeningExpired(f.data));
+      // Only show FMA fiches in the expired filter
+      result = result.filter(f => isFMAExpired(f));
     } else if (publishFilter === "verified") {
       result = result.filter(f => f.last_verified_at !== null);
     }
