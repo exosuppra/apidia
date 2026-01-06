@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import Seo from "@/components/Seo";
-import { ArrowLeft, Loader2, RefreshCw, Search, Eye, CheckCircle, XCircle, Upload, ShieldCheck, AlertTriangle, EyeOff, Calendar, Radar } from "lucide-react";
+import { ArrowLeft, Loader2, RefreshCw, Search, Eye, CheckCircle, XCircle, Upload, ShieldCheck, AlertTriangle, EyeOff, Calendar, Radar, FileUp } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
@@ -376,6 +376,14 @@ export default function AllFiches() {
             </div>
             
             <div className="flex items-center gap-2">
+              <Button
+                onClick={() => navigate("/admin/import-fiches")}
+                variant="outline"
+                size="sm"
+              >
+                <FileUp className="w-4 h-4 mr-2" />
+                Importer JSON
+              </Button>
               <Button
                 onClick={() => navigate("/admin/verification-alerts")}
                 variant="outline"
