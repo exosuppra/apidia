@@ -1,5 +1,7 @@
+import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -15,15 +17,18 @@ import {
   FileText,
   Info,
   Image as ImageIcon,
-  History
+  History,
+  Pencil
 } from "lucide-react";
 import { Json } from "@/integrations/supabase/types";
 import { FicheHistoryPanel } from "./FicheHistoryPanel";
+import { FicheEditForm } from "./FicheEditForm";
 
 interface FicheDetailsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   fiche: {
+    id: string;
     fiche_type: string;
     fiche_id: string;
     data: Json;
@@ -31,6 +36,7 @@ interface FicheDetailsDialogProps {
     source: string;
     synced_to_sheets: boolean;
   } | null;
+  onFicheUpdated?: () => void;
 }
 
 // Helper to safely get nested values
@@ -86,10 +92,17 @@ const InfoRow = ({ label, value }: { label: string; value: string | React.ReactN
   );
 };
 
-export function FicheDetailsDialog({ open, onOpenChange, fiche }: FicheDetailsDialogProps) {
+export function FicheDetailsDialog({ open, onOpenChange, fiche, onFicheUpdated }: FicheDetailsDialogProps) {
+  const [isEditing, setIsEditing] = useState(false);
+  
   if (!fiche) return null;
 
   const data = fiche.data as Record<string, unknown>;
+  
+  const handleSave = () => {
+    setIsEditing(false);
+    onFicheUpdated?.();
+  };
   
   // Extract main info
   const nom = getString(data, 'nom.libelleFr');
@@ -181,15 +194,26 @@ export function FicheDetailsDialog({ open, onOpenChange, fiche }: FicheDetailsDi
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={(open) => {
+      if (!open) setIsEditing(false);
+      onOpenChange(open);
+    }}>
       <DialogContent className="max-w-3xl max-h-[85vh]">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-3">
-            <span className="truncate">{nom || `Fiche ${fiche.fiche_id}`}</span>
-            <Badge variant="outline" className={getStateColor(state)}>
-              {state || 'N/A'}
-            </Badge>
-          </DialogTitle>
+          <div className="flex items-center justify-between">
+            <DialogTitle className="flex items-center gap-3">
+              <span className="truncate">{nom || `Fiche ${fiche.fiche_id}`}</span>
+              <Badge variant="outline" className={getStateColor(state)}>
+                {state || 'N/A'}
+              </Badge>
+            </DialogTitle>
+            {!isEditing && (
+              <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
+                <Pencil className="w-4 h-4 mr-2" />
+                Modifier
+              </Button>
+            )}
+          </div>
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <Badge variant="secondary">{fiche.fiche_type}</Badge>
             <span>•</span>
@@ -203,8 +227,17 @@ export function FicheDetailsDialog({ open, onOpenChange, fiche }: FicheDetailsDi
           </div>
         </DialogHeader>
 
-        <Tabs defaultValue="general" className="mt-4">
-          <TabsList className="grid w-full grid-cols-6">
+        {isEditing ? (
+          <ScrollArea className="h-[60vh] mt-4 pr-4">
+            <FicheEditForm 
+              fiche={fiche}
+              onSave={handleSave}
+              onCancel={() => setIsEditing(false)}
+            />
+          </ScrollArea>
+        ) : (
+          <Tabs defaultValue="general" className="mt-4">
+            <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="general">Général</TabsTrigger>
             <TabsTrigger value="media">Médias</TabsTrigger>
             <TabsTrigger value="contact">Contact</TabsTrigger>
@@ -492,6 +525,7 @@ export function FicheDetailsDialog({ open, onOpenChange, fiche }: FicheDetailsDi
             </TabsContent>
           </ScrollArea>
         </Tabs>
+        )}
       </DialogContent>
     </Dialog>
   );

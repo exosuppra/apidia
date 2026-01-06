@@ -633,6 +633,10 @@ export default function AllFiches() {
         open={!!selectedFiche} 
         onOpenChange={() => setSelectedFiche(null)}
         fiche={selectedFiche}
+        onFicheUpdated={() => {
+          setSelectedFiche(null);
+          loadAllFiches();
+        }}
       />
     </>
   );
