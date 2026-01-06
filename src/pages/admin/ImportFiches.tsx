@@ -1,10 +1,11 @@
 import { useState, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Upload, FileJson, CheckCircle, XCircle, AlertCircle, Loader2 } from "lucide-react";
+import { Upload, FileJson, CheckCircle, XCircle, AlertCircle, Loader2, ArrowLeft } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -131,13 +132,20 @@ export default function ImportFiches() {
     }
   };
 
+  const navigate = useNavigate();
+
   return (
     <div className="container mx-auto py-6 space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Import de fiches JSON</h1>
-        <p className="text-muted-foreground mt-1">
-          Importez vos fichiers JSON exportés depuis Apidae
-        </p>
+      <div className="flex items-center gap-4">
+        <Button variant="outline" size="icon" onClick={() => navigate("/admin/fiches")}>
+          <ArrowLeft className="h-4 w-4" />
+        </Button>
+        <div>
+          <h1 className="text-3xl font-bold">Import de fiches JSON</h1>
+          <p className="text-muted-foreground mt-1">
+            Importez vos fichiers JSON exportés depuis Apidae
+          </p>
+        </div>
       </div>
 
       <Card>
