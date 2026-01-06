@@ -321,7 +321,7 @@ export function FicheEditForm({ fiche, onSave, onCancel }: FicheEditFormProps) {
           actor_type: 'admin',
           actor_id: userData?.user?.id,
           actor_name: actorName,
-          changes: changes
+          changes: { fields: changes }
         }
       });
       
