@@ -43,17 +43,44 @@ const getChangesFields = (changes: HistoryEntry['changes']): ChangeField[] => {
   return [];
 };
 
-// Helper to format value for display
+// Helper to format value for display - human readable
 const formatValue = (value: unknown): string => {
   if (value === null || value === undefined) return '(vide)';
   if (typeof value === 'string') return value || '(vide)';
+  
   if (Array.isArray(value)) {
-    // For arrays like moyensCommunication, show a summary
+    // Handle moyensCommunication array
+    if (value.length > 0 && value[0]?.type?.libelleFr) {
+      return value.map(item => {
+        const type = item.type?.libelleFr || 'Contact';
+        const coord = item.coordonnees?.fr || '';
+        return `${type}: ${coord}`;
+      }).join(', ');
+    }
+    
+    // Handle periodesOuvertures array
+    if (value.length > 0 && (value[0]?.dateDebut || value[0]?.type === 'OUVERTURE_SEMAINE')) {
+      return value.map(item => {
+        const debut = item.dateDebut || '';
+        const fin = item.dateFin || '';
+        const horaires = item.complementHoraire?.libelleFr || '';
+        if (horaires) return horaires.replace(/\r\n/g, ' ').slice(0, 80);
+        if (debut && fin) return `${debut} au ${fin}`;
+        return `Période: ${debut || 'Non défini'}`;
+      }).join(' | ');
+    }
+    
     return `${value.length} élément(s)`;
   }
+  
   if (typeof value === 'object') {
-    return JSON.stringify(value).slice(0, 50) + '...';
+    // Try to extract meaningful text
+    const obj = value as Record<string, unknown>;
+    if (obj.libelleFr) return String(obj.libelleFr);
+    if (obj.fr) return String(obj.fr);
+    return '(objet modifié)';
   }
+  
   return String(value);
 };
 
