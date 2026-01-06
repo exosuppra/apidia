@@ -16,6 +16,13 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 
+interface ChangeField {
+  field: string;
+  label: string;
+  old_value: unknown;
+  new_value: unknown;
+}
+
 interface HistoryEntry {
   id: string;
   fiche_id: string;
@@ -23,17 +30,32 @@ interface HistoryEntry {
   actor_type: string;
   actor_id: string | null;
   actor_name: string;
-  changes: {
-    fields?: Array<{
-      field: string;
-      label: string;
-      old_value: string | null;
-      new_value: string | null;
-    }>;
-  } | null;
+  changes: ChangeField[] | { fields?: ChangeField[] } | null;
   metadata: Record<string, unknown> | null;
   created_at: string;
 }
+
+// Helper to extract fields from changes (handles both array and object format)
+const getChangesFields = (changes: HistoryEntry['changes']): ChangeField[] => {
+  if (!changes) return [];
+  if (Array.isArray(changes)) return changes;
+  if (changes.fields && Array.isArray(changes.fields)) return changes.fields;
+  return [];
+};
+
+// Helper to format value for display
+const formatValue = (value: unknown): string => {
+  if (value === null || value === undefined) return '(vide)';
+  if (typeof value === 'string') return value || '(vide)';
+  if (Array.isArray(value)) {
+    // For arrays like moyensCommunication, show a summary
+    return `${value.length} élément(s)`;
+  }
+  if (typeof value === 'object') {
+    return JSON.stringify(value).slice(0, 50) + '...';
+  }
+  return String(value);
+};
 
 interface FicheHistoryPanelProps {
   ficheId: string;
@@ -175,20 +197,24 @@ export function FicheHistoryPanel({ ficheId }: FicheHistoryPanelProps) {
                 </div>
                 
                 {/* Changes details */}
-                {entry.changes?.fields && entry.changes.fields.length > 0 && (
-                  <div className="mt-2 space-y-1 bg-muted/50 rounded-lg p-3 text-xs">
-                    {entry.changes.fields.map((change, idx) => (
-                      <div key={idx} className="flex flex-col gap-0.5">
-                        <span className="font-medium text-foreground">{change.label}</span>
-                        <div className="flex items-center gap-2 text-muted-foreground">
-                          <span className="line-through">{change.old_value || '(vide)'}</span>
-                          <span>→</span>
-                          <span className="text-foreground font-medium">{change.new_value || '(vide)'}</span>
+                {(() => {
+                  const fields = getChangesFields(entry.changes);
+                  if (fields.length === 0) return null;
+                  return (
+                    <div className="mt-2 space-y-1 bg-muted/50 rounded-lg p-3 text-xs">
+                      {fields.map((change, idx) => (
+                        <div key={idx} className="flex flex-col gap-0.5">
+                          <span className="font-medium text-foreground">{change.label}</span>
+                          <div className="flex items-center gap-2 text-muted-foreground">
+                            <span className="line-through">{formatValue(change.old_value)}</span>
+                            <span>→</span>
+                            <span className="text-foreground font-medium">{formatValue(change.new_value)}</span>
+                          </div>
                         </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                      ))}
+                    </div>
+                  );
+                })()}
               </div>
             </div>
           ))}
