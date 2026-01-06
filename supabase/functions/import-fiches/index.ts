@@ -44,8 +44,8 @@ serve(async (req: Request) => {
 
     for (const fiche of fiches) {
       try {
-        // Extract key fields from the fiche
-        const ficheId = fiche.identifier || `SITRA2_${fiche.type}_${fiche.id}`;
+        // Extract key fields from the fiche - use just the numeric ID
+        const ficheId = String(fiche.id);
         const ficheType = fiche.type || "UNKNOWN";
         const ficheName = fiche.nom?.libelleFr || "Sans nom";
         const isPublished = fiche.state === "PUBLISHED";
