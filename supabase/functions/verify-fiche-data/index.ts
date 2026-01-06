@@ -178,41 +178,114 @@ function isEstablishmentRelatedEmail(email: string, establishmentName: string, w
   return false;
 }
 
-// Normalize address for comparison
+// Normalize address for comparison - robust version with accent removal
 function normalizeAddress(address: string | null): string {
   if (!address) return '';
-  return address.toLowerCase()
-    .replace(/avenue|av\.|av /gi, 'av ')
-    .replace(/boulevard|bd\.|bd /gi, 'bd ')
-    .replace(/rue|r\./gi, 'rue ')
-    .replace(/place|pl\./gi, 'pl ')
-    .replace(/chemin|ch\./gi, 'ch ')
-    .replace(/route|rte\./gi, 'rte ')
+  return address
+    .toLowerCase()
+    // Remove all accents (é→e, è→e, ô→o, etc.)
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    // Normalize hyphens and apostrophes to spaces
+    .replace(/[-''`]/g, ' ')
+    // Standardize street type abbreviations
+    .replace(/\b(avenue|av\.?)\b/gi, 'av')
+    .replace(/\b(boulevard|bd\.?)\b/gi, 'bd')
+    .replace(/\b(rue|r\.)\b/gi, 'rue')
+    .replace(/\b(place|pl\.)\b/gi, 'pl')
+    .replace(/\b(chemin|ch\.)\b/gi, 'ch')
+    .replace(/\b(route|rte\.)\b/gi, 'rte')
+    .replace(/\b(impasse|imp\.)\b/gi, 'imp')
+    .replace(/\b(allee|allée|all\.)\b/gi, 'all')
+    .replace(/\b(quartier|qrt\.?)\b/gi, 'qrt')
+    // Remove cedilla
+    .replace(/ç/g, 'c')
+    // Collapse multiple spaces/commas into single space
     .replace(/[\s,]+/g, ' ')
     .trim();
 }
 
-// Compare two addresses to see if they match
+// Extract postal code from address
+function extractPostalCode(address: string): string | null {
+  const match = address.match(/\b(\d{5})\b/);
+  return match ? match[1] : null;
+}
+
+// Extract street number from address
+function extractStreetNumber(address: string): string | null {
+  const match = address.match(/^(\d+)/);
+  return match ? match[1] : null;
+}
+
+// Check if an address is substantial enough to compare (not just a city name)
+function isSubstantialAddress(address: string): boolean {
+  const normalized = normalizeAddress(address);
+  if (normalized.length < 10) return false;
+  
+  // Must have a street number OR a postal code to be substantial
+  const hasStreetNumber = /^\d+/.test(normalized);
+  const hasPostalCode = /\b\d{5}\b/.test(normalized);
+  
+  return hasStreetNumber || hasPostalCode;
+}
+
+// Compare two addresses to see if they match - with tolerance for formatting variations
 function addressesMatch(addr1: string | null, addr2: string | null): boolean {
   if (!addr1 || !addr2) return true; // Can't compare, assume OK
   
   const n1 = normalizeAddress(addr1);
   const n2 = normalizeAddress(addr2);
   
-  // Extract street number
-  const num1 = n1.match(/^\d+/)?.[0];
-  const num2 = n2.match(/^\d+/)?.[0];
+  console.log(`Address comparison: "${n1}" vs "${n2}"`);
   
-  // If both have numbers and they differ, addresses are different
-  if (num1 && num2 && num1 !== num2) return false;
+  // Identical after normalization → match
+  if (n1 === n2) {
+    console.log('  → Exact match after normalization');
+    return true;
+  }
   
-  // Check for common significant words (>3 chars)
-  const words1 = n1.split(' ').filter(w => w.length > 3);
-  const words2 = n2.split(' ').filter(w => w.length > 3);
-  const commonWords = words1.filter(w => words2.some(w2 => w2.includes(w) || w.includes(w2)));
+  // If one contains the other (partial address) → match
+  if (n1.includes(n2) || n2.includes(n1)) {
+    console.log('  → One contains the other (partial address)');
+    return true;
+  }
   
-  // Need at least 2 common words for a match
-  return commonWords.length >= 2;
+  // Extract postal codes
+  const postal1 = extractPostalCode(n1);
+  const postal2 = extractPostalCode(n2);
+  
+  // Extract street numbers
+  const num1 = extractStreetNumber(n1);
+  const num2 = extractStreetNumber(n2);
+  
+  // If postal codes are different → different addresses
+  if (postal1 && postal2 && postal1 !== postal2) {
+    console.log(`  → Different postal codes: ${postal1} vs ${postal2}`);
+    return false;
+  }
+  
+  // If same postal code AND same street number → same address
+  if (postal1 && postal2 && postal1 === postal2 && num1 && num2 && num1 === num2) {
+    console.log(`  → Same postal code (${postal1}) and street number (${num1})`);
+    return true;
+  }
+  
+  // Calculate similarity by significant words (length > 4 chars)
+  // Exclude common words like "les", "des", "sur", etc.
+  const excludeWords = ['bains', 'ville', 'saint', 'sainte', 'cedex', 'france'];
+  const words1 = n1.split(' ').filter(w => w.length > 4 && !excludeWords.includes(w));
+  const words2 = n2.split(' ').filter(w => w.length > 4 && !excludeWords.includes(w));
+  
+  if (words1.length === 0 || words2.length === 0) {
+    console.log('  → Not enough significant words to compare');
+    return true; // Not enough words to compare
+  }
+  
+  const commonWords = words1.filter(w => words2.some(w2 => w2 === w || w2.includes(w) || w.includes(w2)));
+  const similarity = commonWords.length / Math.min(words1.length, words2.length);
+  
+  console.log(`  → Similarity: ${(similarity * 100).toFixed(0)}% (${commonWords.length} common words)`);
+  
+  return similarity >= 0.5;
 }
 
 serve(async (req) => {
@@ -365,16 +438,23 @@ serve(async (req) => {
         });
       }
 
-      // Check address
-      if (extractedData.address && !addressesMatch(apidaeData.adresse, extractedData.address)) {
-        alerts.push({
-          field_name: 'adresse',
-          current_value: apidaeData.adresse,
-          found_value: extractedData.address,
-          source_url: sourceUrl,
-          source_name: sourceName,
-          confidence_score: 0.7,
-        });
+      // Check address - only if extracted address is substantial
+      if (extractedData.address) {
+        const extractedIsSubstantial = isSubstantialAddress(extractedData.address);
+        
+        if (!extractedIsSubstantial) {
+          console.log(`Skipping partial address from ${sourceName}: "${extractedData.address}"`);
+        } else if (!addressesMatch(apidaeData.adresse, extractedData.address)) {
+          console.log(`Address discrepancy detected from ${sourceName}`);
+          alerts.push({
+            field_name: 'adresse',
+            current_value: apidaeData.adresse,
+            found_value: extractedData.address,
+            source_url: sourceUrl,
+            source_name: sourceName,
+            confidence_score: 0.7,
+          });
+        }
       }
     }
 
