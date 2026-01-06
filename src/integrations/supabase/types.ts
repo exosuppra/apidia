@@ -612,6 +612,48 @@ export type Database = {
         }
         Relationships: []
       }
+      verification_config: {
+        Row: {
+          created_at: string
+          days_between_verification: number
+          days_consider_recent: number
+          exclude_recently_modified: boolean
+          fiches_per_run: number
+          id: string
+          is_enabled: boolean
+          last_run_at: string | null
+          next_run_at: string | null
+          schedule_type: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          days_between_verification?: number
+          days_consider_recent?: number
+          exclude_recently_modified?: boolean
+          fiches_per_run?: number
+          id?: string
+          is_enabled?: boolean
+          last_run_at?: string | null
+          next_run_at?: string | null
+          schedule_type?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          days_between_verification?: number
+          days_consider_recent?: number
+          exclude_recently_modified?: boolean
+          fiches_per_run?: number
+          id?: string
+          is_enabled?: boolean
+          last_run_at?: string | null
+          next_run_at?: string | null
+          schedule_type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
