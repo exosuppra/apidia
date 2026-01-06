@@ -23,6 +23,13 @@ interface VerificationResult {
   confidence_score: number;
 }
 
+interface AIAnalysisResult {
+  telephone?: { value: string; confidence: number; reasoning: string } | null;
+  email?: { value: string; confidence: number; reasoning: string } | null;
+  site_web?: { value: string; confidence: number; reasoning: string } | null;
+  adresse?: { value: string; confidence: number; reasoning: string } | null;
+}
+
 // Extract contact info from APIDAE data structure
 function extractApidaeData(data: Record<string, any>): Record<string, string | null> {
   const result: Record<string, string | null> = {
@@ -86,14 +93,6 @@ function normalizePhone(phone: string | null): string {
   return phone.replace(/[\s\.\-\(\)]/g, '').replace(/^\+33/, '0');
 }
 
-// Check if a phone number is complete (10 digits for French numbers)
-function isCompletePhone(phone: string | null): boolean {
-  if (!phone) return false;
-  const normalized = normalizePhone(phone);
-  // French phone: 10 digits starting with 0, or international format
-  return /^0\d{9}$/.test(normalized) || /^\+?\d{10,14}$/.test(normalized);
-}
-
 // Normalize URLs for comparison
 function normalizeUrl(url: string | null): string {
   if (!url) return '';
@@ -101,21 +100,6 @@ function normalizeUrl(url: string | null): string {
     .replace(/^https?:\/\//, '')
     .replace(/^www\./, '')
     .replace(/\/$/, '');
-}
-
-// Check if a website URL is complete
-function isCompleteWebsite(url: string | null): boolean {
-  if (!url) return false;
-  // Must have a domain with at least one dot, and look like a URL
-  const normalized = normalizeUrl(url);
-  return /^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z]{2,})+/.test(normalized);
-}
-
-// Check if an email is complete and valid
-function isCompleteEmail(email: string | null): boolean {
-  if (!email) return false;
-  // Basic email validation: something@something.something
-  return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email.trim());
 }
 
 // Compare values and determine if they differ significantly
@@ -130,87 +114,20 @@ function valuesMatch(current: string | null, found: string | null, fieldType: st
       return normalizeUrl(current) === normalizeUrl(found);
     case 'email':
       return current.toLowerCase().trim() === found.toLowerCase().trim();
+    case 'adresse':
+      return normalizeAddress(current) === normalizeAddress(found);
     default:
       return current.toLowerCase().trim() === found.toLowerCase().trim();
   }
 }
 
-// Check if email belongs to a tourism office or aggregator site (not the actual establishment)
-function isAggregatorEmail(email: string, sourceUrl: string): boolean {
-  const aggregatorDomains = [
-    'paysdemanosque.com',
-    'manosque-tourisme.com', 
-    'luberon-apt.fr',
-    'tourisme-apt.fr',
-    'provenceweb.fr',
-    'booking.com',
-    'tripadvisor.com',
-    'google.com',
-    'facebook.com',
-    'pagesjaunes.fr',
-    'yelp.com',
-    'lafourchette.com',
-    'thefork.com',
-  ];
-  
-  const emailDomain = email.split('@')[1]?.toLowerCase() || '';
-  const sourceDomain = new URL(sourceUrl).hostname.toLowerCase().replace('www.', '');
-  
-  // If email domain matches the source website domain, it's likely the aggregator's contact
-  if (emailDomain.includes(sourceDomain) || sourceDomain.includes(emailDomain.split('.')[0])) {
-    return true;
-  }
-  
-  // Check known aggregator domains
-  return aggregatorDomains.some(domain => emailDomain.includes(domain) || sourceDomain.includes(domain));
-}
-
-// Check if email is related to the establishment (same domain as website or contains establishment name)
-function isEstablishmentRelatedEmail(email: string, establishmentName: string, websiteUrl: string | null): boolean {
-  const emailDomain = email.split('@')[1]?.toLowerCase() || '';
-  
-  // If the email is on the domain of the official website
-  if (websiteUrl) {
-    const siteDomain = normalizeUrl(websiteUrl).split('/')[0];
-    // Check if domains share common parts
-    const siteParts = siteDomain.split('.');
-    const emailParts = emailDomain.split('.');
-    for (const sitePart of siteParts) {
-      if (sitePart.length > 3 && emailParts.some(ep => ep.includes(sitePart) || sitePart.includes(ep))) {
-        return true;
-      }
-    }
-  }
-  
-  // If the email domain contains a simplified version of the establishment name
-  if (establishmentName) {
-    const simplifiedName = establishmentName.toLowerCase()
-      .replace(/[àâä]/g, 'a')
-      .replace(/[éèêë]/g, 'e')
-      .replace(/[îï]/g, 'i')
-      .replace(/[ôö]/g, 'o')
-      .replace(/[ùûü]/g, 'u')
-      .replace(/[^a-z0-9]/g, '');
-    
-    // Check if the first 6+ chars of the name appear in the email domain
-    if (simplifiedName.length >= 6 && emailDomain.includes(simplifiedName.substring(0, 6))) {
-      return true;
-    }
-  }
-  
-  return false;
-}
-
-// Normalize address for comparison - robust version with accent removal
+// Normalize address for comparison
 function normalizeAddress(address: string | null): string {
   if (!address) return '';
   return address
     .toLowerCase()
-    // Remove all accents (é→e, è→e, ô→o, etc.)
     .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-    // Normalize hyphens and apostrophes to spaces
     .replace(/[-''`]/g, ' ')
-    // Standardize street type abbreviations
     .replace(/\b(avenue|av\.?)\b/gi, 'av')
     .replace(/\b(boulevard|bd\.?)\b/gi, 'bd')
     .replace(/\b(rue|r\.)\b/gi, 'rue')
@@ -220,95 +137,99 @@ function normalizeAddress(address: string | null): string {
     .replace(/\b(impasse|imp\.)\b/gi, 'imp')
     .replace(/\b(allee|allée|all\.)\b/gi, 'all')
     .replace(/\b(quartier|qrt\.?)\b/gi, 'qrt')
-    // Remove cedilla
     .replace(/ç/g, 'c')
-    // Collapse multiple spaces/commas into single space
     .replace(/[\s,]+/g, ' ')
     .trim();
 }
 
-// Extract postal code from address
-function extractPostalCode(address: string): string | null {
-  const match = address.match(/\b(\d{5})\b/);
-  return match ? match[1] : null;
+// Use AI to analyze web content and extract structured data with high accuracy
+async function analyzeWithAI(
+  establishmentName: string,
+  currentData: Record<string, string | null>,
+  webContent: string,
+  sourceUrl: string,
+  openaiApiKey: string
+): Promise<AIAnalysisResult | null> {
+  try {
+    const prompt = `Tu es un expert en vérification de données d'établissements touristiques.
+
+ÉTABLISSEMENT À VÉRIFIER: "${establishmentName}"
+
+DONNÉES ACTUELLES DANS NOTRE BASE:
+- Téléphone: ${currentData.telephone || 'Non renseigné'}
+- Email: ${currentData.email || 'Non renseigné'}
+- Site web: ${currentData.site_web || 'Non renseigné'}
+- Adresse: ${currentData.adresse || 'Non renseignée'}
+
+CONTENU DE LA PAGE WEB (source: ${sourceUrl}):
+${webContent.substring(0, 8000)}
+
+INSTRUCTIONS:
+1. Analyse le contenu de la page web pour extraire les coordonnées de l'établissement "${establishmentName}"
+2. Compare UNIQUEMENT si tu trouves des informations qui concernent SPÉCIFIQUEMENT cet établissement (pas des informations génériques ou d'autres établissements)
+3. Pour chaque champ où tu trouves une DIFFÉRENCE avec nos données actuelles, indique la valeur trouvée
+4. IMPORTANT: Ne retourne un champ QUE SI:
+   - Tu as trouvé une valeur différente de celle dans notre base
+   - Tu es CERTAIN que cette valeur concerne bien l'établissement "${establishmentName}"
+   - La valeur est complète (téléphone 10 chiffres, email avec @, adresse complète avec numéro ET rue ET ville)
+
+Réponds UNIQUEMENT en JSON valide avec ce format (omets les champs où il n'y a pas de différence):
+{
+  "telephone": { "value": "04 XX XX XX XX", "confidence": 0.9, "reasoning": "Trouvé sur la page contact..." } ou null,
+  "email": { "value": "contact@example.com", "confidence": 0.85, "reasoning": "..." } ou null,
+  "site_web": { "value": "https://...", "confidence": 0.8, "reasoning": "..." } ou null,
+  "adresse": { "value": "123 rue..., 04100 Manosque", "confidence": 0.9, "reasoning": "..." } ou null
 }
 
-// Extract street number from address
-function extractStreetNumber(address: string): string | null {
-  const match = address.match(/^(\d+)/);
-  return match ? match[1] : null;
-}
+IMPORTANT: 
+- Confidence doit être entre 0 et 1 (0.8+ pour être fiable)
+- Ne retourne QUE les champs où tu as trouvé une différence significative
+- Si le contenu ne concerne pas cet établissement ou si tu ne trouves rien, retourne {}`;
 
-// Check if an address is substantial enough to compare (not just a city name)
-function isSubstantialAddress(address: string): boolean {
-  const normalized = normalizeAddress(address);
-  if (normalized.length < 10) return false;
-  
-  // Must have a street number OR a postal code to be substantial
-  const hasStreetNumber = /^\d+/.test(normalized);
-  const hasPostalCode = /\b\d{5}\b/.test(normalized);
-  
-  return hasStreetNumber || hasPostalCode;
-}
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${openaiApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [
+          { role: 'system', content: 'Tu es un assistant spécialisé dans la vérification de données. Tu réponds toujours en JSON valide.' },
+          { role: 'user', content: prompt }
+        ],
+        temperature: 0.1,
+        max_tokens: 1000,
+      }),
+    });
 
-// Compare two addresses to see if they match - with tolerance for formatting variations
-function addressesMatch(addr1: string | null, addr2: string | null): boolean {
-  if (!addr1 || !addr2) return true; // Can't compare, assume OK
-  
-  const n1 = normalizeAddress(addr1);
-  const n2 = normalizeAddress(addr2);
-  
-  console.log(`Address comparison: "${n1}" vs "${n2}"`);
-  
-  // Identical after normalization → match
-  if (n1 === n2) {
-    console.log('  → Exact match after normalization');
-    return true;
+    if (!response.ok) {
+      console.error('OpenAI API error:', await response.text());
+      return null;
+    }
+
+    const aiResponse = await response.json();
+    const content = aiResponse.choices?.[0]?.message?.content;
+    
+    if (!content) {
+      console.error('Empty AI response');
+      return null;
+    }
+
+    // Parse JSON from response (handle markdown code blocks)
+    let jsonContent = content.trim();
+    if (jsonContent.startsWith('```')) {
+      jsonContent = jsonContent.replace(/```json?\n?/g, '').replace(/```/g, '');
+    }
+    
+    const parsed = JSON.parse(jsonContent);
+    console.log('AI analysis result:', parsed);
+    return parsed;
+    
+  } catch (error) {
+    console.error('Error in AI analysis:', error);
+    return null;
   }
-  
-  // If one contains the other (partial address) → match
-  if (n1.includes(n2) || n2.includes(n1)) {
-    console.log('  → One contains the other (partial address)');
-    return true;
-  }
-  
-  // Extract postal codes
-  const postal1 = extractPostalCode(n1);
-  const postal2 = extractPostalCode(n2);
-  
-  // Extract street numbers
-  const num1 = extractStreetNumber(n1);
-  const num2 = extractStreetNumber(n2);
-  
-  // If postal codes are different → different addresses
-  if (postal1 && postal2 && postal1 !== postal2) {
-    console.log(`  → Different postal codes: ${postal1} vs ${postal2}`);
-    return false;
-  }
-  
-  // If same postal code AND same street number → same address
-  if (postal1 && postal2 && postal1 === postal2 && num1 && num2 && num1 === num2) {
-    console.log(`  → Same postal code (${postal1}) and street number (${num1})`);
-    return true;
-  }
-  
-  // Calculate similarity by significant words (length > 4 chars)
-  // Exclude common words like "les", "des", "sur", etc.
-  const excludeWords = ['bains', 'ville', 'saint', 'sainte', 'cedex', 'france'];
-  const words1 = n1.split(' ').filter(w => w.length > 4 && !excludeWords.includes(w));
-  const words2 = n2.split(' ').filter(w => w.length > 4 && !excludeWords.includes(w));
-  
-  if (words1.length === 0 || words2.length === 0) {
-    console.log('  → Not enough significant words to compare');
-    return true; // Not enough words to compare
-  }
-  
-  const commonWords = words1.filter(w => words2.some(w2 => w2 === w || w2.includes(w) || w.includes(w2)));
-  const similarity = commonWords.length / Math.min(words1.length, words2.length);
-  
-  console.log(`  → Similarity: ${(similarity * 100).toFixed(0)}% (${commonWords.length} common words)`);
-  
-  return similarity >= 0.5;
 }
 
 serve(async (req) => {
@@ -327,10 +248,20 @@ serve(async (req) => {
     }
 
     const firecrawlApiKey = Deno.env.get('FIRECRAWL_API_KEY');
+    const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
+    
     if (!firecrawlApiKey) {
       console.error('FIRECRAWL_API_KEY not configured');
       return new Response(
         JSON.stringify({ success: false, error: 'Firecrawl connector not configured' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (!openaiApiKey) {
+      console.error('OPENAI_API_KEY not configured');
+      return new Response(
+        JSON.stringify({ success: false, error: 'OpenAI API key not configured' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -367,7 +298,7 @@ serve(async (req) => {
     const searchQuery = `"${apidaeData.nom}" ${apidaeData.commune || ''}`;
     console.log('Searching for:', searchQuery);
 
-    // Search using Firecrawl
+    // Search using Firecrawl - get markdown content for AI analysis
     const searchResponse = await fetch('https://api.firecrawl.dev/v1/search', {
       method: 'POST',
       headers: {
@@ -378,18 +309,8 @@ serve(async (req) => {
         query: searchQuery,
         limit: 5,
         scrapeOptions: {
-          formats: ['markdown', 'extract'],
-          extract: {
-            schema: {
-              type: 'object',
-              properties: {
-                telephone: { type: 'string', description: 'Phone number of the establishment' },
-                email: { type: 'string', description: 'Email address of the establishment' },
-                website: { type: 'string', description: 'Website URL of the establishment' },
-                address: { type: 'string', description: 'Full address of the establishment' },
-              }
-            }
-          }
+          formats: ['markdown'],
+          onlyMainContent: true,
         }
       }),
     });
@@ -407,128 +328,118 @@ serve(async (req) => {
     console.log('Search results count:', searchResults.data?.length || 0);
 
     const alerts: VerificationResult[] = [];
+    const aiFindings: Record<string, Array<{ value: string; confidence: number; source: string; sourceUrl: string }>> = {
+      telephone: [],
+      email: [],
+      site_web: [],
+      adresse: [],
+    };
 
-    // Process each search result
+    // Process each search result with AI
     for (const result of (searchResults.data || [])) {
       const sourceUrl = result.url;
       const sourceName = new URL(sourceUrl).hostname.replace('www.', '');
-      const extractedData = result.extract || {};
+      const markdown = result.markdown || '';
       
-      console.log(`Processing result from ${sourceName}:`, extractedData);
+      if (!markdown || markdown.length < 100) {
+        console.log(`Skipping ${sourceName}: insufficient content`);
+        continue;
+      }
 
-      // Check telephone - only if extracted value is complete
-      if (extractedData.telephone) {
-        if (!isCompletePhone(extractedData.telephone)) {
-          console.log(`Skipping incomplete phone from ${sourceName}: "${extractedData.telephone}"`);
-        } else if (!valuesMatch(apidaeData.telephone, extractedData.telephone, 'telephone')) {
-          console.log(`Phone discrepancy from ${sourceName}: "${apidaeData.telephone}" vs "${extractedData.telephone}"`);
-          alerts.push({
-            field_name: 'telephone',
-            current_value: apidaeData.telephone,
-            found_value: extractedData.telephone,
-            source_url: sourceUrl,
-            source_name: sourceName,
-            confidence_score: 0.7,
-          });
+      console.log(`Analyzing ${sourceName} with AI (${markdown.length} chars)...`);
+      
+      // Use AI to analyze the content
+      const aiResult = await analyzeWithAI(
+        apidaeData.nom,
+        apidaeData,
+        markdown,
+        sourceUrl,
+        openaiApiKey
+      );
+
+      if (aiResult) {
+        // Collect findings by field
+        for (const field of ['telephone', 'email', 'site_web', 'adresse'] as const) {
+          const finding = aiResult[field];
+          if (finding && finding.value && finding.confidence >= 0.7) {
+            // Check if it's actually different from current value
+            if (!valuesMatch(apidaeData[field], finding.value, field)) {
+              aiFindings[field].push({
+                value: finding.value,
+                confidence: finding.confidence,
+                source: sourceName,
+                sourceUrl: sourceUrl,
+              });
+              console.log(`AI found ${field} discrepancy from ${sourceName}: "${finding.value}" (confidence: ${finding.confidence})`);
+            }
+          }
         }
       }
 
-      // Check email - only if complete and not from aggregator
-      if (extractedData.email) {
-        if (!isCompleteEmail(extractedData.email)) {
-          console.log(`Skipping incomplete email from ${sourceName}: "${extractedData.email}"`);
-        } else if (isAggregatorEmail(extractedData.email, sourceUrl)) {
-          console.log(`Skipping aggregator email: ${extractedData.email} from ${sourceName}`);
-        } else if (isEstablishmentRelatedEmail(extractedData.email, apidaeData.nom || '', apidaeData.site_web)) {
-          console.log(`Skipping establishment-related email: ${extractedData.email} (same domain as official site)`);
-        } else if (!valuesMatch(apidaeData.email, extractedData.email, 'email')) {
-          console.log(`Email discrepancy from ${sourceName}: "${apidaeData.email}" vs "${extractedData.email}"`);
-          alerts.push({
-            field_name: 'email',
-            current_value: apidaeData.email,
-            found_value: extractedData.email,
-            source_url: sourceUrl,
-            source_name: sourceName,
-            confidence_score: 0.8,
-          });
+      // Small delay between AI calls to avoid rate limiting
+      await new Promise(resolve => setTimeout(resolve, 500));
+    }
+
+    // Create alerts for fields where AI found consistent discrepancies
+    for (const [field, findings] of Object.entries(aiFindings)) {
+      if (findings.length === 0) continue;
+      
+      console.log(`Processing ${findings.length} AI findings for ${field}`);
+      
+      // Group by similar values (in case multiple sources report the same correction)
+      const valueGroups: Record<string, typeof findings> = {};
+      for (const finding of findings) {
+        let matched = false;
+        for (const key of Object.keys(valueGroups)) {
+          if (valuesMatch(key, finding.value, field)) {
+            valueGroups[key].push(finding);
+            matched = true;
+            break;
+          }
+        }
+        if (!matched) {
+          valueGroups[finding.value] = [finding];
         }
       }
 
-      // Check website - only if complete URL
-      if (extractedData.website) {
-        if (!isCompleteWebsite(extractedData.website)) {
-          console.log(`Skipping incomplete website from ${sourceName}: "${extractedData.website}"`);
-        } else if (!valuesMatch(apidaeData.site_web, extractedData.website, 'site_web')) {
-          console.log(`Website discrepancy from ${sourceName}: "${apidaeData.site_web}" vs "${extractedData.website}"`);
-          alerts.push({
-            field_name: 'site_web',
-            current_value: apidaeData.site_web,
-            found_value: extractedData.website,
-            source_url: sourceUrl,
-            source_name: sourceName,
-            confidence_score: 0.6,
-          });
-        }
-      }
-
-      // Check address - only if extracted address is substantial
-      if (extractedData.address) {
-        const extractedIsSubstantial = isSubstantialAddress(extractedData.address);
+      // Find the most common value with highest confidence
+      let bestGroup: typeof findings | null = null;
+      let bestScore = 0;
+      
+      for (const group of Object.values(valueGroups)) {
+        // Score = number of sources * average confidence
+        const avgConfidence = group.reduce((sum, f) => sum + f.confidence, 0) / group.length;
+        const score = group.length * avgConfidence;
         
-        if (!extractedIsSubstantial) {
-          console.log(`Skipping partial address from ${sourceName}: "${extractedData.address}"`);
-        } else if (!addressesMatch(apidaeData.adresse, extractedData.address)) {
-          console.log(`Address discrepancy detected from ${sourceName}`);
-          alerts.push({
-            field_name: 'adresse',
-            current_value: apidaeData.adresse,
-            found_value: extractedData.address,
-            source_url: sourceUrl,
-            source_name: sourceName,
-            confidence_score: 0.7,
-          });
+        if (score > bestScore) {
+          bestScore = score;
+          bestGroup = group;
         }
       }
-    }
 
-    // Group alerts by field_name and normalize found values for comparison
-    const alertsByField: Record<string, VerificationResult[]> = {};
-    for (const alert of alerts) {
-      if (!alertsByField[alert.field_name]) {
-        alertsByField[alert.field_name] = [];
-      }
-      alertsByField[alert.field_name].push(alert);
-    }
-
-    // Only keep alerts where at least 2 independent sources report a discrepancy
-    const confirmedAlerts: VerificationResult[] = [];
-    
-    for (const [fieldName, fieldAlerts] of Object.entries(alertsByField)) {
-      // Get unique sources for this field
-      const uniqueSources = new Set(fieldAlerts.map(a => a.source_name));
-      
-      console.log(`Field "${fieldName}": ${fieldAlerts.length} alerts from ${uniqueSources.size} unique sources`);
-      
-      if (uniqueSources.size >= 2) {
-        // At least 2 sources confirm there's a discrepancy
-        // Keep the alert with highest confidence, but boost its score
-        const bestAlert = fieldAlerts.reduce((best, current) => 
-          current.confidence_score > best.confidence_score ? current : best
-        );
-        bestAlert.confidence_score = Math.min(1, bestAlert.confidence_score + 0.15); // Boost confidence
-        confirmedAlerts.push(bestAlert);
-        console.log(`  → Confirmed by ${uniqueSources.size} sources: ${Array.from(uniqueSources).join(', ')}`);
-      } else {
-        console.log(`  → Skipped: only ${uniqueSources.size} source(s), need at least 2 to confirm`);
+      // Require at least 1 high-confidence source OR 2+ sources to create an alert
+      if (bestGroup && (bestGroup.length >= 2 || bestGroup.some(f => f.confidence >= 0.85))) {
+        const bestFinding = bestGroup.reduce((best, f) => f.confidence > best.confidence ? f : best);
+        const uniqueSources = [...new Set(bestGroup.map(f => f.source))];
+        
+        alerts.push({
+          field_name: field,
+          current_value: apidaeData[field as keyof typeof apidaeData],
+          found_value: bestFinding.value,
+          source_url: bestFinding.sourceUrl,
+          source_name: uniqueSources.join(', '),
+          confidence_score: Math.min(1, bestFinding.confidence + (uniqueSources.length - 1) * 0.1),
+        });
+        
+        console.log(`Alert created for ${field}: "${bestFinding.value}" confirmed by ${uniqueSources.length} sources`);
       }
     }
 
-    const uniqueAlerts = confirmedAlerts;
-    console.log(`Found ${uniqueAlerts.length} confirmed alerts (from ${alerts.length} total candidates)`);
+    console.log(`Found ${alerts.length} confirmed alerts`);
 
     // Insert alerts into database
-    if (uniqueAlerts.length > 0) {
-      const alertsToInsert = uniqueAlerts.map(alert => ({
+    if (alerts.length > 0) {
+      const alertsToInsert = alerts.map(alert => ({
         fiche_id: fiche_id,
         fiche_type: fiche.fiche_type,
         fiche_name: apidaeData.nom,
@@ -549,7 +460,7 @@ serve(async (req) => {
       .from('fiches_data')
       .update({
         last_verified_at: new Date().toISOString(),
-        verification_status: uniqueAlerts.length > 0 ? 'alerts_found' : 'verified',
+        verification_status: alerts.length > 0 ? 'alerts_found' : 'verified',
       })
       .eq('fiche_id', fiche_id);
 
@@ -558,9 +469,9 @@ serve(async (req) => {
     }
 
     // Log to fiche_history
-    if (uniqueAlerts.length > 0) {
+    if (alerts.length > 0) {
       const historyChanges = {
-        fields: uniqueAlerts.map(alert => ({
+        fields: alerts.map(alert => ({
           field: alert.field_name,
           label: alert.field_name === 'telephone' ? 'Téléphone' 
                : alert.field_name === 'email' ? 'Email' 
@@ -582,8 +493,8 @@ serve(async (req) => {
           actor_name: 'Apidia',
           changes: historyChanges,
           metadata: {
-            alerts_count: uniqueAlerts.length,
-            sources: [...new Set(uniqueAlerts.map(a => a.source_name))]
+            alerts_count: alerts.length,
+            sources: [...new Set(alerts.flatMap(a => a.source_name.split(', ')))]
           }
         });
 
@@ -597,8 +508,8 @@ serve(async (req) => {
         success: true,
         fiche_id,
         fiche_name: apidaeData.nom,
-        alerts_count: uniqueAlerts.length,
-        alerts: uniqueAlerts,
+        alerts_count: alerts.length,
+        alerts: alerts,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
