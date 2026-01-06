@@ -297,6 +297,40 @@ serve(async (req) => {
       console.error('Error updating fiche status:', updateError);
     }
 
+    // Log to fiche_history
+    if (uniqueAlerts.length > 0) {
+      const historyChanges = {
+        fields: uniqueAlerts.map(alert => ({
+          field: alert.field_name,
+          label: alert.field_name === 'telephone' ? 'Téléphone' 
+               : alert.field_name === 'email' ? 'Email' 
+               : alert.field_name === 'site_web' ? 'Site web' 
+               : alert.field_name,
+          old_value: alert.current_value,
+          new_value: alert.found_value,
+        }))
+      };
+
+      const { error: historyError } = await supabase
+        .from('fiche_history')
+        .insert({
+          fiche_id: fiche_id,
+          fiche_uuid: fiche.id,
+          action_type: 'verify',
+          actor_type: 'system',
+          actor_name: 'Apidia',
+          changes: historyChanges,
+          metadata: {
+            alerts_count: uniqueAlerts.length,
+            sources: [...new Set(uniqueAlerts.map(a => a.source_name))]
+          }
+        });
+
+      if (historyError) {
+        console.error('Error logging history:', historyError);
+      }
+    }
+
     return new Response(
       JSON.stringify({
         success: true,

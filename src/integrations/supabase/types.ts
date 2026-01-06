@@ -160,6 +160,53 @@ export type Database = {
         }
         Relationships: []
       }
+      fiche_history: {
+        Row: {
+          action_type: string
+          actor_id: string | null
+          actor_name: string
+          actor_type: string
+          changes: Json | null
+          created_at: string
+          fiche_id: string
+          fiche_uuid: string | null
+          id: string
+          metadata: Json | null
+        }
+        Insert: {
+          action_type: string
+          actor_id?: string | null
+          actor_name: string
+          actor_type: string
+          changes?: Json | null
+          created_at?: string
+          fiche_id: string
+          fiche_uuid?: string | null
+          id?: string
+          metadata?: Json | null
+        }
+        Update: {
+          action_type?: string
+          actor_id?: string | null
+          actor_name?: string
+          actor_type?: string
+          changes?: Json | null
+          created_at?: string
+          fiche_id?: string
+          fiche_uuid?: string | null
+          id?: string
+          metadata?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fiche_history_fiche_uuid_fkey"
+            columns: ["fiche_uuid"]
+            isOneToOne: false
+            referencedRelation: "fiches_data"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fiches_data: {
         Row: {
           created_at: string

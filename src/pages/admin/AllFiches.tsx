@@ -212,6 +212,34 @@ export default function AllFiches() {
 
       if (error) throw error;
 
+      // Get current user for history logging
+      const { data: userData } = await supabase.auth.getUser();
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('first_name, last_name')
+        .eq('id', userData?.user?.id)
+        .single();
+      
+      const actorName = profileData?.first_name && profileData?.last_name 
+        ? `${profileData.first_name} ${profileData.last_name}`
+        : userData?.user?.email || 'Admin';
+
+      // Log to history
+      await supabase.functions.invoke('log-fiche-history', {
+        body: {
+          fiche_id: fiche.fiche_id,
+          fiche_uuid: fiche.id,
+          action_type: newStatus ? 'publish' : 'unpublish',
+          actor_type: 'admin',
+          actor_id: userData?.user?.id,
+          actor_name: actorName,
+          metadata: {
+            previous_status: fiche.is_published,
+            new_status: newStatus
+          }
+        }
+      });
+
       toast({
         title: newStatus ? "Fiche publiée" : "Fiche masquée",
         description: `La fiche sera ${newStatus ? 'synchronisée' : 'marquée pour synchronisation'}`,

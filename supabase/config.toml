@@ -29,3 +29,6 @@ verify_jwt = false
 
 [functions.verify-all-fiches]
 verify_jwt = false
+
+[functions.log-fiche-history]
+verify_jwt = false
