@@ -5,8 +5,12 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Save, X } from "lucide-react";
+import { Loader2, Save, X, Plus, Trash2 } from "lucide-react";
 import { Json } from "@/integrations/supabase/types";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
 
 interface FicheEditFormProps {
   fiche: {
@@ -56,80 +60,129 @@ const setNested = (obj: Record<string, unknown>, path: string, value: unknown): 
   return result;
 };
 
-// Get communication value by type
-const getCommunicationValue = (data: unknown, typeKeyword: string): string => {
-  const moyens = get(data, 'informations.moyensCommunication', []) as Array<Record<string, unknown>>;
-  if (!Array.isArray(moyens)) return '';
-  
-  const moyen = moyens.find(m => {
-    const typeLib = getString(m, 'type.libelleFr', '').toLowerCase();
-    return typeLib.includes(typeKeyword);
-  });
-  
-  if (moyen) {
-    const coordFr = getString(moyen, 'coordonnees.fr', '');
-    const coordDirect = typeof moyen.coordonnees === 'string' ? moyen.coordonnees : '';
-    return coordFr || coordDirect;
-  }
-  return '';
-};
+// Types de communication disponibles
+const COMMUNICATION_TYPES = [
+  { id: 201, label: 'Téléphone', keyword: 'téléphone' },
+  { id: 202, label: 'Fax', keyword: 'fax' },
+  { id: 204, label: 'Mél', keyword: 'mel' },
+  { id: 205, label: 'Site web (URL)', keyword: 'site web' },
+  { id: 207, label: 'Page Facebook', keyword: 'facebook' },
+  { id: 3755, label: 'Twitter', keyword: 'twitter' },
+  { id: 3751, label: 'Instagram', keyword: 'instagram' },
+  { id: 3752, label: 'LinkedIn', keyword: 'linkedin' },
+  { id: 206, label: 'Téléphone portable', keyword: 'portable' },
+];
 
-// Update or add communication value
-const updateCommunication = (data: Record<string, unknown>, typeKeyword: string, typeName: string, typeId: number, newValue: string): Record<string, unknown> => {
-  const result = JSON.parse(JSON.stringify(data)) as Record<string, unknown>;
-  
-  if (!result.informations) {
-    result.informations = {};
-  }
-  const informations = result.informations as Record<string, unknown>;
-  
-  if (!informations.moyensCommunication) {
-    informations.moyensCommunication = [];
-  }
-  const moyens = informations.moyensCommunication as Array<Record<string, unknown>>;
-  
-  const existingIndex = moyens.findIndex(m => {
-    const typeLib = getString(m, 'type.libelleFr', '').toLowerCase();
-    return typeLib.includes(typeKeyword);
-  });
-  
-  if (existingIndex >= 0) {
-    if (newValue) {
-      // Update existing
-      if (typeof moyens[existingIndex].coordonnees === 'object') {
-        (moyens[existingIndex].coordonnees as Record<string, string>).fr = newValue;
-      } else {
-        moyens[existingIndex].coordonnees = { fr: newValue };
-      }
-    } else {
-      // Remove if empty
-      moyens.splice(existingIndex, 1);
-    }
-  } else if (newValue) {
-    // Add new
-    moyens.push({
-      type: { id: typeId, libelleFr: typeName },
-      coordonnees: { fr: newValue }
-    });
-  }
-  
-  return result;
-};
+interface CommunicationItem {
+  typeId: number;
+  typeLabel: string;
+  value: string;
+}
+
+interface PeriodeOuverture {
+  dateDebut?: string;
+  dateFin?: string;
+  horaireOuverture?: string;
+  horaireFermeture?: string;
+  type?: string;
+  tousLesAns?: boolean;
+}
 
 export function FicheEditForm({ fiche, onSave, onCancel }: FicheEditFormProps) {
   const { toast } = useToast();
   const data = fiche.data as Record<string, unknown>;
   
-  // Form state
+  // Form state - General
   const [nom, setNom] = useState(getString(data, 'nom.libelleFr'));
   const [descriptionCourte, setDescriptionCourte] = useState(getString(data, 'presentation.descriptifCourt.libelleFr'));
+  const [descriptionDetaillee, setDescriptionDetaillee] = useState(getString(data, 'presentation.descriptifDetaille.libelleFr'));
+  
+  // Form state - Localisation
   const [adresse1, setAdresse1] = useState(getString(data, 'localisation.adresse.adresse1'));
+  const [adresse2, setAdresse2] = useState(getString(data, 'localisation.adresse.adresse2'));
   const [codePostal, setCodePostal] = useState(getString(data, 'localisation.adresse.codePostal'));
-  const [telephone, setTelephone] = useState(getCommunicationValue(data, 'téléphone'));
-  const [email, setEmail] = useState(getCommunicationValue(data, 'mel') || getCommunicationValue(data, 'mail'));
-  const [siteWeb, setSiteWeb] = useState(getCommunicationValue(data, 'site web'));
+  const [commune, setCommune] = useState(getString(data, 'localisation.adresse.commune.nom'));
+  
+  // Form state - Communications
+  const [communications, setCommunications] = useState<CommunicationItem[]>(() => {
+    const moyens = get(data, 'informations.moyensCommunication', []) as Array<Record<string, unknown>>;
+    if (!Array.isArray(moyens)) return [];
+    
+    return moyens.map(m => {
+      const typeLib = getString(m, 'type.libelleFr', '');
+      const typeId = get(m, 'type.id', 0) as number;
+      const coordFr = getString(m, 'coordonnees.fr', '');
+      const coordDirect = typeof m.coordonnees === 'string' ? m.coordonnees : '';
+      return {
+        typeId: typeId,
+        typeLabel: typeLib,
+        value: coordFr || coordDirect
+      };
+    }).filter(c => c.value);
+  });
+  
+  // Form state - Horaires
+  const [periodeEnClair, setPeriodeEnClair] = useState(getString(data, 'ouverture.periodeEnClair.libelleFr'));
+  const [periodesOuverture, setPeriodesOuverture] = useState<PeriodeOuverture[]>(() => {
+    const periodes = get(data, 'ouverture.periodesOuvertures', []) as Array<Record<string, unknown>>;
+    if (!Array.isArray(periodes)) return [];
+    
+    return periodes.map(p => ({
+      dateDebut: getString(p, 'dateDebut'),
+      dateFin: getString(p, 'dateFin'),
+      horaireOuverture: getString(p, 'horaireOuverture'),
+      horaireFermeture: getString(p, 'horaireFermeture'),
+      type: getString(p, 'type'),
+      tousLesAns: get(p, 'tousLesAns') === true
+    }));
+  });
   
   const [saving, setSaving] = useState(false);
+
+  // Add communication
+  const addCommunication = () => {
+    setCommunications([...communications, { typeId: 201, typeLabel: 'Téléphone', value: '' }]);
+  };
+
+  // Remove communication
+  const removeCommunication = (index: number) => {
+    setCommunications(communications.filter((_, i) => i !== index));
+  };
+
+  // Update communication
+  const updateCommunicationType = (index: number, typeId: number) => {
+    const updated = [...communications];
+    const type = COMMUNICATION_TYPES.find(t => t.id === typeId);
+    updated[index] = { 
+      ...updated[index], 
+      typeId: typeId,
+      typeLabel: type?.label || ''
+    };
+    setCommunications(updated);
+  };
+
+  const updateCommunicationValue = (index: number, value: string) => {
+    const updated = [...communications];
+    updated[index] = { ...updated[index], value };
+    setCommunications(updated);
+  };
+
+  // Add periode
+  const addPeriode = () => {
+    setPeriodesOuverture([...periodesOuverture, { dateDebut: '', dateFin: '', horaireOuverture: '', horaireFermeture: '' }]);
+  };
+
+  // Remove periode
+  const removePeriode = (index: number) => {
+    setPeriodesOuverture(periodesOuverture.filter((_, i) => i !== index));
+  };
+
+  // Update periode
+  const updatePeriode = (index: number, field: keyof PeriodeOuverture, value: string | boolean) => {
+    const updated = [...periodesOuverture];
+    updated[index] = { ...updated[index], [field]: value };
+    setPeriodesOuverture(updated);
+  };
 
   const handleSave = async () => {
     setSaving(true);
@@ -146,46 +199,85 @@ export function FicheEditForm({ fiche, onSave, onCancel }: FicheEditFormProps) {
         changes.push({ field: 'nom.libelleFr', label: 'Nom', old_value: oldNom, new_value: nom });
       }
       
-      // Check and update description courte
-      const oldDesc = getString(data, 'presentation.descriptifCourt.libelleFr');
-      if (descriptionCourte !== oldDesc) {
+      // Check and update descriptions
+      const oldDescCourte = getString(data, 'presentation.descriptifCourt.libelleFr');
+      if (descriptionCourte !== oldDescCourte) {
         updatedData = setNested(updatedData, 'presentation.descriptifCourt.libelleFr', descriptionCourte);
-        changes.push({ field: 'presentation.descriptifCourt.libelleFr', label: 'Description courte', old_value: oldDesc, new_value: descriptionCourte });
+        changes.push({ field: 'presentation.descriptifCourt.libelleFr', label: 'Description courte', old_value: oldDescCourte, new_value: descriptionCourte });
+      }
+      
+      const oldDescDetaillee = getString(data, 'presentation.descriptifDetaille.libelleFr');
+      if (descriptionDetaillee !== oldDescDetaillee) {
+        updatedData = setNested(updatedData, 'presentation.descriptifDetaille.libelleFr', descriptionDetaillee);
+        changes.push({ field: 'presentation.descriptifDetaille.libelleFr', label: 'Description détaillée', old_value: oldDescDetaillee, new_value: descriptionDetaillee });
       }
       
       // Check and update adresse
-      const oldAdresse = getString(data, 'localisation.adresse.adresse1');
-      if (adresse1 !== oldAdresse) {
+      const oldAdresse1 = getString(data, 'localisation.adresse.adresse1');
+      if (adresse1 !== oldAdresse1) {
         updatedData = setNested(updatedData, 'localisation.adresse.adresse1', adresse1);
-        changes.push({ field: 'localisation.adresse.adresse1', label: 'Adresse', old_value: oldAdresse, new_value: adresse1 });
+        changes.push({ field: 'localisation.adresse.adresse1', label: 'Adresse', old_value: oldAdresse1, new_value: adresse1 });
       }
       
-      // Check and update code postal
+      const oldAdresse2 = getString(data, 'localisation.adresse.adresse2');
+      if (adresse2 !== oldAdresse2) {
+        updatedData = setNested(updatedData, 'localisation.adresse.adresse2', adresse2);
+        changes.push({ field: 'localisation.adresse.adresse2', label: 'Complément adresse', old_value: oldAdresse2, new_value: adresse2 });
+      }
+      
       const oldCP = getString(data, 'localisation.adresse.codePostal');
       if (codePostal !== oldCP) {
         updatedData = setNested(updatedData, 'localisation.adresse.codePostal', codePostal);
         changes.push({ field: 'localisation.adresse.codePostal', label: 'Code postal', old_value: oldCP, new_value: codePostal });
       }
       
-      // Check and update telephone
-      const oldTel = getCommunicationValue(data, 'téléphone');
-      if (telephone !== oldTel) {
-        updatedData = updateCommunication(updatedData, 'téléphone', 'Téléphone', 201, telephone);
-        changes.push({ field: 'telephone', label: 'Téléphone', old_value: oldTel || null, new_value: telephone || null });
+      const oldCommune = getString(data, 'localisation.adresse.commune.nom');
+      if (commune !== oldCommune) {
+        updatedData = setNested(updatedData, 'localisation.adresse.commune.nom', commune);
+        changes.push({ field: 'localisation.adresse.commune.nom', label: 'Commune', old_value: oldCommune, new_value: commune });
       }
       
-      // Check and update email
-      const oldEmail = getCommunicationValue(data, 'mel') || getCommunicationValue(data, 'mail');
-      if (email !== oldEmail) {
-        updatedData = updateCommunication(updatedData, 'mel', 'Mél', 204, email);
-        changes.push({ field: 'email', label: 'Email', old_value: oldEmail || null, new_value: email || null });
+      // Update moyensCommunication
+      const newMoyens = communications.filter(c => c.value).map(c => ({
+        type: { id: c.typeId, libelleFr: c.typeLabel },
+        coordonnees: { fr: c.value }
+      }));
+      
+      const oldMoyens = get(data, 'informations.moyensCommunication', []);
+      if (JSON.stringify(newMoyens) !== JSON.stringify(oldMoyens)) {
+        if (!updatedData.informations) {
+          updatedData.informations = {};
+        }
+        (updatedData.informations as Record<string, unknown>).moyensCommunication = newMoyens;
+        changes.push({ 
+          field: 'informations.moyensCommunication', 
+          label: 'Moyens de communication', 
+          old_value: JSON.stringify(oldMoyens), 
+          new_value: JSON.stringify(newMoyens) 
+        });
       }
       
-      // Check and update site web
-      const oldSite = getCommunicationValue(data, 'site web');
-      if (siteWeb !== oldSite) {
-        updatedData = updateCommunication(updatedData, 'site web', 'Site web (URL)', 205, siteWeb);
-        changes.push({ field: 'site_web', label: 'Site web', old_value: oldSite || null, new_value: siteWeb || null });
+      // Update horaires - période en clair
+      const oldPeriodeEnClair = getString(data, 'ouverture.periodeEnClair.libelleFr');
+      if (periodeEnClair !== oldPeriodeEnClair) {
+        updatedData = setNested(updatedData, 'ouverture.periodeEnClair.libelleFr', periodeEnClair);
+        changes.push({ field: 'ouverture.periodeEnClair.libelleFr', label: 'Horaires (texte)', old_value: oldPeriodeEnClair, new_value: periodeEnClair });
+      }
+      
+      // Update périodes d'ouverture
+      const newPeriodes = periodesOuverture.filter(p => p.dateDebut || p.dateFin || p.horaireOuverture || p.horaireFermeture);
+      const oldPeriodes = get(data, 'ouverture.periodesOuvertures', []);
+      if (JSON.stringify(newPeriodes) !== JSON.stringify(oldPeriodes)) {
+        if (!updatedData.ouverture) {
+          updatedData.ouverture = {};
+        }
+        (updatedData.ouverture as Record<string, unknown>).periodesOuvertures = newPeriodes;
+        changes.push({ 
+          field: 'ouverture.periodesOuvertures', 
+          label: 'Périodes d\'ouverture', 
+          old_value: JSON.stringify(oldPeriodes), 
+          new_value: JSON.stringify(newPeriodes) 
+        });
       }
       
       if (changes.length === 0) {
@@ -252,85 +344,249 @@ export function FicheEditForm({ fiche, onSave, onCancel }: FicheEditFormProps) {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="space-y-4">
-        {/* Nom */}
-        <div className="space-y-2">
-          <Label htmlFor="nom">Nom</Label>
-          <Input
-            id="nom"
-            value={nom}
-            onChange={(e) => setNom(e.target.value)}
-            placeholder="Nom de la fiche"
-          />
-        </div>
-        
-        {/* Description courte */}
-        <div className="space-y-2">
-          <Label htmlFor="description">Description courte</Label>
-          <Textarea
-            id="description"
-            value={descriptionCourte}
-            onChange={(e) => setDescriptionCourte(e.target.value)}
-            placeholder="Description courte"
-            rows={3}
-          />
-        </div>
-        
-        {/* Adresse */}
-        <div className="grid grid-cols-3 gap-4">
-          <div className="col-span-2 space-y-2">
-            <Label htmlFor="adresse">Adresse</Label>
-            <Input
-              id="adresse"
-              value={adresse1}
-              onChange={(e) => setAdresse1(e.target.value)}
-              placeholder="Adresse"
-            />
-          </div>
+    <div className="space-y-4">
+      <Tabs defaultValue="general" className="w-full">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="general">Général</TabsTrigger>
+          <TabsTrigger value="contact">Contact</TabsTrigger>
+          <TabsTrigger value="horaires">Horaires</TabsTrigger>
+        </TabsList>
+
+        {/* Onglet Général */}
+        <TabsContent value="general" className="space-y-4 mt-4">
           <div className="space-y-2">
-            <Label htmlFor="codePostal">Code postal</Label>
+            <Label htmlFor="nom">Nom</Label>
             <Input
-              id="codePostal"
-              value={codePostal}
-              onChange={(e) => setCodePostal(e.target.value)}
-              placeholder="00000"
+              id="nom"
+              value={nom}
+              onChange={(e) => setNom(e.target.value)}
+              placeholder="Nom de la fiche"
             />
           </div>
-        </div>
-        
-        {/* Contact */}
-        <div className="space-y-2">
-          <Label htmlFor="telephone">Téléphone</Label>
-          <Input
-            id="telephone"
-            value={telephone}
-            onChange={(e) => setTelephone(e.target.value)}
-            placeholder="00 00 00 00 00"
-          />
-        </div>
-        
-        <div className="space-y-2">
-          <Label htmlFor="email">Email</Label>
-          <Input
-            id="email"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="contact@exemple.fr"
-          />
-        </div>
-        
-        <div className="space-y-2">
-          <Label htmlFor="siteWeb">Site web</Label>
-          <Input
-            id="siteWeb"
-            value={siteWeb}
-            onChange={(e) => setSiteWeb(e.target.value)}
-            placeholder="https://www.exemple.fr"
-          />
-        </div>
-      </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="descriptionCourte">Description courte</Label>
+            <Textarea
+              id="descriptionCourte"
+              value={descriptionCourte}
+              onChange={(e) => setDescriptionCourte(e.target.value)}
+              placeholder="Description courte"
+              rows={3}
+            />
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="descriptionDetaillee">Description détaillée</Label>
+            <Textarea
+              id="descriptionDetaillee"
+              value={descriptionDetaillee}
+              onChange={(e) => setDescriptionDetaillee(e.target.value)}
+              placeholder="Description détaillée"
+              rows={5}
+            />
+          </div>
+          
+          <Separator />
+          
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium">Localisation</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="adresse1">Adresse</Label>
+                <Input
+                  id="adresse1"
+                  value={adresse1}
+                  onChange={(e) => setAdresse1(e.target.value)}
+                  placeholder="Adresse"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="adresse2">Complément d'adresse</Label>
+                <Input
+                  id="adresse2"
+                  value={adresse2}
+                  onChange={(e) => setAdresse2(e.target.value)}
+                  placeholder="Complément d'adresse"
+                />
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="codePostal">Code postal</Label>
+                  <Input
+                    id="codePostal"
+                    value={codePostal}
+                    onChange={(e) => setCodePostal(e.target.value)}
+                    placeholder="00000"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="commune">Commune</Label>
+                  <Input
+                    id="commune"
+                    value={commune}
+                    onChange={(e) => setCommune(e.target.value)}
+                    placeholder="Commune"
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Onglet Contact */}
+        <TabsContent value="contact" className="space-y-4 mt-4">
+          <Card>
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-sm font-medium">Moyens de communication</CardTitle>
+                <Button type="button" variant="outline" size="sm" onClick={addCommunication}>
+                  <Plus className="h-4 w-4 mr-1" />
+                  Ajouter
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {communications.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-4">
+                  Aucun moyen de communication. Cliquez sur "Ajouter" pour en créer un.
+                </p>
+              ) : (
+                communications.map((comm, index) => (
+                  <div key={index} className="flex items-center gap-2">
+                    <Select 
+                      value={comm.typeId.toString()} 
+                      onValueChange={(value) => updateCommunicationType(index, parseInt(value))}
+                    >
+                      <SelectTrigger className="w-[180px]">
+                        <SelectValue placeholder="Type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {COMMUNICATION_TYPES.map(type => (
+                          <SelectItem key={type.id} value={type.id.toString()}>
+                            {type.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Input
+                      value={comm.value}
+                      onChange={(e) => updateCommunicationValue(index, e.target.value)}
+                      placeholder="Valeur"
+                      className="flex-1"
+                    />
+                    <Button 
+                      type="button" 
+                      variant="ghost" 
+                      size="icon"
+                      onClick={() => removeCommunication(index)}
+                    >
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  </div>
+                ))
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Onglet Horaires */}
+        <TabsContent value="horaires" className="space-y-4 mt-4">
+          <div className="space-y-2">
+            <Label htmlFor="periodeEnClair">Horaires (texte libre)</Label>
+            <Textarea
+              id="periodeEnClair"
+              value={periodeEnClair}
+              onChange={(e) => setPeriodeEnClair(e.target.value)}
+              placeholder="Ex: Ouvert tous les jours de 9h à 18h..."
+              rows={3}
+            />
+            <p className="text-xs text-muted-foreground">
+              Ce texte sera affiché tel quel sur la fiche.
+            </p>
+          </div>
+          
+          <Separator />
+          
+          <Card>
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-sm font-medium">Périodes d'ouverture</CardTitle>
+                <Button type="button" variant="outline" size="sm" onClick={addPeriode}>
+                  <Plus className="h-4 w-4 mr-1" />
+                  Ajouter
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {periodesOuverture.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-4">
+                  Aucune période d'ouverture définie.
+                </p>
+              ) : (
+                periodesOuverture.map((periode, index) => (
+                  <Card key={index} className="bg-muted/30">
+                    <CardContent className="pt-4 space-y-3">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm font-medium">Période {index + 1}</span>
+                        <Button 
+                          type="button" 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => removePeriode(index)}
+                        >
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1">
+                          <Label className="text-xs">Date début</Label>
+                          <Input
+                            type="date"
+                            value={periode.dateDebut || ''}
+                            onChange={(e) => updatePeriode(index, 'dateDebut', e.target.value)}
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Date fin</Label>
+                          <Input
+                            type="date"
+                            value={periode.dateFin || ''}
+                            onChange={(e) => updatePeriode(index, 'dateFin', e.target.value)}
+                          />
+                        </div>
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1">
+                          <Label className="text-xs">Heure ouverture</Label>
+                          <Input
+                            type="time"
+                            value={periode.horaireOuverture || ''}
+                            onChange={(e) => updatePeriode(index, 'horaireOuverture', e.target.value)}
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Heure fermeture</Label>
+                          <Input
+                            type="time"
+                            value={periode.horaireFermeture || ''}
+                            onChange={(e) => updatePeriode(index, 'horaireFermeture', e.target.value)}
+                          />
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
       
       {/* Actions */}
       <div className="flex justify-end gap-2 pt-4 border-t">
