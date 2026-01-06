@@ -112,6 +112,33 @@ function valuesMatch(current: string | null, found: string | null, fieldType: st
   }
 }
 
+// Check if email belongs to a tourism office or aggregator site (not the actual establishment)
+function isAggregatorEmail(email: string, sourceUrl: string): boolean {
+  const aggregatorDomains = [
+    'paysdemanosque.com',
+    'manosque-tourisme.com', 
+    'luberon-apt.fr',
+    'tourisme-apt.fr',
+    'provenceweb.fr',
+    'booking.com',
+    'tripadvisor.com',
+    'google.com',
+    'facebook.com',
+    'pagesjaunes.fr',
+  ];
+  
+  const emailDomain = email.split('@')[1]?.toLowerCase() || '';
+  const sourceDomain = new URL(sourceUrl).hostname.toLowerCase().replace('www.', '');
+  
+  // If email domain matches the source website domain, it's likely the aggregator's contact
+  if (emailDomain.includes(sourceDomain) || sourceDomain.includes(emailDomain.split('.')[0])) {
+    return true;
+  }
+  
+  // Check known aggregator domains
+  return aggregatorDomains.some(domain => emailDomain.includes(domain) || sourceDomain.includes(domain));
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -229,8 +256,10 @@ serve(async (req) => {
         });
       }
 
-      // Check email
-      if (extractedData.email && !valuesMatch(apidaeData.email, extractedData.email, 'email')) {
+      // Check email - skip if it's from an aggregator site
+      if (extractedData.email && 
+          !valuesMatch(apidaeData.email, extractedData.email, 'email') &&
+          !isAggregatorEmail(extractedData.email, sourceUrl)) {
         alerts.push({
           field_name: 'email',
           current_value: apidaeData.email,
@@ -239,6 +268,8 @@ serve(async (req) => {
           source_name: sourceName,
           confidence_score: 0.8,
         });
+      } else if (extractedData.email && isAggregatorEmail(extractedData.email, sourceUrl)) {
+        console.log(`Skipping aggregator email: ${extractedData.email} from ${sourceName}`);
       }
 
       // Check website
