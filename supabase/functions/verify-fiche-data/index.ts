@@ -125,6 +125,9 @@ function isAggregatorEmail(email: string, sourceUrl: string): boolean {
     'google.com',
     'facebook.com',
     'pagesjaunes.fr',
+    'yelp.com',
+    'lafourchette.com',
+    'thefork.com',
   ];
   
   const emailDomain = email.split('@')[1]?.toLowerCase() || '';
@@ -137,6 +140,79 @@ function isAggregatorEmail(email: string, sourceUrl: string): boolean {
   
   // Check known aggregator domains
   return aggregatorDomains.some(domain => emailDomain.includes(domain) || sourceDomain.includes(domain));
+}
+
+// Check if email is related to the establishment (same domain as website or contains establishment name)
+function isEstablishmentRelatedEmail(email: string, establishmentName: string, websiteUrl: string | null): boolean {
+  const emailDomain = email.split('@')[1]?.toLowerCase() || '';
+  
+  // If the email is on the domain of the official website
+  if (websiteUrl) {
+    const siteDomain = normalizeUrl(websiteUrl).split('/')[0];
+    // Check if domains share common parts
+    const siteParts = siteDomain.split('.');
+    const emailParts = emailDomain.split('.');
+    for (const sitePart of siteParts) {
+      if (sitePart.length > 3 && emailParts.some(ep => ep.includes(sitePart) || sitePart.includes(ep))) {
+        return true;
+      }
+    }
+  }
+  
+  // If the email domain contains a simplified version of the establishment name
+  if (establishmentName) {
+    const simplifiedName = establishmentName.toLowerCase()
+      .replace(/[àâä]/g, 'a')
+      .replace(/[éèêë]/g, 'e')
+      .replace(/[îï]/g, 'i')
+      .replace(/[ôö]/g, 'o')
+      .replace(/[ùûü]/g, 'u')
+      .replace(/[^a-z0-9]/g, '');
+    
+    // Check if the first 6+ chars of the name appear in the email domain
+    if (simplifiedName.length >= 6 && emailDomain.includes(simplifiedName.substring(0, 6))) {
+      return true;
+    }
+  }
+  
+  return false;
+}
+
+// Normalize address for comparison
+function normalizeAddress(address: string | null): string {
+  if (!address) return '';
+  return address.toLowerCase()
+    .replace(/avenue|av\.|av /gi, 'av ')
+    .replace(/boulevard|bd\.|bd /gi, 'bd ')
+    .replace(/rue|r\./gi, 'rue ')
+    .replace(/place|pl\./gi, 'pl ')
+    .replace(/chemin|ch\./gi, 'ch ')
+    .replace(/route|rte\./gi, 'rte ')
+    .replace(/[\s,]+/g, ' ')
+    .trim();
+}
+
+// Compare two addresses to see if they match
+function addressesMatch(addr1: string | null, addr2: string | null): boolean {
+  if (!addr1 || !addr2) return true; // Can't compare, assume OK
+  
+  const n1 = normalizeAddress(addr1);
+  const n2 = normalizeAddress(addr2);
+  
+  // Extract street number
+  const num1 = n1.match(/^\d+/)?.[0];
+  const num2 = n2.match(/^\d+/)?.[0];
+  
+  // If both have numbers and they differ, addresses are different
+  if (num1 && num2 && num1 !== num2) return false;
+  
+  // Check for common significant words (>3 chars)
+  const words1 = n1.split(' ').filter(w => w.length > 3);
+  const words2 = n2.split(' ').filter(w => w.length > 3);
+  const commonWords = words1.filter(w => words2.some(w2 => w2.includes(w) || w.includes(w2)));
+  
+  // Need at least 2 common words for a match
+  return commonWords.length >= 2;
 }
 
 serve(async (req) => {
@@ -256,10 +332,11 @@ serve(async (req) => {
         });
       }
 
-      // Check email - skip if it's from an aggregator site
+      // Check email - skip if from aggregator OR if it's the establishment's own domain
       if (extractedData.email && 
           !valuesMatch(apidaeData.email, extractedData.email, 'email') &&
-          !isAggregatorEmail(extractedData.email, sourceUrl)) {
+          !isAggregatorEmail(extractedData.email, sourceUrl) &&
+          !isEstablishmentRelatedEmail(extractedData.email, apidaeData.nom || '', apidaeData.site_web)) {
         alerts.push({
           field_name: 'email',
           current_value: apidaeData.email,
@@ -268,8 +345,12 @@ serve(async (req) => {
           source_name: sourceName,
           confidence_score: 0.8,
         });
-      } else if (extractedData.email && isAggregatorEmail(extractedData.email, sourceUrl)) {
-        console.log(`Skipping aggregator email: ${extractedData.email} from ${sourceName}`);
+      } else if (extractedData.email) {
+        if (isAggregatorEmail(extractedData.email, sourceUrl)) {
+          console.log(`Skipping aggregator email: ${extractedData.email} from ${sourceName}`);
+        } else if (isEstablishmentRelatedEmail(extractedData.email, apidaeData.nom || '', apidaeData.site_web)) {
+          console.log(`Skipping establishment-related email: ${extractedData.email} (same domain as official site)`);
+        }
       }
 
       // Check website
@@ -281,6 +362,18 @@ serve(async (req) => {
           source_url: sourceUrl,
           source_name: sourceName,
           confidence_score: 0.6,
+        });
+      }
+
+      // Check address
+      if (extractedData.address && !addressesMatch(apidaeData.adresse, extractedData.address)) {
+        alerts.push({
+          field_name: 'adresse',
+          current_value: apidaeData.adresse,
+          found_value: extractedData.address,
+          source_url: sourceUrl,
+          source_name: sourceName,
+          confidence_score: 0.7,
         });
       }
     }
@@ -335,7 +428,8 @@ serve(async (req) => {
           field: alert.field_name,
           label: alert.field_name === 'telephone' ? 'Téléphone' 
                : alert.field_name === 'email' ? 'Email' 
-               : alert.field_name === 'site_web' ? 'Site web' 
+               : alert.field_name === 'site_web' ? 'Site web'
+               : alert.field_name === 'adresse' ? 'Adresse'
                : alert.field_name,
           old_value: alert.current_value,
           new_value: alert.found_value,
