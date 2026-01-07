@@ -188,7 +188,7 @@ export default function AdminDashboard() {
                     </CardHeader>
                     <CardContent>
                       <CardDescription>
-                        Voir toutes les fiches du Google Sheet (sauf SOURCING)
+                        Données touristiques Apidae, mises à jour par l'agent IA ApidIA
                       </CardDescription>
                       <Button 
                         className="w-full mt-4" 
