@@ -163,11 +163,39 @@ export default function VerificationAlerts() {
     }
   };
 
+  const calculateNextRunAt = (scheduleType: string): string => {
+    const now = new Date();
+    const next = new Date();
+    
+    // Prochaine exécution à 3h du matin
+    next.setHours(3, 0, 0, 0);
+    
+    // Si 3h est déjà passé aujourd'hui, commencer demain
+    if (now.getHours() >= 3) {
+      next.setDate(next.getDate() + 1);
+    }
+    
+    // Ajuster selon la fréquence
+    if (scheduleType === 'weekly') {
+      // Prochain lundi
+      const daysUntilMonday = (8 - next.getDay()) % 7 || 7;
+      next.setDate(next.getDate() + daysUntilMonday);
+    } else if (scheduleType === 'monthly') {
+      // Premier du mois prochain
+      next.setMonth(next.getMonth() + 1);
+      next.setDate(1);
+    }
+    
+    return next.toISOString();
+  };
+
   const saveConfig = async () => {
     if (!config) return;
 
     setSavingConfig(true);
     try {
+      const nextRunAt = config.is_enabled ? calculateNextRunAt(config.schedule_type) : null;
+      
       const { error } = await supabase
         .from("verification_config")
         .update({
@@ -177,11 +205,14 @@ export default function VerificationAlerts() {
           days_between_verification: config.days_between_verification,
           exclude_recently_modified: config.exclude_recently_modified,
           days_consider_recent: config.days_consider_recent,
+          next_run_at: nextRunAt,
         })
         .eq("id", config.id);
 
       if (error) throw error;
 
+      // Mettre à jour le state local
+      setConfig({ ...config, next_run_at: nextRunAt });
       toast.success("Configuration sauvegardée");
     } catch (error) {
       console.error("Error saving config:", error);
