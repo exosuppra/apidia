@@ -508,6 +508,21 @@ export default function VerificationAlerts() {
                     )}
                   </div>
 
+                  {/* Verification in progress indicator */}
+                  {runningVerification && (
+                    <div className="p-4 bg-primary/10 border border-primary/20 rounded-lg animate-pulse">
+                      <div className="flex items-center gap-3">
+                        <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                        <div>
+                          <p className="font-medium text-primary">Vérification en cours...</p>
+                          <p className="text-sm text-muted-foreground">
+                            Analyse de {config.fiches_per_run} fiches via l'agent IA ApidIA
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Status info */}
                   <div className="grid gap-4 md:grid-cols-3 pt-4 border-t">
                     <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
@@ -522,16 +537,27 @@ export default function VerificationAlerts() {
                         </p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
-                      <Clock className="h-5 w-5 text-muted-foreground" />
+                    <div className={`flex items-center gap-3 p-3 rounded-lg ${config.is_enabled ? 'bg-green-500/10 border border-green-500/20' : 'bg-muted/30'}`}>
+                      {config.is_enabled ? (
+                        <Clock className="h-5 w-5 text-green-600" />
+                      ) : (
+                        <Clock className="h-5 w-5 text-muted-foreground" />
+                      )}
                       <div>
                         <p className="text-xs text-muted-foreground">Prochaine exécution</p>
-                        <p className="text-sm font-medium">
+                        <p className={`text-sm font-medium ${config.is_enabled ? 'text-green-700' : ''}`}>
                           {config.is_enabled && config.next_run_at
                             ? format(new Date(config.next_run_at), "dd MMM yyyy 'à' HH:mm", { locale: fr })
-                            : "Non planifiée"
+                            : config.is_enabled
+                              ? "En attente de planification"
+                              : "Désactivé"
                           }
                         </p>
+                        {config.is_enabled && (
+                          <p className="text-xs text-muted-foreground mt-0.5">
+                            {scheduleLabels[config.schedule_type]} • {config.fiches_per_run} fiches/exécution
+                          </p>
+                        )}
                       </div>
                     </div>
                     <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
