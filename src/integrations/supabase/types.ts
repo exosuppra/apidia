@@ -252,6 +252,54 @@ export type Database = {
         }
         Relationships: []
       }
+      fiches_verified: {
+        Row: {
+          created_at: string
+          data: Json
+          fiche_id: string
+          fiche_type: string
+          hidden_reason: string | null
+          id: string
+          is_published: boolean | null
+          source: string
+          synced_to_sheets: boolean
+          updated_at: string
+          verification_status: string | null
+          verified_at: string
+          verified_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          data?: Json
+          fiche_id: string
+          fiche_type: string
+          hidden_reason?: string | null
+          id?: string
+          is_published?: boolean | null
+          source?: string
+          synced_to_sheets?: boolean
+          updated_at?: string
+          verification_status?: string | null
+          verified_at?: string
+          verified_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          data?: Json
+          fiche_id?: string
+          fiche_type?: string
+          hidden_reason?: string | null
+          id?: string
+          is_published?: boolean | null
+          source?: string
+          synced_to_sheets?: boolean
+          updated_at?: string
+          verification_status?: string | null
+          verified_at?: string
+          verified_by?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
