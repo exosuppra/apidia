@@ -30,6 +30,7 @@ import StatsWeb from "./pages/admin/StatsWeb";
 import StatsEreputation from "./pages/admin/StatsEreputation";
 import VerificationAlerts from "./pages/admin/VerificationAlerts";
 import ImportFiches from "./pages/admin/ImportFiches";
+import FichesVerified from "./pages/admin/FichesVerified";
 import Fiches from "./pages/dashboard/Fiches";
 import Catalogue from "./pages/Catalogue";
 import ApidaeDetails from "./pages/ApidaeDetails";
@@ -187,6 +188,17 @@ const App = () => (
                   <RequirePermission pageKey="fiches">
                     <AdminLayout>
                       <ImportFiches />
+                    </AdminLayout>
+                  </RequirePermission>
+                </RequirePasswordChange>
+              </RequireAdminAuth>
+            } />
+            <Route path="/admin/fiches-verified" element={
+              <RequireAdminAuth>
+                <RequirePasswordChange>
+                  <RequirePermission pageKey="fiches">
+                    <AdminLayout>
+                      <FichesVerified />
                     </AdminLayout>
                   </RequirePermission>
                 </RequirePasswordChange>

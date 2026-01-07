@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import Seo from "@/components/Seo";
-import { ArrowLeft, Loader2, RefreshCw, Search, Eye, CheckCircle, XCircle, Upload, ShieldCheck, AlertTriangle, EyeOff, Calendar, Radar, FileUp } from "lucide-react";
+import { ArrowLeft, Loader2, RefreshCw, Search, Eye, CheckCircle, XCircle, Upload, ShieldCheck, AlertTriangle, EyeOff, Calendar, Radar, FileUp, ArrowRightLeft, CheckCheck } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
@@ -45,6 +45,8 @@ export default function AllFiches() {
   const [syncing, setSyncing] = useState(false);
   const [verifying, setVerifying] = useState(false);
   const [togglingPublish, setTogglingPublish] = useState<string | null>(null);
+  const [transferring, setTransferring] = useState<string | null>(null);
+  const [verifiedCount, setVerifiedCount] = useState(0);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -58,6 +60,65 @@ export default function AllFiches() {
       .select('*', { count: 'exact', head: true })
       .eq('status', 'pending');
     setAlertsCount(count || 0);
+  };
+
+  // Load verified fiches count
+  const loadVerifiedCount = async () => {
+    const { count } = await supabase
+      .from('fiches_verified')
+      .select('*', { count: 'exact', head: true });
+    setVerifiedCount(count || 0);
+  };
+
+  // Transfer fiche to verified table
+  const transferToVerified = async (fiche: FicheData) => {
+    setTransferring(fiche.id);
+    try {
+      // Get current user for history logging
+      const { data: userData } = await supabase.auth.getUser();
+
+      // Insert into fiches_verified
+      const { error: insertError } = await supabase
+        .from('fiches_verified')
+        .upsert({
+          fiche_id: fiche.fiche_id,
+          fiche_type: fiche.fiche_type,
+          source: fiche.source,
+          data: fiche.data,
+          is_published: fiche.is_published,
+          synced_to_sheets: false,
+          verification_status: 'verified',
+          verified_at: new Date().toISOString(),
+          verified_by: userData?.user?.id || null,
+        }, { onConflict: 'fiche_id' });
+
+      if (insertError) throw insertError;
+
+      // Delete from fiches_data
+      const { error: deleteError } = await supabase
+        .from('fiches_data')
+        .delete()
+        .eq('id', fiche.id);
+
+      if (deleteError) throw deleteError;
+
+      toast({
+        title: "Fiche transférée",
+        description: "La fiche a été déplacée vers les fiches vérifiées",
+      });
+
+      await loadAllFiches();
+      await loadVerifiedCount();
+    } catch (error) {
+      console.error('Erreur lors du transfert:', error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de transférer la fiche",
+        variant: "destructive",
+      });
+    } finally {
+      setTransferring(null);
+    }
   };
 
   const verifySync = async () => {
@@ -261,6 +322,7 @@ export default function AllFiches() {
   useEffect(() => {
     loadAllFiches();
     loadAlertsCount();
+    loadVerifiedCount();
   }, []);
 
   useEffect(() => {
@@ -376,6 +438,20 @@ export default function AllFiches() {
             </div>
             
             <div className="flex items-center gap-2">
+              <Button
+                onClick={() => navigate("/admin/fiches-verified")}
+                variant="outline"
+                size="sm"
+                className="border-green-500/50 text-green-700 hover:bg-green-50"
+              >
+                <CheckCheck className="w-4 h-4 mr-2" />
+                Fiches vérifiées
+                {verifiedCount > 0 && (
+                  <Badge variant="secondary" className="ml-2 bg-green-100 text-green-700">
+                    {verifiedCount}
+                  </Badge>
+                )}
+              </Button>
               <Button
                 onClick={() => navigate("/admin/import-fiches")}
                 variant="outline"
@@ -600,6 +676,20 @@ export default function AllFiches() {
                           </TableCell>
                           <TableCell className="text-right">
                             <div className="flex items-center justify-end gap-1">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => transferToVerified(fiche)}
+                                disabled={transferring === fiche.id}
+                                title="Transférer vers vérifiées"
+                                className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                              >
+                                {transferring === fiche.id ? (
+                                  <Loader2 className="w-4 h-4 animate-spin" />
+                                ) : (
+                                  <ArrowRightLeft className="w-4 h-4" />
+                                )}
+                              </Button>
                               <Button
                                 variant="ghost"
                                 size="sm"
