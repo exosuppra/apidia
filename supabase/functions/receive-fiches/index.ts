@@ -379,6 +379,14 @@ Deno.serve(async (req: Request) => {
         .maybeSingle();
 
       if (existing) {
+        // Get current data for history comparison
+        const { data: currentFiche } = await supabase
+          .from("fiches_data")
+          .select("data")
+          .eq("fiche_type", fiche_type)
+          .eq("fiche_id", fiche_id)
+          .single();
+
         // Update existing
         const { error } = await supabase
           .from("fiches_data")
@@ -386,6 +394,7 @@ Deno.serve(async (req: Request) => {
             data: enrichedData,
             synced_to_sheets: false,
             source: "make_webhook",
+            last_data_update_at: new Date().toISOString(),
           })
           .eq("fiche_type", fiche_type)
           .eq("fiche_id", fiche_id);
@@ -396,6 +405,34 @@ Deno.serve(async (req: Request) => {
         } else {
           results.updated++;
           console.log(`Updated fiche: ${fiche_type}/${fiche_id} with ${storedMedia.length} media`);
+          
+          // Log history for update
+          const ficheName = (data as Record<string, unknown>).nom 
+            ? ((data as Record<string, unknown>).nom as Record<string, string>)?.libelleFr || 'Sans nom'
+            : 'Sans nom';
+          
+          try {
+            await supabase.from('fiche_history').insert({
+              fiche_id: fiche_id,
+              fiche_uuid: existing.id,
+              action_type: 'update',
+              actor_type: 'system',
+              actor_name: 'Webhook Make',
+              changes: {
+                previous_data: currentFiche?.data || null,
+                new_data: enrichedData
+              },
+              metadata: {
+                source: 'make_webhook',
+                fiche_type: fiche_type,
+                fiche_name: ficheName,
+                media_count: storedMedia.length
+              }
+            });
+            console.log(`Logged update history for fiche ${fiche_id}`);
+          } catch (historyError) {
+            console.error(`Failed to log update history for fiche ${fiche_id}:`, historyError);
+          }
         }
       } else {
         // Insert new
