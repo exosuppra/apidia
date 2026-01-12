@@ -294,7 +294,8 @@ export function FicheEditForm({ fiche, onSave, onCancel }: FicheEditFormProps) {
         .from('fiches_data')
         .update({ 
           data: updatedData as Json,
-          synced_to_sheets: false
+          synced_to_sheets: false,
+          last_data_update_at: new Date().toISOString()
         })
         .eq('id', fiche.id);
       

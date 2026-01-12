@@ -82,6 +82,7 @@ serve(async (req: Request) => {
             is_published: isPublished,
             synced_to_sheets: false,
             verification_status: "not_verified",
+            last_data_update_at: new Date().toISOString(),
           })
           .select('id')
           .single();
