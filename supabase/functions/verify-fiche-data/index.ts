@@ -538,17 +538,39 @@ serve(async (req) => {
       }
     }
 
-    // Update fiche verification status
+    // Update fiche verification timestamp in fiches_data (but NOT the status - that's only for manual validation)
     const { error: updateError } = await supabase
       .from('fiches_data')
       .update({
         last_verified_at: new Date().toISOString(),
-        verification_status: alerts.length > 0 ? 'alerts_found' : 'verified',
+        // verification_status reste inchangé jusqu'à validation manuelle
       })
       .eq('fiche_id', fiche_id);
 
     if (updateError) {
-      console.error('Error updating fiche status:', updateError);
+      console.error('Error updating fiche verification timestamp:', updateError);
+    }
+
+    // Copier automatiquement vers fiches_verified après vérification Firecrawl
+    const verificationStatus = alerts.length > 0 ? 'pending_review' : 'auto_verified';
+    const { error: verifiedUpsertError } = await supabase
+      .from('fiches_verified')
+      .upsert({
+        fiche_id: fiche_id,
+        fiche_type: fiche.fiche_type,
+        source: fiche.source,
+        data: fiche.data,
+        is_published: fiche.is_published,
+        synced_to_sheets: false,
+        verification_status: verificationStatus,
+        verified_at: new Date().toISOString(),
+        verified_by: null, // Vérification automatique (pas de user)
+      }, { onConflict: 'fiche_id' });
+
+    if (verifiedUpsertError) {
+      console.error('Error upserting to fiches_verified:', verifiedUpsertError);
+    } else {
+      console.log(`Fiche ${fiche_id} copied to fiches_verified with status: ${verificationStatus}`);
     }
 
     // Log to fiche_history
