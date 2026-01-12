@@ -201,12 +201,13 @@ serve(async (req) => {
       }
     }
 
-    // Update the fiche data
+    // Update the fiche data in fiches_data AND mark as verified (validation manuelle)
     const { error: updateError } = await supabase
       .from('fiches_data')
       .update({ 
         data: updatedData,
-        synced_to_sheets: false // Mark for re-sync
+        synced_to_sheets: false, // Mark for re-sync
+        verification_status: 'verified', // Validation manuelle = statut vérifié
       })
       .eq('id', fiche.id);
 
@@ -216,6 +217,25 @@ serve(async (req) => {
         JSON.stringify({ success: false, error: 'Failed to update fiche data' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
+    }
+
+    // Synchroniser également vers fiches_verified avec le nouveau statut
+    const { error: verifiedUpdateError } = await supabase
+      .from('fiches_verified')
+      .upsert({
+        fiche_id: alert.fiche_id,
+        fiche_type: fiche.fiche_type,
+        source: fiche.source,
+        data: updatedData,
+        is_published: fiche.is_published,
+        synced_to_sheets: false,
+        verification_status: 'verified', // Validé manuellement
+        verified_at: new Date().toISOString(),
+        verified_by: body.actor_id || null,
+      }, { onConflict: 'fiche_id' });
+
+    if (verifiedUpdateError) {
+      console.error('Error updating fiches_verified:', verifiedUpdateError);
     }
 
     // Update the alert status to 'fixed'
