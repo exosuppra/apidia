@@ -141,16 +141,13 @@ serve(async (req) => {
 
     // Récupérer les fiches à vérifier
     // Priorité : jamais vérifiées d'abord, puis les plus anciennes
-    // Exclure les fiches récemment mises à jour (import ou modification manuelle)
-    let query = supabase
+    // Condition : (last_verified_at est null OU ancien) ET (last_data_update_at est null OU ancien)
+    const { data: allFiches, error: fetchError } = await supabase
       .from('fiches_data')
       .select('fiche_id, fiche_type, last_verified_at, last_data_update_at')
       .or(`last_verified_at.is.null,last_verified_at.lt.${thresholdDate.toISOString()}`)
-      .or(`last_data_update_at.is.null,last_data_update_at.lt.${dataUpdateThreshold.toISOString()}`)
       .order('last_verified_at', { ascending: true, nullsFirst: true })
-      .limit(fichesLimit + excludedFicheIds.length); // Récupérer plus pour compenser les exclusions
-
-    const { data: allFiches, error: fetchError } = await query;
+      .limit(fichesLimit + excludedFicheIds.length + 50); // Récupérer plus pour compenser les exclusions et filtrages
 
     if (fetchError) {
       console.error('Error fetching fiches:', fetchError);
@@ -160,9 +157,17 @@ serve(async (req) => {
       );
     }
 
-    // Filtrer les fiches exclues et limiter
+    // Filtrer les fiches :
+    // 1. Exclure celles avec des modifications manuelles récentes (fiche_history)
+    // 2. Exclure celles avec last_data_update_at récent (import ou modification)
     const fichesToVerify = (allFiches || [])
       .filter(f => !excludedFicheIds.includes(f.fiche_id))
+      .filter(f => {
+        // Si last_data_update_at n'existe pas ou est ancien, on peut vérifier
+        if (!f.last_data_update_at) return true;
+        const updateDate = new Date(f.last_data_update_at);
+        return updateDate < dataUpdateThreshold;
+      })
       .slice(0, fichesLimit);
 
     console.log(`Found ${fichesToVerify.length} fiches to verify (after filtering)`);
