@@ -115,15 +115,21 @@ serve(async (req) => {
     const fichesLimit = overrideLimit || config.fiches_per_run;
     const daysSinceVerification = overrideDays || config.days_between_verification;
 
+    // En mode manuel on "force" la vérification : on ne bloque pas sur les mises à jour récentes.
+    // (Sinon, si tout a été importé récemment, on peut se retrouver avec 0 fiche à vérifier.)
+    const shouldApplyRecentUpdateFilters = !manual;
+
     // Calculer le seuil de date pour les vérifications
     const thresholdDate = new Date();
     thresholdDate.setDate(thresholdDate.getDate() - daysSinceVerification);
 
     // Récupérer les IDs des fiches récemment modifiées manuellement (si option activée)
     let excludedFicheIds: string[] = [];
-    if (config.exclude_recently_modified) {
+    if (shouldApplyRecentUpdateFilters && config.exclude_recently_modified) {
       const recentModificationThreshold = new Date();
-      recentModificationThreshold.setDate(recentModificationThreshold.getDate() - config.days_consider_recent);
+      recentModificationThreshold.setDate(
+        recentModificationThreshold.getDate() - config.days_consider_recent
+      );
 
       const { data: recentlyModified } = await supabase
         .from('fiche_history')
@@ -135,13 +141,13 @@ serve(async (req) => {
       console.log(`Excluding ${excludedFicheIds.length} fiches with recent manual edits`);
     }
 
-    // Calculer le seuil pour last_data_update_at (éviter de vérifier les fiches récemment mises à jour)
+    // Seuil pour last_data_update_at (éviter de vérifier les fiches récemment mises à jour)
+    // IMPORTANT: ce seuil doit se baser sur days_consider_recent (fenêtre "récent"), pas sur days_between_verification.
     const dataUpdateThreshold = new Date();
-    dataUpdateThreshold.setDate(dataUpdateThreshold.getDate() - daysSinceVerification);
+    dataUpdateThreshold.setDate(dataUpdateThreshold.getDate() - config.days_consider_recent);
 
     // Récupérer les fiches à vérifier
     // Priorité : jamais vérifiées d'abord, puis les plus anciennes
-    // Condition : (last_verified_at est null OU ancien) ET (last_data_update_at est null OU ancien)
     const { data: allFiches, error: fetchError } = await supabase
       .from('fiches_data')
       .select('fiche_id, fiche_type, last_verified_at, last_data_update_at')
@@ -158,12 +164,12 @@ serve(async (req) => {
     }
 
     // Filtrer les fiches :
-    // 1. Exclure celles avec des modifications manuelles récentes (fiche_history)
-    // 2. Exclure celles avec last_data_update_at récent (import ou modification)
+    // - En auto : exclure les modifications manuelles récentes + les mises à jour récentes
+    // - En manuel : ne pas exclure (mode "forcer"), pour respecter la demande utilisateur
     const fichesToVerify = (allFiches || [])
-      .filter(f => !excludedFicheIds.includes(f.fiche_id))
+      .filter(f => (shouldApplyRecentUpdateFilters ? !excludedFicheIds.includes(f.fiche_id) : true))
       .filter(f => {
-        // Si last_data_update_at n'existe pas ou est ancien, on peut vérifier
+        if (!shouldApplyRecentUpdateFilters) return true;
         if (!f.last_data_update_at) return true;
         const updateDate = new Date(f.last_data_update_at);
         return updateDate < dataUpdateThreshold;
