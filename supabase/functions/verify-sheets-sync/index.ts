@@ -94,28 +94,40 @@ Deno.serve(async (req: Request) => {
     const credentials: ServiceAccountCredentials = JSON.parse(credentialsJson);
     const accessToken = await getAccessToken(credentials);
 
-    // Get all synced fiches from database
-    const { data: syncedFiches, error: fetchError } = await supabase
+    // Get all synced fiches from fiches_data
+    const { data: syncedFichesData, error: fetchDataError } = await supabase
       .from("fiches_data")
       .select("id, fiche_id, fiche_type")
       .eq("synced_to_sheets", true);
 
-    if (fetchError) {
-      console.error("Error fetching synced fiches:", fetchError);
-      return new Response(
-        JSON.stringify({ error: "Failed to fetch synced fiches", details: fetchError.message }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+    if (fetchDataError) {
+      console.error("Error fetching synced fiches from fiches_data:", fetchDataError);
     }
 
-    if (!syncedFiches || syncedFiches.length === 0) {
+    // Get all synced fiches from fiches_verified
+    const { data: syncedFichesVerified, error: fetchVerifiedError } = await supabase
+      .from("fiches_verified")
+      .select("id, fiche_id, fiche_type")
+      .eq("synced_to_sheets", true);
+
+    if (fetchVerifiedError) {
+      console.error("Error fetching synced fiches from fiches_verified:", fetchVerifiedError);
+    }
+
+    // Combine both sources
+    const syncedFiches = [
+      ...(syncedFichesData || []).map(f => ({ ...f, _source: 'fiches_data' as const })),
+      ...(syncedFichesVerified || []).map(f => ({ ...f, _source: 'fiches_verified' as const })),
+    ];
+
+    if (syncedFiches.length === 0) {
       return new Response(
         JSON.stringify({ success: true, message: "No synced fiches to verify", verified: 0, unmarked: 0 }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    console.log(`Verifying ${syncedFiches.length} synced fiches against Google Sheets`);
+    console.log(`Verifying ${syncedFiches.length} synced fiches against Google Sheets (${syncedFichesData?.length || 0} from fiches_data, ${syncedFichesVerified?.length || 0} from fiches_verified)`);
 
     // Get spreadsheet metadata to find all sheets
     const metadataResponse = await fetch(
@@ -171,21 +183,41 @@ Deno.serve(async (req: Request) => {
       errors: [] as { fiche_id: string; error: string }[],
     };
 
-    // Mark missing fiches as not synced
+    // Mark missing fiches as not synced - separate updates for each source table
     if (missingFiches.length > 0) {
-      const missingIds = missingFiches.map(f => f.id);
+      const missingFromData = missingFiches.filter(f => f._source === 'fiches_data');
+      const missingFromVerified = missingFiches.filter(f => f._source === 'fiches_verified');
 
-      const { error: updateError } = await supabase
-        .from("fiches_data")
-        .update({ synced_to_sheets: false })
-        .in("id", missingIds);
+      if (missingFromData.length > 0) {
+        const dataIds = missingFromData.map(f => f.id);
+        const { error: updateDataError } = await supabase
+          .from("fiches_data")
+          .update({ synced_to_sheets: false })
+          .in("id", dataIds);
 
-      if (updateError) {
-        console.error("Error unmarking fiches:", updateError);
-        results.errors.push({ fiche_id: "batch", error: updateError.message });
-      } else {
-        results.unmarked = missingFiches.length;
-        console.log(`Unmarked ${missingFiches.length} fiches for re-sync`);
+        if (updateDataError) {
+          console.error("Error unmarking fiches_data:", updateDataError);
+          results.errors.push({ fiche_id: "fiches_data_batch", error: updateDataError.message });
+        } else {
+          results.unmarked += missingFromData.length;
+          console.log(`Unmarked ${missingFromData.length} fiches from fiches_data for re-sync`);
+        }
+      }
+
+      if (missingFromVerified.length > 0) {
+        const verifiedIds = missingFromVerified.map(f => f.id);
+        const { error: updateVerifiedError } = await supabase
+          .from("fiches_verified")
+          .update({ synced_to_sheets: false })
+          .in("id", verifiedIds);
+
+        if (updateVerifiedError) {
+          console.error("Error unmarking fiches_verified:", updateVerifiedError);
+          results.errors.push({ fiche_id: "fiches_verified_batch", error: updateVerifiedError.message });
+        } else {
+          results.unmarked += missingFromVerified.length;
+          console.log(`Unmarked ${missingFromVerified.length} fiches from fiches_verified for re-sync`);
+        }
       }
     }
 
