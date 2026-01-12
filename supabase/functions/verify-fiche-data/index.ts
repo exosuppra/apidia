@@ -551,15 +551,103 @@ serve(async (req) => {
       console.error('Error updating fiche verification timestamp:', updateError);
     }
 
-    // Copier automatiquement vers fiches_verified après vérification Firecrawl
+// Copier automatiquement vers fiches_verified après vérification Firecrawl
+    // IMPORTANT: Dans fiches_verified, on applique directement les corrections trouvées
     const verificationStatus = alerts.length > 0 ? 'pending_review' : 'auto_verified';
+    
+    // Créer une copie des données avec les corrections appliquées pour fiches_verified
+    let correctedData = JSON.parse(JSON.stringify(fiche.data));
+    
+    if (alerts.length > 0) {
+      console.log(`Applying ${alerts.length} corrections to fiches_verified data...`);
+      
+      for (const alert of alerts) {
+        const newValue = alert.found_value;
+        if (!newValue) continue;
+        
+        // Apply address corrections
+        if (alert.field_name === 'adresse') {
+          // Parse the full address
+          const postalMatch = newValue.match(/\b(\d{5})\b/);
+          const codePostal = postalMatch ? postalMatch[1] : null;
+          let commune = null;
+          let adresse1: string | null = newValue;
+          
+          if (postalMatch) {
+            const afterPostal = newValue.substring(newValue.indexOf(postalMatch[0]) + 5).trim();
+            commune = afterPostal.replace(/^[,\s]+/, '').trim() || null;
+            adresse1 = newValue.substring(0, newValue.indexOf(postalMatch[0])).trim();
+            adresse1 = adresse1.replace(/[,\s]+$/, '') || null;
+          }
+          
+          if (!correctedData.localisation) correctedData.localisation = {};
+          if (!correctedData.localisation.adresse) correctedData.localisation.adresse = {};
+          
+          if (adresse1) correctedData.localisation.adresse.adresse1 = adresse1;
+          if (codePostal) correctedData.localisation.adresse.codePostal = codePostal;
+          if (commune) {
+            if (!correctedData.localisation.adresse.commune) correctedData.localisation.adresse.commune = {};
+            correctedData.localisation.adresse.commune.nom = commune;
+          }
+          console.log(`Applied address correction: ${newValue}`);
+        }
+        // Apply moyensCommunication corrections (telephone, email, site_web)
+        else if (['telephone', 'email', 'site_web'].includes(alert.field_name)) {
+          const typeIdMap: Record<string, number> = { telephone: 201, email: 204, site_web: 205 };
+          const typeLabelsMap: Record<string, string> = { telephone: 'Téléphone', email: 'Mél', site_web: 'Site web' };
+          const typeId = typeIdMap[alert.field_name];
+          const typeLabel = typeLabelsMap[alert.field_name];
+          
+          if (!correctedData.informations) correctedData.informations = {};
+          if (!correctedData.informations.moyensCommunication) correctedData.informations.moyensCommunication = [];
+          
+          const moyens = correctedData.informations.moyensCommunication;
+          const existingIndex = moyens.findIndex((m: any) => 
+            m.type?.id === typeId || m.type?.libelleFr === typeLabel
+          );
+          
+          if (existingIndex >= 0) {
+            if (typeof moyens[existingIndex].coordonnees === 'object') {
+              moyens[existingIndex].coordonnees.fr = newValue;
+            } else {
+              moyens[existingIndex].coordonnees = newValue;
+            }
+          } else {
+            moyens.push({
+              type: { id: typeId, libelleFr: typeLabel },
+              coordonnees: newValue,
+            });
+          }
+          console.log(`Applied ${alert.field_name} correction: ${newValue}`);
+        }
+        // Apply horaires corrections
+        else if (alert.field_name === 'horaires') {
+          if (!correctedData.ouverture) correctedData.ouverture = {};
+          if (!correctedData.ouverture.periodesOuvertures) correctedData.ouverture.periodesOuvertures = [];
+          
+          // Add or update the first opening period with the new hours
+          if (correctedData.ouverture.periodesOuvertures.length > 0) {
+            if (!correctedData.ouverture.periodesOuvertures[0].complementHoraire) {
+              correctedData.ouverture.periodesOuvertures[0].complementHoraire = {};
+            }
+            correctedData.ouverture.periodesOuvertures[0].complementHoraire.libelleFr = newValue;
+          } else {
+            correctedData.ouverture.periodesOuvertures.push({
+              complementHoraire: { libelleFr: newValue }
+            });
+          }
+          console.log(`Applied horaires correction: ${newValue}`);
+        }
+      }
+    }
+    
     const { error: verifiedUpsertError } = await supabase
       .from('fiches_verified')
       .upsert({
         fiche_id: fiche_id,
         fiche_type: fiche.fiche_type,
         source: fiche.source,
-        data: fiche.data,
+        data: correctedData, // Données avec corrections appliquées
         is_published: fiche.is_published,
         synced_to_sheets: false,
         verification_status: verificationStatus,
