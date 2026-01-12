@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import Seo from "@/components/Seo";
-import { ArrowLeft, Loader2, RefreshCw, Search, Eye, CheckCircle, XCircle, EyeOff, ArrowLeftRight, Trash2 } from "lucide-react";
+import { ArrowLeft, Loader2, RefreshCw, Search, Eye, CheckCircle, EyeOff, ArrowLeftRight, Trash2 } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
@@ -13,7 +13,6 @@ import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { FicheDetailsDialog } from "@/components/fiches/FicheDetailsDialog";
 
 import type { Json } from "@/integrations/supabase/types";
@@ -308,16 +307,6 @@ export default function FichesVerified() {
                         <TableHead>Nom</TableHead>
                         <TableHead>Commune</TableHead>
                         <TableHead>Vérifiée le</TableHead>
-                        <TableHead className="text-center">
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger className="cursor-help">Sheets</TooltipTrigger>
-                              <TooltipContent>
-                                <p>Synchronisé vers Google Sheets</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                        </TableHead>
                         <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -353,13 +342,6 @@ export default function FichesVerified() {
                           </TableCell>
                           <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
                             {format(new Date(fiche.verified_at), "dd/MM/yyyy HH:mm", { locale: fr })}
-                          </TableCell>
-                          <TableCell className="text-center">
-                            {fiche.synced_to_sheets ? (
-                              <CheckCircle className="w-4 h-4 text-green-500 mx-auto" />
-                            ) : (
-                              <XCircle className="w-4 h-4 text-muted-foreground mx-auto" />
-                            )}
                           </TableCell>
                           <TableCell className="text-right">
                             <div className="flex items-center justify-end gap-1">
