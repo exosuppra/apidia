@@ -135,12 +135,18 @@ serve(async (req) => {
       console.log(`Excluding ${excludedFicheIds.length} fiches with recent manual edits`);
     }
 
+    // Calculer le seuil pour last_data_update_at (éviter de vérifier les fiches récemment mises à jour)
+    const dataUpdateThreshold = new Date();
+    dataUpdateThreshold.setDate(dataUpdateThreshold.getDate() - daysSinceVerification);
+
     // Récupérer les fiches à vérifier
     // Priorité : jamais vérifiées d'abord, puis les plus anciennes
+    // Exclure les fiches récemment mises à jour (import ou modification manuelle)
     let query = supabase
       .from('fiches_data')
-      .select('fiche_id, fiche_type, last_verified_at')
+      .select('fiche_id, fiche_type, last_verified_at, last_data_update_at')
       .or(`last_verified_at.is.null,last_verified_at.lt.${thresholdDate.toISOString()}`)
+      .or(`last_data_update_at.is.null,last_data_update_at.lt.${dataUpdateThreshold.toISOString()}`)
       .order('last_verified_at', { ascending: true, nullsFirst: true })
       .limit(fichesLimit + excludedFicheIds.length); // Récupérer plus pour compenser les exclusions
 

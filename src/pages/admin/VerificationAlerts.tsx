@@ -523,6 +523,9 @@ export default function VerificationAlerts() {
                         value={config.days_between_verification}
                         onChange={(e) => setConfig({ ...config, days_between_verification: parseInt(e.target.value) || 30 })}
                       />
+                      <p className="text-xs text-muted-foreground">
+                        Une modification manuelle ou un import réinitialise ce compteur
+                      </p>
                     </div>
                   </div>
 

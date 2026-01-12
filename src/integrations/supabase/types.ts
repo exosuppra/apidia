@@ -216,6 +216,7 @@ export type Database = {
           hidden_reason: string | null
           id: string
           is_published: boolean | null
+          last_data_update_at: string | null
           last_verified_at: string | null
           source: string
           synced_to_sheets: boolean
@@ -230,6 +231,7 @@ export type Database = {
           hidden_reason?: string | null
           id?: string
           is_published?: boolean | null
+          last_data_update_at?: string | null
           last_verified_at?: string | null
           source?: string
           synced_to_sheets?: boolean
@@ -244,6 +246,7 @@ export type Database = {
           hidden_reason?: string | null
           id?: string
           is_published?: boolean | null
+          last_data_update_at?: string | null
           last_verified_at?: string | null
           source?: string
           synced_to_sheets?: boolean
