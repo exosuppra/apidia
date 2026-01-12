@@ -13,6 +13,8 @@ import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { FicheDetailsDialog } from "@/components/fiches/FicheDetailsDialog";
 
 import type { Json } from "@/integrations/supabase/types";
 
@@ -41,6 +43,7 @@ export default function FichesVerified() {
   const [transferring, setTransferring] = useState<string | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<FicheVerified | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [selectedFiche, setSelectedFiche] = useState<FicheVerified | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -305,7 +308,16 @@ export default function FichesVerified() {
                         <TableHead>Nom</TableHead>
                         <TableHead>Commune</TableHead>
                         <TableHead>Vérifiée le</TableHead>
-                        <TableHead className="text-center">Sync</TableHead>
+                        <TableHead className="text-center">
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger className="cursor-help">Sheets</TooltipTrigger>
+                              <TooltipContent>
+                                <p>Synchronisé vers Google Sheets</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </TableHead>
                         <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -351,6 +363,14 @@ export default function FichesVerified() {
                           </TableCell>
                           <TableCell className="text-right">
                             <div className="flex items-center justify-end gap-1">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setSelectedFiche(fiche)}
+                                title="Voir les détails"
+                              >
+                                <Search className="w-4 h-4" />
+                              </Button>
                               <Button
                                 variant="ghost"
                                 size="sm"
@@ -408,6 +428,16 @@ export default function FichesVerified() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Fiche details dialog */}
+      {selectedFiche && (
+        <FicheDetailsDialog
+          open={!!selectedFiche}
+          onOpenChange={(open) => !open && setSelectedFiche(null)}
+          fiche={selectedFiche}
+          onFicheUpdated={loadFiches}
+        />
+      )}
     </>
   );
 }
