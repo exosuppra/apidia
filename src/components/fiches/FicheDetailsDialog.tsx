@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { 
   MapPin, 
   Phone, 
@@ -20,13 +21,22 @@ import {
   History,
   Pencil,
   Radar,
-  Loader2
+  Loader2,
+  AlertTriangle
 } from "lucide-react";
 import { Json } from "@/integrations/supabase/types";
 import { FicheHistoryPanel } from "./FicheHistoryPanel";
 import { FicheEditForm } from "./FicheEditForm";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+
+interface VerificationAlert {
+  field_name: string;
+  current_value: string | null;
+  found_value: string | null;
+  source_name: string | null;
+  confidence_score: number | null;
+}
 
 interface FicheDetailsDialogProps {
   open: boolean;
@@ -85,9 +95,44 @@ const Section = ({ title, icon: Icon, children }: { title: string; icon: React.E
   </div>
 );
 
-// Info row component
-const InfoRow = ({ label, value }: { label: string; value: string | React.ReactNode }) => {
+// Info row component with alert support
+const InfoRow = ({ 
+  label, 
+  value, 
+  alert 
+}: { 
+  label: string; 
+  value: string | React.ReactNode;
+  alert?: VerificationAlert;
+}) => {
   if (!value || value === '') return null;
+  
+  if (alert) {
+    return (
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div className="flex flex-col sm:flex-row sm:items-start gap-1 text-sm bg-orange-100 dark:bg-orange-950/30 p-2 rounded-md border border-orange-300 dark:border-orange-800">
+              <span className="text-orange-700 dark:text-orange-400 min-w-[140px] shrink-0 flex items-center gap-1">
+                <AlertTriangle className="h-3 w-3" />
+                {label}:
+              </span>
+              <span className="text-orange-800 dark:text-orange-300">{value}</span>
+            </div>
+          </TooltipTrigger>
+          <TooltipContent className="max-w-sm">
+            <div className="space-y-1 text-xs">
+              <p className="font-semibold text-orange-600">Alerte de vérification</p>
+              <p><strong>Valeur trouvée:</strong> {alert.found_value || 'N/A'}</p>
+              {alert.source_name && <p><strong>Source:</strong> {alert.source_name}</p>}
+              {alert.confidence_score && <p><strong>Confiance:</strong> {Math.round(alert.confidence_score * 100)}%</p>}
+            </div>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    );
+  }
+  
   return (
     <div className="flex flex-col sm:flex-row sm:items-start gap-1 text-sm">
       <span className="text-muted-foreground min-w-[140px] shrink-0">{label}:</span>
@@ -99,6 +144,31 @@ const InfoRow = ({ label, value }: { label: string; value: string | React.ReactN
 export function FicheDetailsDialog({ open, onOpenChange, fiche, onFicheUpdated }: FicheDetailsDialogProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
+  const [pendingAlerts, setPendingAlerts] = useState<VerificationAlert[]>([]);
+  
+  // Fetch pending alerts for this fiche
+  useEffect(() => {
+    const fetchAlerts = async () => {
+      if (!fiche?.fiche_id || !open) return;
+      
+      const { data, error } = await supabase
+        .from('verification_alerts')
+        .select('field_name, current_value, found_value, source_name, confidence_score')
+        .eq('fiche_id', fiche.fiche_id)
+        .eq('status', 'pending');
+      
+      if (!error && data) {
+        setPendingAlerts(data);
+      }
+    };
+    
+    fetchAlerts();
+  }, [fiche?.fiche_id, open]);
+  
+  // Helper to get alert for a field
+  const getAlertForField = (fieldName: string): VerificationAlert | undefined => {
+    return pendingAlerts.find(a => a.field_name === fieldName);
+  };
   
   if (!fiche) return null;
 
@@ -321,7 +391,7 @@ export function FicheDetailsDialog({ open, onOpenChange, fiche, onFicheUpdated }
 
               {/* Localisation */}
               <Section title="Localisation" icon={MapPin}>
-                {adresse1 && <InfoRow label="Adresse" value={adresse1} />}
+                {adresse1 && <InfoRow label="Adresse" value={adresse1} alert={getAlertForField('adresse')} />}
                 {adresse2 && <InfoRow label="Complément" value={adresse2} />}
                 <InfoRow label="Commune" value={`${codePostal} ${commune}`.trim()} />
                 {latitude !== 0 && longitude !== 0 && (
@@ -451,30 +521,78 @@ export function FicheDetailsDialog({ open, onOpenChange, fiche, onFicheUpdated }
                       const isLink = value.startsWith('http') || type.toLowerCase().includes('site');
                       const isMail = type.toLowerCase().includes('mel') || type.toLowerCase().includes('mail');
                       
-                      return (
-                        <div key={index} className="flex items-start gap-2 text-sm">
-                          <Icon className="h-3.5 w-3.5 text-muted-foreground mt-0.5 shrink-0" />
-                          <span className="text-muted-foreground min-w-[100px] shrink-0">{type}:</span>
+                      // Determine which field this communication relates to for alerts
+                      let alertFieldName: string | null = null;
+                      if (type.toLowerCase().includes('mel') || type.toLowerCase().includes('mail')) {
+                        alertFieldName = 'email';
+                      } else if (type.toLowerCase().includes('site') || type.toLowerCase().includes('web')) {
+                        alertFieldName = 'site_web';
+                      } else if (type.toLowerCase().includes('tel') || type.toLowerCase().includes('phone')) {
+                        alertFieldName = 'telephone';
+                      }
+                      
+                      const alert = alertFieldName ? getAlertForField(alertFieldName) : undefined;
+                      
+                      const baseClasses = "flex items-start gap-2 text-sm";
+                      const alertClasses = alert 
+                        ? "bg-orange-100 dark:bg-orange-950/30 p-2 rounded-md border border-orange-300 dark:border-orange-800" 
+                        : "";
+                      
+                      const content = (
+                        <div key={index} className={`${baseClasses} ${alertClasses}`}>
+                          {alert ? (
+                            <AlertTriangle className="h-3.5 w-3.5 text-orange-600 mt-0.5 shrink-0" />
+                          ) : (
+                            <Icon className="h-3.5 w-3.5 text-muted-foreground mt-0.5 shrink-0" />
+                          )}
+                          <span className={`min-w-[100px] shrink-0 ${alert ? 'text-orange-700 dark:text-orange-400' : 'text-muted-foreground'}`}>
+                            {type}:
+                          </span>
                           <div className="min-w-0 flex-1">
                             {isLink ? (
                               <a 
                                 href={value} 
                                 target="_blank" 
                                 rel="noopener noreferrer" 
-                                className="text-primary hover:underline break-all"
+                                className={`hover:underline break-all ${alert ? 'text-orange-800 dark:text-orange-300' : 'text-primary'}`}
                               >
                                 {value}
                               </a>
                             ) : isMail ? (
-                              <a href={`mailto:${value}`} className="text-primary hover:underline break-all">
+                              <a 
+                                href={`mailto:${value}`} 
+                                className={`hover:underline break-all ${alert ? 'text-orange-800 dark:text-orange-300' : 'text-primary'}`}
+                              >
                                 {value}
                               </a>
                             ) : (
-                              <span className="break-all">{value}</span>
+                              <span className={`break-all ${alert ? 'text-orange-800 dark:text-orange-300' : ''}`}>{value}</span>
                             )}
                           </div>
                         </div>
                       );
+                      
+                      if (alert) {
+                        return (
+                          <TooltipProvider key={index}>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                {content}
+                              </TooltipTrigger>
+                              <TooltipContent className="max-w-sm">
+                                <div className="space-y-1 text-xs">
+                                  <p className="font-semibold text-orange-600">Alerte de vérification</p>
+                                  <p><strong>Valeur trouvée:</strong> {alert.found_value || 'N/A'}</p>
+                                  {alert.source_name && <p><strong>Source:</strong> {alert.source_name}</p>}
+                                  {alert.confidence_score && <p><strong>Confiance:</strong> {Math.round(alert.confidence_score * 100)}%</p>}
+                                </div>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        );
+                      }
+                      
+                      return content;
                     })}
                   </div>
                 </Section>
@@ -524,7 +642,32 @@ export function FicheDetailsDialog({ open, onOpenChange, fiche, onFicheUpdated }
             <TabsContent value="horaires" className="space-y-6 mt-0">
               <Section title="Horaires d'ouverture" icon={Clock}>
                 {periodeEnClair ? (
-                  <p className="text-sm">{periodeEnClair}</p>
+                  (() => {
+                    const horaireAlert = getAlertForField('horaires');
+                    if (horaireAlert) {
+                      return (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <div className="text-sm bg-orange-100 dark:bg-orange-950/30 p-3 rounded-md border border-orange-300 dark:border-orange-800 flex items-start gap-2">
+                                <AlertTriangle className="h-4 w-4 text-orange-600 mt-0.5 shrink-0" />
+                                <span className="text-orange-800 dark:text-orange-300">{periodeEnClair}</span>
+                              </div>
+                            </TooltipTrigger>
+                            <TooltipContent className="max-w-sm">
+                              <div className="space-y-1 text-xs">
+                                <p className="font-semibold text-orange-600">Alerte de vérification</p>
+                                <p><strong>Valeur trouvée:</strong> {horaireAlert.found_value || 'N/A'}</p>
+                                {horaireAlert.source_name && <p><strong>Source:</strong> {horaireAlert.source_name}</p>}
+                                {horaireAlert.confidence_score && <p><strong>Confiance:</strong> {Math.round(horaireAlert.confidence_score * 100)}%</p>}
+                              </div>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      );
+                    }
+                    return <p className="text-sm">{periodeEnClair}</p>;
+                  })()
                 ) : (
                   <div className="text-center py-8 text-muted-foreground">
                     <Clock className="h-8 w-8 mx-auto mb-2 opacity-50" />
