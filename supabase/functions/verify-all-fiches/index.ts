@@ -148,9 +148,11 @@ serve(async (req) => {
 
     // Récupérer les fiches à vérifier
     // Priorité : jamais vérifiées d'abord, puis les plus anciennes
+    // IMPORTANT: Ne vérifier que les fiches publiées (is_published = true)
     const { data: allFiches, error: fetchError } = await supabase
       .from('fiches_data')
       .select('fiche_id, fiche_type, last_verified_at, last_data_update_at')
+      .eq('is_published', true)
       .or(`last_verified_at.is.null,last_verified_at.lt.${thresholdDate.toISOString()}`)
       .order('last_verified_at', { ascending: true, nullsFirst: true })
       .limit(fichesLimit + excludedFicheIds.length + 50); // Récupérer plus pour compenser les exclusions et filtrages
