@@ -105,40 +105,28 @@ Deno.serve(async (req: Request) => {
 
     const credentials: ServiceAccountCredentials = JSON.parse(credentialsJson);
 
-    // Fetch unsynced fiches from fiches_data
-    const { data: unsyncedData, error: fetchDataError } = await supabase
+    // Fetch unsynced fiches
+    const { data: unsynced, error: fetchError } = await supabase
       .from("fiches_data")
       .select("*")
       .eq("synced_to_sheets", false);
 
-    if (fetchDataError) {
-      console.error("Error fetching unsynced fiches from fiches_data:", fetchDataError);
+    if (fetchError) {
+      console.error("Error fetching unsynced fiches:", fetchError);
+      return new Response(
+        JSON.stringify({ error: "Failed to fetch unsynced fiches", details: fetchError.message }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
-    // Fetch unsynced fiches from fiches_verified
-    const { data: unsyncedVerified, error: fetchVerifiedError } = await supabase
-      .from("fiches_verified")
-      .select("*")
-      .eq("synced_to_sheets", false);
-
-    if (fetchVerifiedError) {
-      console.error("Error fetching unsynced fiches from fiches_verified:", fetchVerifiedError);
-    }
-
-    // Combine both sources, marking their origin
-    const unsynced = [
-      ...(unsyncedData || []).map(f => ({ ...f, _source: 'fiches_data' as const })),
-      ...(unsyncedVerified || []).map(f => ({ ...f, _source: 'fiches_verified' as const })),
-    ];
-
-    if (unsynced.length === 0) {
+    if (!unsynced || unsynced.length === 0) {
       return new Response(
         JSON.stringify({ success: true, message: "No fiches to sync", synced: 0 }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    console.log(`Found ${unsynced.length} fiches to sync (${unsyncedData?.length || 0} from fiches_data, ${unsyncedVerified?.length || 0} from fiches_verified)`);
+    console.log(`Found ${unsynced.length} fiches to sync`);
 
     // Get access token
     const accessToken = await getAccessToken(credentials);
@@ -482,45 +470,22 @@ Deno.serve(async (req: Request) => {
           throw new Error(`Failed to append data: ${errorText}`);
         }
 
-        // Mark as synced - separate updates for each source table
-        const fichesFromData = fiches.filter(f => f._source === 'fiches_data');
-        const fichesFromVerified = fiches.filter(f => f._source === 'fiches_verified');
+        // Mark as synced
+        const ficheIds = fiches.map((f) => f.id);
+        const { error: updateError } = await supabase
+          .from("fiches_data")
+          .update({ synced_to_sheets: true })
+          .in("id", ficheIds);
 
-        if (fichesFromData.length > 0) {
-          const dataIds = fichesFromData.map((f) => f.id);
-          const { error: updateDataError } = await supabase
-            .from("fiches_data")
-            .update({ synced_to_sheets: true })
-            .in("id", dataIds);
-
-          if (updateDataError) {
-            console.error("Error marking fiches_data as synced:", updateDataError);
-            for (const fiche of fichesFromData) {
-              results.errors.push({ fiche_id: fiche.fiche_id, error: updateDataError.message });
-            }
-          } else {
-            results.synced += fichesFromData.length;
+        if (updateError) {
+          console.error("Error marking fiches as synced:", updateError);
+          for (const fiche of fiches) {
+            results.errors.push({ fiche_id: fiche.fiche_id, error: updateError.message });
           }
+        } else {
+          results.synced += fiches.length;
+          console.log(`Synced ${fiches.length} fiches to sheet: ${sheetName}`);
         }
-
-        if (fichesFromVerified.length > 0) {
-          const verifiedIds = fichesFromVerified.map((f) => f.id);
-          const { error: updateVerifiedError } = await supabase
-            .from("fiches_verified")
-            .update({ synced_to_sheets: true })
-            .in("id", verifiedIds);
-
-          if (updateVerifiedError) {
-            console.error("Error marking fiches_verified as synced:", updateVerifiedError);
-            for (const fiche of fichesFromVerified) {
-              results.errors.push({ fiche_id: fiche.fiche_id, error: updateVerifiedError.message });
-            }
-          } else {
-            results.synced += fichesFromVerified.length;
-          }
-        }
-
-        console.log(`Synced ${fiches.length} fiches to sheet: ${sheetName}`);
       } catch (sheetError) {
         console.error(`Error syncing type ${ficheType}:`, sheetError);
         for (const fiche of fiches) {
