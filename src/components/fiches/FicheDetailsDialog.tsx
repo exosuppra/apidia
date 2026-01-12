@@ -123,6 +123,7 @@ const InfoRow = ({
           <TooltipContent className="max-w-sm">
             <div className="space-y-1 text-xs">
               <p className="font-semibold text-orange-600">Alerte de vérification</p>
+              <p><strong>Valeur actuelle:</strong> {alert.current_value || 'N/A'}</p>
               <p><strong>Valeur trouvée:</strong> {alert.found_value || 'N/A'}</p>
               {alert.source_name && <p><strong>Source:</strong> {alert.source_name}</p>}
               {alert.confidence_score && <p><strong>Confiance:</strong> {Math.round(alert.confidence_score * 100)}%</p>}
