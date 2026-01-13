@@ -798,10 +798,18 @@ export default function AllFiches() {
                   <Info className="w-5 h-5 text-blue-600 mt-0.5 shrink-0" />
                   <div>
                     <h3 className="font-medium text-blue-900">Données synchronisées depuis APIDAE</h3>
-                    <p className="text-sm text-blue-700 mt-1">
-                      Ces fiches proviennent de l'API APIDAE via Make et sont liées au système de l'Office de Tourisme. 
-                      Utilisez les actions ci-dessous pour gérer la synchronisation et la vérification.
+                    <p className="text-sm text-blue-700 mt-1 mb-2">
+                      Ce système récupère les fiches directement depuis l'<strong>API APIDAE</strong>, la base de données 
+                      touristique de référence utilisée par les Offices de Tourisme en France.
                     </p>
+                    <div className="text-sm text-blue-700 space-y-1">
+                      <p><strong>Sources des données :</strong></p>
+                      <ul className="list-disc list-inside ml-2 space-y-0.5 text-blue-600">
+                        <li><strong>APIDAE</strong> : Base nationale des données touristiques (hébergements, restaurants, activités, événements...)</li>
+                        <li><strong>Sélections territoriales</strong> : Ensembles de fiches regroupées par votre territoire/destination</li>
+                        <li><strong>Synchronisation automatique</strong> : Mise à jour régulière pour refléter les modifications faites dans APIDAE</li>
+                      </ul>
+                    </div>
                   </div>
                 </div>
               </div>
