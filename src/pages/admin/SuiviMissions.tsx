@@ -17,6 +17,7 @@ interface MissionFile {
   webViewLink: string;
   createdTime: string;
   modifiedTime: string;
+  contentPreview?: string;
 }
 
 interface MissionFolder {
@@ -67,6 +68,10 @@ export default function SuiviMissions() {
     folder.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const handleBackToFolders = () => {
+    setSelectedFolder(null);
+  };
+
   return (
     <>
       <Seo 
@@ -75,45 +80,59 @@ export default function SuiviMissions() {
       />
       
       <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/5 p-6">
-        <div className="container mx-auto">
+        <div className="container mx-auto max-w-5xl">
           {/* Header */}
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-4">
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => navigate('/admin/dashboard')}
+                onClick={selectedFolder ? handleBackToFolders : () => navigate('/admin/dashboard')}
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />
-                Retour
+                {selectedFolder ? "Dossiers" : "Retour"}
               </Button>
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
                   <Briefcase className="w-5 h-5 text-primary" />
                 </div>
                 <div>
-                  <h1 className="text-2xl font-bold">Ordres de Mission</h1>
+                  <h1 className="text-2xl font-bold">
+                    {selectedFolder ? selectedFolder.name : "Ordres de Mission"}
+                  </h1>
                   <p className="text-sm text-muted-foreground">
-                    Gestion des ordres et frais de mission
+                    {selectedFolder 
+                      ? `${selectedFolder.files.length} document${selectedFolder.files.length > 1 ? 's' : ''}`
+                      : "Gestion des ordres et frais de mission"
+                    }
                   </p>
                 </div>
               </div>
             </div>
             
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={fetchMissions}
-              disabled={loading}
-            >
-              <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-              Actualiser
-            </Button>
+            {!selectedFolder && (
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={fetchMissions}
+                disabled={loading}
+              >
+                <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+                Actualiser
+              </Button>
+            )}
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Folders list */}
-            <div className="lg:col-span-2 space-y-4">
+          {/* Content: Either folders grid OR document list */}
+          {selectedFolder ? (
+            // Document list view (full width)
+            <MissionDetailPanel 
+              folder={selectedFolder}
+              onClose={handleBackToFolders}
+            />
+          ) : (
+            // Folders grid view
+            <div className="space-y-4">
               {/* Search */}
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -141,34 +160,19 @@ export default function SuiviMissions() {
                   </p>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   {filteredFolders.map(folder => (
                     <MissionFolderCard
                       key={folder.id}
                       folder={folder}
-                      isSelected={selectedFolder?.id === folder.id}
+                      isSelected={false}
                       onClick={() => setSelectedFolder(folder)}
                     />
                   ))}
                 </div>
               )}
             </div>
-
-            {/* Detail panel */}
-            <div className="lg:col-span-1">
-              {selectedFolder ? (
-                <MissionDetailPanel 
-                  folder={selectedFolder}
-                  onClose={() => setSelectedFolder(null)}
-                />
-              ) : (
-                <div className="border-2 border-dashed rounded-lg p-8 text-center text-muted-foreground">
-                  <Briefcase className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>Sélectionnez un dossier de mission pour voir les détails et fusionner les documents</p>
-                </div>
-              )}
-            </div>
-          </div>
+          )}
         </div>
       </div>
     </>
