@@ -6,6 +6,12 @@ verify_jwt = false
 [functions.get-rh-data]
 verify_jwt = false
 
+[functions.get-missions-data]
+verify_jwt = false
+
+[functions.merge-mission-pdfs]
+verify_jwt = false
+
 [functions.get-public-planning]
 verify_jwt = false
 
