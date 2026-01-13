@@ -293,6 +293,12 @@ export default function AllFiches() {
 
       if (error) throw error;
 
+      // Update local state immediately so next manual sync uses the selection IDs
+      setApidaeSyncConfig({
+        ...apidaeSyncConfig,
+        selection_ids: parsedSelectionIds,
+      });
+
       toast({
         title: "Configuration enregistrée",
         description: apidaeSyncConfig.is_enabled 
