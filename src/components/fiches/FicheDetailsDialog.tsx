@@ -22,7 +22,8 @@ import {
   Pencil,
   Radar,
   Loader2,
-  AlertTriangle
+  AlertTriangle,
+  Upload
 } from "lucide-react";
 import { Json } from "@/integrations/supabase/types";
 import { FicheHistoryPanel } from "./FicheHistoryPanel";
@@ -145,6 +146,7 @@ const InfoRow = ({
 export function FicheDetailsDialog({ open, onOpenChange, fiche, onFicheUpdated }: FicheDetailsDialogProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
+  const [isPushing, setIsPushing] = useState(false);
   const [pendingAlerts, setPendingAlerts] = useState<VerificationAlert[]>([]);
   
   // Fetch pending alerts for this fiche
@@ -210,6 +212,96 @@ export function FicheDetailsDialog({ open, onOpenChange, fiche, onFicheUpdated }
       });
     } finally {
       setIsVerifying(false);
+    }
+  };
+
+  const handlePushToApidae = async () => {
+    if (!fiche) return;
+    
+    setIsPushing(true);
+    try {
+      const data = fiche.data as Record<string, unknown>;
+      
+      // Build changes object with all supported fields
+      const changes: Record<string, unknown> = {};
+      
+      // Nom
+      const nom = getString(data, 'nom.libelleFr');
+      if (nom) changes.nom = nom;
+      
+      // Descriptions
+      const descCourte = getString(data, 'presentation.descriptifCourt.libelleFr');
+      if (descCourte) changes.descriptifCourt = descCourte;
+      
+      const descDetaillee = getString(data, 'presentation.descriptifDetaille.libelleFr');
+      if (descDetaillee) changes.descriptifDetaille = descDetaillee;
+      
+      // Localisation
+      const adresse1 = getString(data, 'localisation.adresse.adresse1');
+      if (adresse1) changes.adresse1 = adresse1;
+      
+      const codePostal = getString(data, 'localisation.adresse.codePostal');
+      if (codePostal) changes.codePostal = codePostal;
+      
+      const commune = getString(data, 'localisation.adresse.commune.nom');
+      if (commune) changes.commune = commune;
+      
+      // Communication - extract from moyensCommunication array
+      const moyensCom = getArray(data, 'informations.moyensCommunication');
+      for (const moyen of moyensCom) {
+        const type = getString(moyen, 'type.libelleFr', '').toLowerCase();
+        const coordFr = getString(moyen, 'coordonnees.fr', '');
+        const coordDirect = getString(moyen, 'coordonnees', '');
+        const value = coordFr || coordDirect;
+        
+        if (value) {
+          if (type.includes('tel') || type.includes('phone') || type.includes('fixe') || type.includes('portable')) {
+            if (!changes.telephone) changes.telephone = value;
+          } else if (type.includes('mel') || type.includes('mail')) {
+            if (!changes.email) changes.email = value;
+          } else if (type.includes('site') || type.includes('web')) {
+            if (!changes.siteWeb) changes.siteWeb = value;
+          }
+        }
+      }
+      
+      // Horaires
+      const periodeEnClair = getString(data, 'ouverture.periodeEnClair.libelleFr');
+      if (periodeEnClair) changes.periodeEnClair = periodeEnClair;
+      
+      if (Object.keys(changes).length === 0) {
+        toast.warning("Aucun champ à synchroniser", {
+          description: "La fiche ne contient pas de données modifiables"
+        });
+        return;
+      }
+      
+      console.log('Pushing to Apidae:', { ficheId: fiche.fiche_id, changes });
+      
+      const { data: result, error } = await supabase.functions.invoke('push-to-apidae', {
+        body: {
+          ficheId: fiche.fiche_id,
+          changes
+        }
+      });
+      
+      if (error) throw error;
+      
+      if (result.success) {
+        toast.success("Fiche synchronisée vers Apidae", {
+          description: `${Object.keys(changes).length} champ(s) envoyé(s)`
+        });
+        onFicheUpdated?.();
+      } else {
+        throw new Error(result.error || "Erreur lors de la synchronisation");
+      }
+    } catch (error) {
+      console.error('Push to Apidae error:', error);
+      toast.error("Erreur lors de la synchronisation", {
+        description: error instanceof Error ? error.message : "Impossible de pousser vers Apidae"
+      });
+    } finally {
+      setIsPushing(false);
     }
   };
   
@@ -335,6 +427,21 @@ export function FicheDetailsDialog({ open, onOpenChange, fiche, onFicheUpdated }
                 <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
                   <Pencil className="w-4 h-4 mr-2" />
                   Modifier
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={handlePushToApidae}
+                  disabled={isPushing}
+                  title="Pousser les données vers Apidae"
+                  className="text-orange-600 border-orange-300 hover:bg-orange-50 hover:text-orange-700"
+                >
+                  {isPushing ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <Upload className="w-4 h-4 mr-2" />
+                  )}
+                  {isPushing ? "Envoi..." : "Pousser vers Apidae"}
                 </Button>
               </div>
             )}
