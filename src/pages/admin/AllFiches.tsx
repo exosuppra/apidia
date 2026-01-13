@@ -8,7 +8,7 @@ import {
   ArrowLeft, Loader2, RefreshCw, Search, Eye, CheckCircle, XCircle, 
   Upload, ShieldCheck, AlertTriangle, EyeOff, Calendar, Radar, FileUp, 
   ArrowRightLeft, CheckCheck, Database, Sparkles, HelpCircle, Trash2,
-  ArrowLeftRight, Info, CloudDownload, Settings, Clock
+  ArrowLeftRight, Info, CloudDownload, Settings, Clock, ChevronLeft, ChevronRight
 } from "lucide-react";
 import {
   Dialog,
@@ -124,6 +124,11 @@ export default function AllFiches() {
   const [deleteConfirm, setDeleteConfirm] = useState<FicheVerified | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [selectedFicheApidia, setSelectedFicheApidia] = useState<FicheVerified | null>(null);
+
+  // Pagination APIDAE
+  const [currentPage, setCurrentPage] = useState(1);
+  const [currentPageApidia, setCurrentPageApidia] = useState(1);
+  const ITEMS_PER_PAGE = 50;
 
   // Counts
   const [alertsCount, setAlertsCount] = useState(0);
@@ -711,6 +716,7 @@ export default function AllFiches() {
     }
 
     setFilteredFiches(result);
+    setCurrentPage(1); // Reset to first page when filters change
   }, [fiches, typeFilter, searchTerm, publishFilter]);
 
   useEffect(() => {
@@ -734,10 +740,23 @@ export default function AllFiches() {
     }
 
     setFilteredFichesApidia(result);
+    setCurrentPageApidia(1); // Reset to first page when filters change
   }, [fichesApidia, typeFilterApidia, searchTermApidia]);
 
   const ficheTypes = [...new Set(fiches.map(f => f.fiche_type))].sort();
   const ficheTypesApidia = [...new Set(fichesApidia.map(f => f.fiche_type))].sort();
+
+  // Pagination calculations
+  const totalPages = Math.ceil(filteredFiches.length / ITEMS_PER_PAGE);
+  const totalPagesApidia = Math.ceil(filteredFichesApidia.length / ITEMS_PER_PAGE);
+  const paginatedFiches = filteredFiches.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  );
+  const paginatedFichesApidia = filteredFichesApidia.slice(
+    (currentPageApidia - 1) * ITEMS_PER_PAGE,
+    currentPageApidia * ITEMS_PER_PAGE
+  );
 
   const handleTabChange = (value: string) => {
     setSearchParams({ tab: value });
@@ -1258,7 +1277,7 @@ export default function AllFiches() {
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {filteredFiches.map((fiche) => {
+                          {paginatedFiches.map((fiche) => {
                             const isFMA = fiche.fiche_type === "FETE_ET_MANIFESTATION";
                             const expired = isFMA && isOpeningExpired(fiche.data);
                             return (
@@ -1375,6 +1394,38 @@ export default function AllFiches() {
                           })}
                         </TableBody>
                       </Table>
+                    </div>
+                  )}
+                  
+                  {/* Pagination APIDAE */}
+                  {filteredFiches.length > ITEMS_PER_PAGE && (
+                    <div className="flex items-center justify-between pt-4 border-t">
+                      <p className="text-sm text-muted-foreground">
+                        Affichage {((currentPage - 1) * ITEMS_PER_PAGE) + 1} - {Math.min(currentPage * ITEMS_PER_PAGE, filteredFiches.length)} sur {filteredFiches.length} fiches
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                          disabled={currentPage === 1}
+                        >
+                          <ChevronLeft className="w-4 h-4" />
+                          Précédent
+                        </Button>
+                        <span className="text-sm font-medium px-2">
+                          Page {currentPage} / {totalPages}
+                        </span>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                          disabled={currentPage === totalPages}
+                        >
+                          Suivant
+                          <ChevronRight className="w-4 h-4" />
+                        </Button>
+                      </div>
                     </div>
                   )}
                 </CardContent>
@@ -1521,7 +1572,7 @@ export default function AllFiches() {
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {filteredFichesApidia.map((fiche) => (
+                          {paginatedFichesApidia.map((fiche) => (
                             <TableRow key={fiche.id}>
                               <TableCell>
                                 {fiche.is_published ? (
@@ -1603,6 +1654,38 @@ export default function AllFiches() {
                           ))}
                         </TableBody>
                       </Table>
+                    </div>
+                  )}
+                  
+                  {/* Pagination Apidia */}
+                  {filteredFichesApidia.length > ITEMS_PER_PAGE && (
+                    <div className="flex items-center justify-between pt-4 border-t">
+                      <p className="text-sm text-muted-foreground">
+                        Affichage {((currentPageApidia - 1) * ITEMS_PER_PAGE) + 1} - {Math.min(currentPageApidia * ITEMS_PER_PAGE, filteredFichesApidia.length)} sur {filteredFichesApidia.length} fiches
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setCurrentPageApidia(p => Math.max(1, p - 1))}
+                          disabled={currentPageApidia === 1}
+                        >
+                          <ChevronLeft className="w-4 h-4" />
+                          Précédent
+                        </Button>
+                        <span className="text-sm font-medium px-2">
+                          Page {currentPageApidia} / {totalPagesApidia}
+                        </span>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setCurrentPageApidia(p => Math.min(totalPagesApidia, p + 1))}
+                          disabled={currentPageApidia === totalPagesApidia}
+                        >
+                          Suivant
+                          <ChevronRight className="w-4 h-4" />
+                        </Button>
+                      </div>
                     </div>
                   )}
                 </CardContent>
