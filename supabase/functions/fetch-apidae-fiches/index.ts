@@ -105,17 +105,20 @@ serve(async (req: Request) => {
 
     console.log("Fetching from Apidae with query:", JSON.stringify(searchQuery));
 
-    // Call Apidae API
-    const formData = new FormData();
-    formData.append("apiKey", APIDAE_API_KEY);
-    formData.append("projetId", APIDAE_PROJECT_ID);
-    formData.append("query", JSON.stringify(searchQuery));
+    // Call Apidae API with URL-encoded form data
+    const params = new URLSearchParams();
+    params.append("apiKey", APIDAE_API_KEY);
+    params.append("projetId", APIDAE_PROJECT_ID);
+    params.append("query", JSON.stringify(searchQuery));
 
     const apidaeResponse = await fetch(
       "https://api.apidae-tourisme.com/api/v002/recherche/list-objets-touristiques/",
       {
         method: "POST",
-        body: formData,
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: params.toString(),
       }
     );
 
