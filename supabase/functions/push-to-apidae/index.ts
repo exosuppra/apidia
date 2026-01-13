@@ -40,22 +40,20 @@ async function getOAuthToken(): Promise<string> {
     throw new Error("Missing Apidae OAuth credentials");
   }
 
-  // Apidae uses the SSO endpoint for OAuth2 token
-  const tokenUrl = "https://base.apidae-tourisme.com/oauth/token";
+  // Documentation officielle Apidae: http://api.apidae-tourisme.com/oauth/token
+  // Authentification via Basic Auth avec clientId:secret
+  const tokenUrl = "http://api.apidae-tourisme.com/oauth/token?grant_type=client_credentials";
   
-  const params = new URLSearchParams();
-  params.append("grant_type", "client_credentials");
-  params.append("client_id", APIDAE_CLIENT_ID);
-  params.append("client_secret", APIDAE_CLIENT_SECRET);
+  const credentials = btoa(`${APIDAE_CLIENT_ID}:${APIDAE_CLIENT_SECRET}`);
 
-  console.log("Requesting OAuth token from:", tokenUrl);
+  console.log("Requesting OAuth token from Apidae API");
 
   const response = await fetch(tokenUrl, {
-    method: "POST",
+    method: "GET",
     headers: {
-      "Content-Type": "application/x-www-form-urlencoded",
+      "Authorization": `Basic ${credentials}`,
+      "Accept": "application/json",
     },
-    body: params,
   });
 
   const responseText = await response.text();
@@ -63,7 +61,7 @@ async function getOAuthToken(): Promise<string> {
   
   if (!response.ok) {
     console.error("OAuth token error:", response.status, responseText);
-    throw new Error(`Failed to get OAuth token: ${response.status} - ${responseText}`);
+    throw new Error(`Failed to get OAuth token: ${response.status} - ${responseText.substring(0, 200)}`);
   }
 
   // Check if response is HTML (error page)
@@ -73,6 +71,7 @@ async function getOAuthToken(): Promise<string> {
   }
 
   const tokenData: TokenResponse = JSON.parse(responseText);
+  console.log("Got OAuth token, expires in:", tokenData.expires_in, "seconds");
   return tokenData.access_token;
 }
 
