@@ -38,6 +38,49 @@ const IGNORED_FIELDS: Record<string, string> = {
   siteWeb: "Nécessite la structure complète moyensCommunication avec type.id",
 };
 
+async function getOAuthToken(): Promise<string> {
+  const APIDAE_CLIENT_ID = Deno.env.get("APIDAE_CLIENT_ID");
+  const APIDAE_CLIENT_SECRET = Deno.env.get("APIDAE_CLIENT_SECRET");
+
+  if (!APIDAE_CLIENT_ID || !APIDAE_CLIENT_SECRET) {
+    throw new Error("Missing Apidae OAuth credentials");
+  }
+
+  // Documentation officielle Apidae: http://api.apidae-tourisme.com/oauth/token
+  // Authentification via Basic Auth avec clientId:secret
+  const tokenUrl = "http://api.apidae-tourisme.com/oauth/token?grant_type=client_credentials";
+  
+  const credentials = btoa(`${APIDAE_CLIENT_ID}:${APIDAE_CLIENT_SECRET}`);
+
+  console.log("Requesting OAuth token from Apidae API");
+
+  const response = await fetch(tokenUrl, {
+    method: "GET",
+    headers: {
+      "Authorization": `Basic ${credentials}`,
+      "Accept": "application/json",
+    },
+  });
+
+  const responseText = await response.text();
+  console.log("OAuth response status:", response.status);
+  
+  if (!response.ok) {
+    console.error("OAuth token error:", response.status, responseText);
+    throw new Error(`Failed to get OAuth token: ${response.status} - ${responseText.substring(0, 200)}`);
+  }
+
+  // Check if response is HTML (error page)
+  if (responseText.startsWith("<")) {
+    console.error("OAuth returned HTML instead of JSON:", responseText.substring(0, 200));
+    throw new Error("OAuth endpoint returned HTML error page");
+  }
+
+  const tokenData: TokenResponse = JSON.parse(responseText);
+  console.log("Got OAuth token, expires in:", tokenData.expires_in, "seconds");
+  return tokenData.access_token;
+}
+
 function buildApidaePayload(changes: Record<string, unknown>): { 
   fieldList: string[]; 
   root: Record<string, unknown>;
