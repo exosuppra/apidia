@@ -100,10 +100,12 @@ export default function AllFiches() {
     schedule_type: string;
     sync_hour: number;
     fiches_per_sync: number;
+    selection_ids: number[];
     last_sync_at: string | null;
     next_sync_at: string | null;
     last_sync_result: Json | null;
   } | null>(null);
+  const [selectionIdsInput, setSelectionIdsInput] = useState("");
   const [savingConfig, setSavingConfig] = useState(false);
   const [configDialogOpen, setConfigDialogOpen] = useState(false);
 
@@ -223,6 +225,10 @@ export default function AllFiches() {
       
       if (error) throw error;
       setApidaeSyncConfig(data);
+      // Initialize selectionIdsInput from config
+      if (data?.selection_ids?.length > 0) {
+        setSelectionIdsInput(data.selection_ids.join(', '));
+      }
     } catch (error) {
       console.error('Erreur chargement config Apidae:', error);
     }
@@ -232,8 +238,12 @@ export default function AllFiches() {
   const syncFromApidae = async () => {
     setSyncingApidae(true);
     try {
+      const selectionIds = apidaeSyncConfig?.selection_ids || [];
       const { data, error } = await supabase.functions.invoke('fetch-apidae-fiches', {
-        body: { count: 200 }
+        body: { 
+          count: apidaeSyncConfig?.fiches_per_sync || 200,
+          selectionIds 
+        }
       });
 
       if (error) throw error;
@@ -262,6 +272,14 @@ export default function AllFiches() {
     if (!apidaeSyncConfig) return;
     setSavingConfig(true);
     try {
+      // Parse selection IDs from input
+      const parsedSelectionIds = selectionIdsInput
+        .split(',')
+        .map(s => s.trim())
+        .filter(s => s !== '')
+        .map(s => parseInt(s))
+        .filter(n => !isNaN(n));
+
       const { error } = await supabase
         .from('apidae_sync_config')
         .update({
@@ -269,6 +287,7 @@ export default function AllFiches() {
           schedule_type: apidaeSyncConfig.schedule_type,
           sync_hour: apidaeSyncConfig.sync_hour,
           fiches_per_sync: apidaeSyncConfig.fiches_per_sync,
+          selection_ids: parsedSelectionIds,
         })
         .eq('id', apidaeSyncConfig.id);
 
@@ -825,11 +844,20 @@ export default function AllFiches() {
                         ) : (
                           <CloudDownload className="w-4 h-4 mr-2" />
                         )}
-                        Sync Apidae
+                        {syncingApidae ? "Sync en cours..." : "Sync Apidae"}
+                        {!syncingApidae && apidaeSyncConfig?.selection_ids?.length === 0 && (
+                          <Badge variant="outline" className="ml-2 text-orange-600 border-orange-300">
+                            !
+                          </Badge>
+                        )}
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent side="bottom" className="max-w-xs">
-                      <p>Récupère les dernières fiches depuis l'API Apidae</p>
+                      {apidaeSyncConfig?.selection_ids?.length === 0 ? (
+                        <p className="text-orange-600">⚠️ Aucune sélection configurée - cliquez sur ⚙️ pour ajouter vos IDs de sélection territoriale</p>
+                      ) : (
+                        <p>Récupère les dernières fiches depuis l'API Apidae ({apidaeSyncConfig?.selection_ids?.length || 0} sélection(s))</p>
+                      )}
                     </TooltipContent>
                   </Tooltip>
 
@@ -929,6 +957,26 @@ export default function AllFiches() {
                                 <SelectItem value="500">500</SelectItem>
                               </SelectContent>
                             </Select>
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="selection-ids" className="flex flex-col gap-1">
+                              <span>IDs des sélections territoriales</span>
+                              <span className="text-sm font-normal text-muted-foreground">
+                                Récupérez les IDs depuis votre interface Apidae (séparés par des virgules)
+                              </span>
+                            </Label>
+                            <Input
+                              id="selection-ids"
+                              placeholder="Ex: 12345, 67890"
+                              value={selectionIdsInput}
+                              onChange={(e) => setSelectionIdsInput(e.target.value)}
+                            />
+                            {apidaeSyncConfig.selection_ids?.length > 0 && (
+                              <p className="text-xs text-muted-foreground">
+                                Actuellement: {apidaeSyncConfig.selection_ids.join(', ')}
+                              </p>
+                            )}
                           </div>
 
                           {apidaeSyncConfig.last_sync_at && (
