@@ -155,49 +155,53 @@ All colors MUST be HSL.
 
   /* 🦄 Unicorn Rainbow Theme */
   .theme-unicorn {
-    --background: 300 50% 97%;
-    --foreground: 280 60% 20%;
+    --background: 280 60% 98%;
+    --foreground: 280 70% 15%;
 
-    --card: 290 60% 95%;
-    --card-foreground: 280 60% 20%;
+    --card: 290 70% 96%;
+    --card-foreground: 280 70% 15%;
 
-    --popover: 300 50% 92%;
-    --popover-foreground: 280 60% 20%;
+    --popover: 300 60% 94%;
+    --popover-foreground: 280 70% 15%;
 
-    --primary: 280 80% 60%;
+    --primary: 280 100% 65%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 200 80% 60%;
+    --secondary: 320 100% 70%;
     --secondary-foreground: 0 0% 100%;
 
-    --muted: 320 40% 85%;
-    --muted-foreground: 280 40% 40%;
+    --muted: 300 50% 88%;
+    --muted-foreground: 280 50% 35%;
 
-    --accent: 50 100% 70%;
-    --accent-foreground: 280 80% 30%;
+    --accent: 50 100% 75%;
+    --accent-foreground: 280 100% 40%;
 
-    --destructive: 340 80% 55%;
+    --destructive: 340 100% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 280 50% 80%;
-    --input: 280 50% 85%;
-    --ring: 280 80% 60%;
+    --border: 280 60% 82%;
+    --input: 280 60% 88%;
+    --ring: 280 100% 65%;
 
-    --sidebar-background: 290 60% 95%;
-    --sidebar-foreground: 280 60% 20%;
-    --sidebar-primary: 280 80% 60%;
+    --sidebar-background: 290 70% 96%;
+    --sidebar-foreground: 280 70% 15%;
+    --sidebar-primary: 280 100% 65%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 50 100% 70%;
-    --sidebar-accent-foreground: 280 80% 30%;
-    --sidebar-border: 280 50% 80%;
-    --sidebar-ring: 280 80% 60%;
-    --sidebar: 290 60% 95%;
+    --sidebar-accent: 50 100% 75%;
+    --sidebar-accent-foreground: 280 100% 40%;
+    --sidebar-border: 280 60% 82%;
+    --sidebar-ring: 280 100% 65%;
+    --sidebar: 290 70% 96%;
 
-    --chart-1: 340 80% 65%;
-    --chart-2: 280 80% 65%;
-    --chart-3: 200 80% 65%;
-    --chart-4: 50 100% 65%;
-    --chart-5: 150 70% 55%;
+    --chart-1: 340 100% 70%;
+    --chart-2: 280 100% 70%;
+    --chart-3: 200 100% 70%;
+    --chart-4: 50 100% 70%;
+    --chart-5: 150 100% 60%;
+
+    /* Unicorn special variables */
+    --unicorn-gradient: linear-gradient(135deg, hsl(340 100% 70%), hsl(280 100% 70%), hsl(200 100% 70%), hsl(50 100% 70%), hsl(150 100% 60%));
+    --unicorn-glow: 0 0 20px hsl(280 100% 70% / 0.5), 0 0 40px hsl(320 100% 70% / 0.3);
   }
 
   /* 🌊 Ocean Theme */
@@ -350,4 +354,170 @@ All colors MUST be HSL.
   body {
     @apply bg-background text-foreground font-sans;
   }
+}
+
+/* 🦄 Unicorn Theme Special Styles */
+.theme-unicorn {
+  /* Magical starry background */
+  background-image: 
+    radial-gradient(2px 2px at 20px 30px, hsl(50 100% 80%), transparent),
+    radial-gradient(2px 2px at 40px 70px, hsl(280 100% 85%), transparent),
+    radial-gradient(1px 1px at 90px 40px, hsl(320 100% 85%), transparent),
+    radial-gradient(2px 2px at 130px 80px, hsl(200 100% 85%), transparent),
+    radial-gradient(1px 1px at 160px 120px, hsl(50 100% 90%), transparent),
+    radial-gradient(2px 2px at 200px 50px, hsl(150 100% 80%), transparent),
+    radial-gradient(1px 1px at 250px 90px, hsl(280 100% 90%), transparent),
+    radial-gradient(2px 2px at 300px 30px, hsl(320 100% 85%), transparent),
+    radial-gradient(1px 1px at 350px 110px, hsl(200 100% 90%), transparent),
+    radial-gradient(2px 2px at 400px 70px, hsl(50 100% 85%), transparent);
+  background-size: 420px 150px;
+  background-color: hsl(280 60% 98%);
+}
+
+/* Rainbow gradient text for headings */
+.theme-unicorn h1,
+.theme-unicorn h2,
+.theme-unicorn .unicorn-title {
+  background: linear-gradient(90deg, 
+    hsl(340 100% 65%), 
+    hsl(280 100% 65%), 
+    hsl(200 100% 65%), 
+    hsl(50 100% 55%), 
+    hsl(150 100% 50%),
+    hsl(340 100% 65%));
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: unicorn-rainbow 4s linear infinite;
+}
+
+/* Rainbow shimmer animation */
+@keyframes unicorn-rainbow {
+  0% { background-position: 0% center; }
+  100% { background-position: 200% center; }
+}
+
+/* Floating sparkles animation */
+@keyframes unicorn-sparkle {
+  0%, 100% { 
+    opacity: 0.4;
+    transform: scale(1) translateY(0);
+  }
+  50% { 
+    opacity: 1;
+    transform: scale(1.2) translateY(-5px);
+  }
+}
+
+/* Glowing button effect */
+.theme-unicorn .btn-primary,
+.theme-unicorn [data-primary-button] {
+  box-shadow: 0 0 15px hsl(280 100% 70% / 0.4), 0 0 30px hsl(320 100% 70% / 0.2);
+  transition: all 0.3s ease;
+}
+
+.theme-unicorn .btn-primary:hover,
+.theme-unicorn [data-primary-button]:hover {
+  box-shadow: 0 0 25px hsl(280 100% 70% / 0.6), 0 0 50px hsl(320 100% 70% / 0.4);
+}
+
+/* Card hover glow */
+.theme-unicorn [data-slot="card"],
+.theme-unicorn .card {
+  transition: all 0.3s ease;
+  border: 1px solid hsl(280 60% 85%);
+}
+
+.theme-unicorn [data-slot="card"]:hover,
+.theme-unicorn .card:hover {
+  box-shadow: 0 0 20px hsl(280 100% 80% / 0.3), 0 0 40px hsl(320 100% 80% / 0.2);
+  border-color: hsl(280 100% 75%);
+}
+
+/* Rainbow border animation for focused inputs */
+.theme-unicorn input:focus,
+.theme-unicorn textarea:focus,
+.theme-unicorn select:focus {
+  border-image: linear-gradient(90deg, 
+    hsl(340 100% 70%), 
+    hsl(280 100% 70%), 
+    hsl(200 100% 70%), 
+    hsl(50 100% 70%)) 1;
+  box-shadow: 0 0 10px hsl(280 100% 70% / 0.3);
+}
+
+/* Sidebar rainbow accent line */
+.theme-unicorn [data-sidebar] {
+  border-right: 3px solid transparent;
+  background-image: linear-gradient(hsl(290 70% 96%), hsl(290 70% 96%)), 
+    linear-gradient(180deg, hsl(340 100% 70%), hsl(280 100% 70%), hsl(200 100% 70%), hsl(50 100% 70%));
+  background-origin: padding-box, border-box;
+  background-clip: padding-box, border-box;
+}
+
+/* Sparkle pseudo-elements */
+.theme-unicorn::before {
+  content: "✨";
+  position: fixed;
+  top: 10%;
+  right: 5%;
+  font-size: 1.5rem;
+  animation: unicorn-sparkle 2s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.6;
+}
+
+.theme-unicorn::after {
+  content: "🦄";
+  position: fixed;
+  bottom: 5%;
+  right: 3%;
+  font-size: 3rem;
+  animation: unicorn-sparkle 3s ease-in-out infinite 0.5s;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.4;
+}
+
+/* Extra sparkles via body */
+.theme-unicorn body::before {
+  content: "⭐";
+  position: fixed;
+  top: 20%;
+  left: 8%;
+  font-size: 1.2rem;
+  animation: unicorn-sparkle 2.5s ease-in-out infinite 1s;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.5;
+}
+
+.theme-unicorn body::after {
+  content: "💫";
+  position: fixed;
+  top: 60%;
+  left: 4%;
+  font-size: 1.3rem;
+  animation: unicorn-sparkle 2.2s ease-in-out infinite 0.3s;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.5;
+}
+
+/* Badge rainbow gradient */
+.theme-unicorn .badge-primary {
+  background: linear-gradient(90deg, hsl(280 100% 65%), hsl(320 100% 70%));
+}
+
+/* Progress bar rainbow */
+.theme-unicorn [role="progressbar"] > div {
+  background: linear-gradient(90deg, 
+    hsl(340 100% 70%), 
+    hsl(280 100% 70%), 
+    hsl(200 100% 70%), 
+    hsl(50 100% 70%));
+  background-size: 200% 100%;
+  animation: unicorn-rainbow 3s linear infinite;
 }
