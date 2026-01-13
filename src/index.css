@@ -152,6 +152,194 @@ All colors MUST be HSL.
     --shadow-xl: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 8px 10px -1px hsl(0 0% 0% / 0.1);
     --shadow-2xl: 0 1px 3px 0px hsl(0 0% 0% / 0.25);
   }
+
+  /* 🦄 Unicorn Rainbow Theme */
+  .theme-unicorn {
+    --background: 300 50% 97%;
+    --foreground: 280 60% 20%;
+
+    --card: 290 60% 95%;
+    --card-foreground: 280 60% 20%;
+
+    --popover: 300 50% 92%;
+    --popover-foreground: 280 60% 20%;
+
+    --primary: 280 80% 60%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 200 80% 60%;
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 320 40% 85%;
+    --muted-foreground: 280 40% 40%;
+
+    --accent: 50 100% 70%;
+    --accent-foreground: 280 80% 30%;
+
+    --destructive: 340 80% 55%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 280 50% 80%;
+    --input: 280 50% 85%;
+    --ring: 280 80% 60%;
+
+    --sidebar-background: 290 60% 95%;
+    --sidebar-foreground: 280 60% 20%;
+    --sidebar-primary: 280 80% 60%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 50 100% 70%;
+    --sidebar-accent-foreground: 280 80% 30%;
+    --sidebar-border: 280 50% 80%;
+    --sidebar-ring: 280 80% 60%;
+    --sidebar: 290 60% 95%;
+
+    --chart-1: 340 80% 65%;
+    --chart-2: 280 80% 65%;
+    --chart-3: 200 80% 65%;
+    --chart-4: 50 100% 65%;
+    --chart-5: 150 70% 55%;
+  }
+
+  /* 🌊 Ocean Theme */
+  .theme-ocean {
+    --background: 200 30% 96%;
+    --foreground: 210 50% 15%;
+
+    --card: 200 40% 98%;
+    --card-foreground: 210 50% 15%;
+
+    --popover: 200 30% 92%;
+    --popover-foreground: 210 50% 15%;
+
+    --primary: 200 80% 45%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 180 50% 40%;
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 200 20% 85%;
+    --muted-foreground: 210 30% 35%;
+
+    --accent: 180 60% 90%;
+    --accent-foreground: 200 80% 35%;
+
+    --destructive: 0 72% 50%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 200 30% 80%;
+    --input: 200 30% 85%;
+    --ring: 200 80% 45%;
+
+    --sidebar-background: 200 40% 98%;
+    --sidebar-foreground: 210 50% 15%;
+    --sidebar-primary: 200 80% 45%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 180 60% 90%;
+    --sidebar-accent-foreground: 200 80% 35%;
+    --sidebar-border: 200 30% 80%;
+    --sidebar-ring: 200 80% 45%;
+    --sidebar: 200 40% 98%;
+
+    --chart-1: 200 80% 50%;
+    --chart-2: 180 70% 45%;
+    --chart-3: 220 70% 55%;
+    --chart-4: 190 60% 40%;
+    --chart-5: 210 50% 60%;
+  }
+
+  /* 🌲 Forest Theme */
+  .theme-forest {
+    --background: 120 20% 96%;
+    --foreground: 140 40% 15%;
+
+    --card: 120 25% 98%;
+    --card-foreground: 140 40% 15%;
+
+    --popover: 120 20% 92%;
+    --popover-foreground: 140 40% 15%;
+
+    --primary: 140 60% 40%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 80 40% 45%;
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 120 15% 85%;
+    --muted-foreground: 140 30% 35%;
+
+    --accent: 80 50% 85%;
+    --accent-foreground: 140 60% 30%;
+
+    --destructive: 0 72% 50%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 120 20% 78%;
+    --input: 120 20% 85%;
+    --ring: 140 60% 40%;
+
+    --sidebar-background: 120 25% 98%;
+    --sidebar-foreground: 140 40% 15%;
+    --sidebar-primary: 140 60% 40%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 80 50% 85%;
+    --sidebar-accent-foreground: 140 60% 30%;
+    --sidebar-border: 120 20% 78%;
+    --sidebar-ring: 140 60% 40%;
+    --sidebar: 120 25% 98%;
+
+    --chart-1: 140 60% 45%;
+    --chart-2: 100 50% 40%;
+    --chart-3: 160 50% 50%;
+    --chart-4: 80 50% 45%;
+    --chart-5: 120 40% 55%;
+  }
+
+  /* 🌅 Sunset Theme */
+  .theme-sunset {
+    --background: 30 40% 96%;
+    --foreground: 20 50% 15%;
+
+    --card: 35 45% 98%;
+    --card-foreground: 20 50% 15%;
+
+    --popover: 30 40% 92%;
+    --popover-foreground: 20 50% 15%;
+
+    --primary: 25 90% 55%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 350 70% 55%;
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 30 25% 85%;
+    --muted-foreground: 20 35% 35%;
+
+    --accent: 45 90% 85%;
+    --accent-foreground: 25 90% 35%;
+
+    --destructive: 0 72% 50%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 30 30% 78%;
+    --input: 30 30% 85%;
+    --ring: 25 90% 55%;
+
+    --sidebar-background: 35 45% 98%;
+    --sidebar-foreground: 20 50% 15%;
+    --sidebar-primary: 25 90% 55%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 45 90% 85%;
+    --sidebar-accent-foreground: 25 90% 35%;
+    --sidebar-border: 30 30% 78%;
+    --sidebar-ring: 25 90% 55%;
+    --sidebar: 35 45% 98%;
+
+    --chart-1: 25 90% 55%;
+    --chart-2: 350 70% 55%;
+    --chart-3: 45 90% 60%;
+    --chart-4: 15 80% 50%;
+    --chart-5: 40 70% 50%;
+  }
 }
 
 @layer base {

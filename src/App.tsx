@@ -11,6 +11,7 @@ import AdminLayout from "./layouts/AdminLayout";
 import Overview from "./pages/dashboard/Overview";
 import AuthProvider from "./context/AuthProvider";
 import { ChatProvider } from "./context/ChatContext";
+import { ThemeProvider } from "./context/ThemeContext";
 import RequireAuth from "./components/RequireAuth";
 import RequireAdminAuth from "./components/RequireAdminAuth";
 import RequirePasswordChange from "./components/RequirePasswordChange";
@@ -50,12 +51,13 @@ const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <AuthProvider>
-          <ChatProvider>
+    <ThemeProvider>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <AuthProvider>
+            <ChatProvider>
             <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/catalogue" element={<Catalogue />} />
@@ -250,10 +252,11 @@ const App = () => (
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
             </Routes>
-          </ChatProvider>
-        </AuthProvider>
-      </BrowserRouter>
-    </TooltipProvider>
+            </ChatProvider>
+          </AuthProvider>
+        </BrowserRouter>
+      </TooltipProvider>
+    </ThemeProvider>
   </QueryClientProvider>
 );
 
