@@ -47,6 +47,17 @@ serve(async (req: Request) => {
   }
 
   try {
+    // Check for force parameter in body or query
+    let forceSync = false;
+    try {
+      const body = await req.clone().json();
+      forceSync = body?.force === true;
+    } catch {
+      // No body or invalid JSON, check URL params
+      const url = new URL(req.url);
+      forceSync = url.searchParams.get("force") === "true";
+    }
+
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
@@ -68,8 +79,8 @@ serve(async (req: Request) => {
 
     const syncConfig = config as ApidaeSyncConfig;
 
-    // Check if sync is enabled
-    if (!syncConfig.is_enabled) {
+    // Check if sync is enabled (skip this check if force is true)
+    if (!syncConfig.is_enabled && !forceSync) {
       // Log skipped sync
       await supabase.from("apidae_sync_history").insert({
         sync_type: "automatic",
@@ -92,9 +103,9 @@ serve(async (req: Request) => {
       );
     }
 
-    // Check if it's time to run
+    // Check if it's time to run (skip this check if force is true)
     const now = new Date();
-    if (syncConfig.next_sync_at) {
+    if (syncConfig.next_sync_at && !forceSync) {
       const nextRun = new Date(syncConfig.next_sync_at);
       if (now < nextRun) {
         // Don't log skipped for timing - too noisy
@@ -110,6 +121,10 @@ serve(async (req: Request) => {
           }
         );
       }
+    }
+    
+    if (forceSync) {
+      console.log("Force sync requested, bypassing schedule check...")
     }
 
     console.log("Running scheduled Apidae sync...");
