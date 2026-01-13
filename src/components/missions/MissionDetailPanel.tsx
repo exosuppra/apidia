@@ -7,7 +7,12 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { FileText, Download, ExternalLink, Loader2, Merge, X, Upload, Trash2, Image, File } from "lucide-react";
+import { FileText, Download, ExternalLink, Loader2, Merge, X, Upload, Trash2, Image, File, Calendar, Clock, ChevronDown, ChevronUp, Eye } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { format } from "date-fns";
+import { fr } from "date-fns/locale";
 
 interface MissionFile {
   id: string;
@@ -17,6 +22,7 @@ interface MissionFile {
   webViewLink: string;
   createdTime: string;
   modifiedTime: string;
+  contentPreview?: string;
 }
 
 interface MissionFolder {
@@ -46,6 +52,8 @@ export default function MissionDetailPanel({ folder, onClose }: MissionDetailPan
   const [uploadedJustificatifs, setUploadedJustificatifs] = useState<UploadedJustificatif[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [isMerging, setIsMerging] = useState(false);
+  const [showMergeOptions, setShowMergeOptions] = useState(false);
+  const [expandedPreview, setExpandedPreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
@@ -71,7 +79,6 @@ export default function MissionDetailPanel({ folder, onClose }: MissionDetailPan
 
     try {
       for (const file of Array.from(files)) {
-        // Create unique path: folderName/timestamp_filename
         const sanitizedFolderName = folder.name.replace(/[^a-zA-Z0-9-_]/g, '_');
         const timestamp = Date.now();
         const filePath = `${sanitizedFolderName}/${timestamp}_${file.name}`;
@@ -115,7 +122,6 @@ export default function MissionDetailPanel({ folder, onClose }: MissionDetailPan
       });
     } finally {
       setIsUploading(false);
-      // Reset file input
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
@@ -158,12 +164,11 @@ export default function MissionDetailPanel({ folder, onClose }: MissionDetailPan
     setIsMerging(true);
 
     try {
-      // Get signed URLs for uploaded justificatifs
       const uploadedUrls: string[] = [];
       for (const justificatif of uploadedJustificatifs) {
         const { data } = await supabase.storage
           .from('mission-justificatifs')
-          .createSignedUrl(justificatif.path, 3600); // 1 hour validity
+          .createSignedUrl(justificatif.path, 3600);
         
         if (data?.signedUrl) {
           uploadedUrls.push(data.signedUrl);
@@ -185,7 +190,6 @@ export default function MissionDetailPanel({ folder, onClose }: MissionDetailPan
         throw new Error(data.error || 'Erreur lors de la fusion');
       }
 
-      // Convert base64 to blob and download
       const byteCharacters = atob(data.pdfBase64);
       const byteNumbers = new Array(byteCharacters.length);
       for (let i = 0; i < byteCharacters.length; i++) {
@@ -194,7 +198,6 @@ export default function MissionDetailPanel({ folder, onClose }: MissionDetailPan
       const byteArray = new Uint8Array(byteNumbers);
       const blob = new Blob([byteArray], { type: 'application/pdf' });
 
-      // Create download link
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
@@ -209,7 +212,6 @@ export default function MissionDetailPanel({ folder, onClose }: MissionDetailPan
         description: `PDF fusionné téléchargé (${data.pageCount} pages)`,
       });
 
-      // Clean up uploaded files after successful merge
       for (const justificatif of uploadedJustificatifs) {
         await supabase.storage
           .from('mission-justificatifs')
@@ -237,12 +239,31 @@ export default function MissionDetailPanel({ folder, onClose }: MissionDetailPan
     return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
   };
 
+  const formatDate = (dateString: string) => {
+    try {
+      return format(new Date(dateString), "dd MMM yyyy", { locale: fr });
+    } catch {
+      return dateString;
+    }
+  };
+
+  const formatDateTime = (dateString: string) => {
+    try {
+      return format(new Date(dateString), "dd MMM yyyy à HH:mm", { locale: fr });
+    } catch {
+      return dateString;
+    }
+  };
+
   const getFileIcon = (mimeType: string) => {
     if (mimeType.startsWith('image/')) {
       return <Image className="h-4 w-4 text-green-500" />;
     }
     if (mimeType === 'application/pdf') {
       return <FileText className="h-4 w-4 text-red-500" />;
+    }
+    if (mimeType === 'application/vnd.google-apps.document') {
+      return <FileText className="h-4 w-4 text-blue-500" />;
     }
     return <File className="h-4 w-4 text-muted-foreground" />;
   };
@@ -255,8 +276,15 @@ export default function MissionDetailPanel({ folder, onClose }: MissionDetailPan
         <div className="flex items-start justify-between">
           <div>
             <CardTitle className="text-lg uppercase">{folder.name}</CardTitle>
-            <CardDescription>
-              {documentFiles.length} document{documentFiles.length > 1 ? 's' : ''}
+            <CardDescription className="flex items-center gap-4 mt-1">
+              <span className="flex items-center gap-1">
+                <FileText className="h-3 w-3" />
+                {documentFiles.length} document{documentFiles.length > 1 ? 's' : ''}
+              </span>
+              <span className="flex items-center gap-1">
+                <Clock className="h-3 w-3" />
+                Modifié le {formatDate(folder.modifiedTime)}
+              </span>
             </CardDescription>
           </div>
           <Button variant="ghost" size="icon" onClick={onClose}>
@@ -264,192 +292,297 @@ export default function MissionDetailPanel({ folder, onClose }: MissionDetailPan
           </Button>
         </div>
       </CardHeader>
+      
       <CardContent className="space-y-6">
-        {/* Main document selection */}
+        {/* Documents list as detailed table */}
         <div className="space-y-3">
-          <Label className="text-sm font-medium">
-            1. Document principal (Ordre de Mission)
+          <Label className="text-sm font-medium flex items-center gap-2">
+            <FileText className="h-4 w-4" />
+            Liste des Ordres de Mission
           </Label>
-          <RadioGroup value={mainDocumentId} onValueChange={setMainDocumentId}>
-            <div className="space-y-2">
-              {documentFiles.map(file => (
-                <div
-                  key={file.id}
-                  className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent/50 transition-colors"
-                >
-                  <div className="flex items-center gap-3">
-                    <RadioGroupItem value={file.id} id={`main-${file.id}`} />
-                    <label 
-                      htmlFor={`main-${file.id}`}
-                      className="flex items-center gap-2 cursor-pointer"
-                    >
-                      <FileText className={`h-4 w-4 ${file.mimeType === 'application/pdf' ? 'text-red-500' : 'text-blue-500'}`} />
-                      <span className="text-sm truncate max-w-[200px]">{file.name}</span>
-                    </label>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline" className="text-xs">
-                      {file.mimeType === 'application/vnd.google-apps.document' ? 'Doc' : formatFileSize(file.size)}
-                    </Badge>
-                    <a
-                      href={file.webViewLink}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <Button variant="ghost" size="icon" className="h-8 w-8">
-                        <ExternalLink className="h-3 w-3" />
-                      </Button>
-                    </a>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </RadioGroup>
-        </div>
-
-        {/* Drive Justificatifs selection */}
-        {documentFiles.filter(file => file.id !== mainDocumentId).length > 0 && (
-          <div className="space-y-3">
-            <Label className="text-sm font-medium">
-              2. Justificatifs depuis Drive (optionnel)
-            </Label>
-            <div className="space-y-2">
-              {documentFiles
-                .filter(file => file.id !== mainDocumentId)
-                .map(file => (
-                  <div
-                    key={file.id}
-                    className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent/50 transition-colors"
-                  >
-                    <div className="flex items-center gap-3">
-                      <Checkbox
-                        id={`just-${file.id}`}
-                        checked={selectedDriveJustificatifs.includes(file.id)}
-                        onCheckedChange={() => handleDriveJustificatifToggle(file.id)}
-                      />
-                      <label 
-                        htmlFor={`just-${file.id}`}
-                        className="flex items-center gap-2 cursor-pointer"
-                      >
-                        <FileText className={`h-4 w-4 ${file.mimeType === 'application/pdf' ? 'text-red-500' : 'text-blue-500'}`} />
-                        <span className="text-sm truncate max-w-[200px]">{file.name}</span>
-                      </label>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Badge variant="outline" className="text-xs">
-                        {file.mimeType === 'application/vnd.google-apps.document' ? 'Doc' : formatFileSize(file.size)}
-                      </Badge>
-                      <a
-                        href={file.webViewLink}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
-                          <ExternalLink className="h-3 w-3" />
-                        </Button>
-                      </a>
-                    </div>
-                  </div>
+          
+          <div className="border rounded-lg overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-[40%]">Document</TableHead>
+                  <TableHead>Créé le</TableHead>
+                  <TableHead>Modifié le</TableHead>
+                  <TableHead className="text-right">Taille</TableHead>
+                  <TableHead className="w-[60px]"></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {documentFiles.map(file => (
+                  <>
+                    <TableRow key={file.id} className="group">
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          {getFileIcon(file.mimeType)}
+                          <div className="flex flex-col">
+                            <span className="text-sm font-medium truncate max-w-[200px]">
+                              {file.name}
+                            </span>
+                            <Badge variant="outline" className="w-fit text-[10px] mt-0.5">
+                              {file.mimeType === 'application/vnd.google-apps.document' ? 'Google Doc' : 'PDF'}
+                            </Badge>
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="text-sm text-muted-foreground flex items-center gap-1">
+                                <Calendar className="h-3 w-3" />
+                                {formatDate(file.createdTime)}
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              {formatDateTime(file.createdTime)}
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </TableCell>
+                      <TableCell>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="text-sm text-muted-foreground flex items-center gap-1">
+                                <Clock className="h-3 w-3" />
+                                {formatDate(file.modifiedTime)}
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              {formatDateTime(file.modifiedTime)}
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <span className="text-sm text-muted-foreground">
+                          {file.mimeType === 'application/vnd.google-apps.document' ? '—' : formatFileSize(file.size)}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-1">
+                          {file.contentPreview && (
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-7 w-7"
+                                    onClick={() => setExpandedPreview(expandedPreview === file.id ? null : file.id)}
+                                  >
+                                    <Eye className="h-3 w-3" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Aperçu du contenu</TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          )}
+                          <a
+                            href={file.webViewLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            <Button variant="ghost" size="icon" className="h-7 w-7">
+                              <ExternalLink className="h-3 w-3" />
+                            </Button>
+                          </a>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                    {/* Content preview row */}
+                    {expandedPreview === file.id && file.contentPreview && (
+                      <TableRow key={`${file.id}-preview`}>
+                        <TableCell colSpan={5} className="bg-muted/30 py-3">
+                          <div className="text-xs text-muted-foreground italic px-2">
+                            <span className="font-medium text-foreground">Aperçu : </span>
+                            {file.contentPreview}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </>
                 ))}
-            </div>
+              </TableBody>
+            </Table>
           </div>
-        )}
-
-        {/* Upload Justificatifs */}
-        <div className="space-y-3">
-          <Label className="text-sm font-medium">
-            3. Uploader des justificatifs
-          </Label>
-          
-          <input
-            type="file"
-            ref={fileInputRef}
-            onChange={handleFileUpload}
-            accept="application/pdf,image/jpeg,image/png,image/webp"
-            multiple
-            className="hidden"
-          />
-          
-          <Button
-            variant="outline"
-            className="w-full"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={isUploading}
-          >
-            {isUploading ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Upload en cours...
-              </>
-            ) : (
-              <>
-                <Upload className="h-4 w-4 mr-2" />
-                Ajouter des justificatifs (PDF, images)
-              </>
-            )}
-          </Button>
-
-          {/* Uploaded files list */}
-          {uploadedJustificatifs.length > 0 && (
-            <div className="space-y-2 mt-3">
-              {uploadedJustificatifs.map(justificatif => (
-                <div
-                  key={justificatif.id}
-                  className="flex items-center justify-between p-3 border rounded-lg bg-green-50 dark:bg-green-950/20"
-                >
-                  <div className="flex items-center gap-3">
-                    {getFileIcon(justificatif.mimeType)}
-                    <span className="text-sm truncate max-w-[180px]">{justificatif.name}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Badge variant="secondary" className="text-xs">
-                      {formatFileSize(justificatif.size)}
-                    </Badge>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 text-destructive hover:text-destructive"
-                      onClick={() => handleRemoveUploadedFile(justificatif)}
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
         </div>
 
-        {/* Merge button */}
-        <Button
-          className="w-full"
-          size="lg"
-          onClick={handleMergeAndDownload}
-          disabled={!mainDocumentId || isMerging}
-        >
-          {isMerging ? (
-            <>
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              Fusion en cours...
-            </>
-          ) : (
-            <>
-              <Merge className="h-4 w-4 mr-2" />
-              Fusionner et télécharger
-              {totalJustificatifs > 0 && (
-                <Badge variant="secondary" className="ml-2">
-                  {1 + totalJustificatifs} documents
-                </Badge>
-              )}
-            </>
-          )}
-        </Button>
+        {/* Collapsible merge options */}
+        <Collapsible open={showMergeOptions} onOpenChange={setShowMergeOptions}>
+          <CollapsibleTrigger asChild>
+            <Button variant="outline" className="w-full justify-between">
+              <span className="flex items-center gap-2">
+                <Merge className="h-4 w-4" />
+                Fusionner les documents
+              </span>
+              {showMergeOptions ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            </Button>
+          </CollapsibleTrigger>
+          
+          <CollapsibleContent className="space-y-4 pt-4">
+            {/* Main document selection */}
+            <div className="space-y-3">
+              <Label className="text-sm font-medium">
+                1. Document principal (Ordre de Mission)
+              </Label>
+              <RadioGroup value={mainDocumentId} onValueChange={setMainDocumentId}>
+                <div className="space-y-2">
+                  {documentFiles.map(file => (
+                    <div
+                      key={file.id}
+                      className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent/50 transition-colors"
+                    >
+                      <div className="flex items-center gap-3">
+                        <RadioGroupItem value={file.id} id={`main-${file.id}`} />
+                        <label 
+                          htmlFor={`main-${file.id}`}
+                          className="flex items-center gap-2 cursor-pointer"
+                        >
+                          {getFileIcon(file.mimeType)}
+                          <span className="text-sm truncate max-w-[200px]">{file.name}</span>
+                        </label>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </RadioGroup>
+            </div>
 
-        <p className="text-xs text-muted-foreground text-center">
-          Le document fusionné contiendra l'ordre de mission suivi des justificatifs sélectionnés et uploadés
-        </p>
+            {/* Drive Justificatifs selection */}
+            {documentFiles.filter(file => file.id !== mainDocumentId).length > 0 && (
+              <div className="space-y-3">
+                <Label className="text-sm font-medium">
+                  2. Justificatifs depuis Drive (optionnel)
+                </Label>
+                <div className="space-y-2">
+                  {documentFiles
+                    .filter(file => file.id !== mainDocumentId)
+                    .map(file => (
+                      <div
+                        key={file.id}
+                        className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent/50 transition-colors"
+                      >
+                        <div className="flex items-center gap-3">
+                          <Checkbox
+                            id={`just-${file.id}`}
+                            checked={selectedDriveJustificatifs.includes(file.id)}
+                            onCheckedChange={() => handleDriveJustificatifToggle(file.id)}
+                          />
+                          <label 
+                            htmlFor={`just-${file.id}`}
+                            className="flex items-center gap-2 cursor-pointer"
+                          >
+                            {getFileIcon(file.mimeType)}
+                            <span className="text-sm truncate max-w-[200px]">{file.name}</span>
+                          </label>
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              </div>
+            )}
+
+            {/* Upload Justificatifs */}
+            <div className="space-y-3">
+              <Label className="text-sm font-medium">
+                3. Uploader des justificatifs
+              </Label>
+              
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileUpload}
+                accept="application/pdf,image/jpeg,image/png,image/webp"
+                multiple
+                className="hidden"
+              />
+              
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isUploading}
+              >
+                {isUploading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Upload en cours...
+                  </>
+                ) : (
+                  <>
+                    <Upload className="h-4 w-4 mr-2" />
+                    Ajouter des justificatifs (PDF, images)
+                  </>
+                )}
+              </Button>
+
+              {/* Uploaded files list */}
+              {uploadedJustificatifs.length > 0 && (
+                <div className="space-y-2 mt-3">
+                  {uploadedJustificatifs.map(justificatif => (
+                    <div
+                      key={justificatif.id}
+                      className="flex items-center justify-between p-3 border rounded-lg bg-green-50 dark:bg-green-950/20"
+                    >
+                      <div className="flex items-center gap-3">
+                        {getFileIcon(justificatif.mimeType)}
+                        <span className="text-sm truncate max-w-[180px]">{justificatif.name}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="secondary" className="text-xs">
+                          {formatFileSize(justificatif.size)}
+                        </Badge>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-destructive hover:text-destructive"
+                          onClick={() => handleRemoveUploadedFile(justificatif)}
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Merge button */}
+            <Button
+              className="w-full"
+              size="lg"
+              onClick={handleMergeAndDownload}
+              disabled={!mainDocumentId || isMerging}
+            >
+              {isMerging ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Fusion en cours...
+                </>
+              ) : (
+                <>
+                  <Download className="h-4 w-4 mr-2" />
+                  Fusionner et télécharger
+                  {totalJustificatifs > 0 && (
+                    <Badge variant="secondary" className="ml-2">
+                      {1 + totalJustificatifs} documents
+                    </Badge>
+                  )}
+                </>
+              )}
+            </Button>
+
+            <p className="text-xs text-muted-foreground text-center">
+              Le document fusionné contiendra l'ordre de mission suivi des justificatifs
+            </p>
+          </CollapsibleContent>
+        </Collapsible>
       </CardContent>
     </Card>
   );

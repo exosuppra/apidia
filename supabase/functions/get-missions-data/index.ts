@@ -14,6 +14,7 @@ interface MissionFile {
   createdTime: string;
   modifiedTime: string;
   personName?: string;
+  contentPreview?: string;
 }
 
 interface MissionFolder {
@@ -39,8 +40,8 @@ async function getDocumentContent(accessToken: string, fileId: string): Promise<
   return await response.text();
 }
 
-// Extract person name from document content
-function extractPersonName(content: string): string {
+// Extract person name and content preview from document content
+function extractPersonNameAndPreview(content: string): { personName: string; preview: string } {
   // Look for "Nom – Prénom :" pattern (with various dash types)
   const patterns = [
     /Nom\s*[–\-—]\s*Prénom\s*:\s*(.+?)(?:\n|\r|$)/i,
@@ -48,6 +49,8 @@ function extractPersonName(content: string): string {
     /Nom\s+Prénom\s*:\s*(.+?)(?:\n|\r|$)/i,
     /Demandeur\s*:\s*(.+?)(?:\n|\r|$)/i,
   ];
+  
+  let personName = 'NON IDENTIFIÉ';
   
   for (const pattern of patterns) {
     const match = content.match(pattern);
@@ -57,12 +60,19 @@ function extractPersonName(content: string): string {
       const cleanName = name.split(/\t/)[0].trim();
       if (cleanName.length > 0 && cleanName.length < 100) {
         // Convert to uppercase
-        return cleanName.toUpperCase();
+        personName = cleanName.toUpperCase();
+        break;
       }
     }
   }
   
-  return 'NON IDENTIFIÉ';
+  // Create a preview: first 200 chars, cleaned up
+  const cleanedContent = content
+    .replace(/\s+/g, ' ')
+    .trim();
+  const preview = cleanedContent.substring(0, 200) + (cleanedContent.length > 200 ? '...' : '');
+  
+  return { personName, preview };
 }
 
 // Group files by person name
@@ -355,15 +365,19 @@ serve(async (req) => {
       if (file.mimeType === 'application/vnd.google-apps.document') {
         try {
           const content = await getDocumentContent(accessToken, file.id);
-          file.personName = extractPersonName(content);
+          const { personName, preview } = extractPersonNameAndPreview(content);
+          file.personName = personName;
+          file.contentPreview = preview;
           console.log(`File "${file.name}" -> Person: "${file.personName}"`);
         } catch (e) {
           console.warn(`Could not extract name from ${file.name}:`, e);
-          file.personName = 'Non identifié';
+          file.personName = 'NON IDENTIFIÉ';
+          file.contentPreview = '';
         }
       } else {
-        // For PDFs, we can't extract content easily, group as "Non identifié"
-        file.personName = 'Non identifié';
+        // For PDFs, we can't extract content easily
+        file.personName = 'NON IDENTIFIÉ';
+        file.contentPreview = '';
       }
     }
     
