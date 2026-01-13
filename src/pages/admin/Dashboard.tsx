@@ -14,6 +14,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import FloatingChat from "@/components/FloatingChat";
+import ThemeSelector from "@/components/ThemeSelector";
 
 export default function AdminDashboard() {
   const { user } = useAuth();
@@ -90,10 +91,13 @@ export default function AdminDashboard() {
               </div>
             </div>
             
-            <Button onClick={handleLogout} variant="outline" size="sm">
-              <LogOut className="w-4 h-4 mr-2" />
-              Déconnexion
-            </Button>
+            <div className="flex items-center gap-2">
+              <ThemeSelector />
+              <Button onClick={handleLogout} variant="outline" size="sm">
+                <LogOut className="w-4 h-4 mr-2" />
+                Déconnexion
+              </Button>
+            </div>
           </div>
 
           {/* RH & Administration */}
