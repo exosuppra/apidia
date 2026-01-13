@@ -191,14 +191,11 @@ export function RichTextEditor({ value, onChange, placeholder, rows = 4 }: RichT
     
     Object.values(emojiCategories).forEach((category) => {
       const keywordMatch = category.keywords.some(k => k.includes(query));
-      if (keywordMatch || category.name.toLowerCase().includes(query)) {
+      const nameMatch = category.name.toLowerCase().includes(query);
+      
+      // Only add emojis from matching categories
+      if (keywordMatch || nameMatch) {
         results.push(...category.emojis);
-      } else {
-        category.emojis.forEach(emoji => {
-          if (!results.includes(emoji)) {
-            results.push(emoji);
-          }
-        });
       }
     });
     
