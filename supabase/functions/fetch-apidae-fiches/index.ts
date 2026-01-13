@@ -81,8 +81,9 @@ serve(async (req: Request) => {
     const body = await req.json().catch(() => ({}));
     const { selectionIds = [], count = 100, first = 0 } = body;
 
-    // Build the search query
+    // Build the search query - apiKey and projetId go INSIDE the query object
     const searchQuery: Record<string, unknown> = {
+      apiKey: APIDAE_API_KEY,
       projetId: parseInt(APIDAE_PROJECT_ID),
       count,
       first,
@@ -107,8 +108,6 @@ serve(async (req: Request) => {
 
     // Call Apidae API with URL-encoded form data
     const params = new URLSearchParams();
-    params.append("apiKey", APIDAE_API_KEY);
-    params.append("projetId", APIDAE_PROJECT_ID);
     params.append("query", JSON.stringify(searchQuery));
 
     const apidaeResponse = await fetch(
