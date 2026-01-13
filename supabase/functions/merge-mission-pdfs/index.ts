@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { PDFDocument } from "npm:pdf-lib@1.17.1";
+import { encode as base64Encode } from "https://deno.land/std@0.168.0/encoding/base64.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -254,8 +255,8 @@ serve(async (req) => {
     // Serialize the merged PDF
     const mergedPdfBytes = await mergedPdf.save();
     
-    // Convert to base64
-    const base64Pdf = btoa(String.fromCharCode(...mergedPdfBytes));
+    // Convert to base64 using Deno's built-in encoder (handles large files)
+    const base64Pdf = base64Encode(mergedPdfBytes);
     
     // Generate filename
     const sanitizedFolderName = (folderName || 'mission').replace(/[^a-zA-Z0-9-_]/g, '_');
