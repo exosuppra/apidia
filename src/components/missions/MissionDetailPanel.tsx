@@ -77,28 +77,29 @@ export default function MissionDetailPanel({ folder, onClose }: MissionDetailPan
 
     try {
       for (const file of Array.from(files)) {
-        const sanitizedFolderName = folder.name.replace(/[^a-zA-Z0-9-_]/g, '_');
-        const timestamp = Date.now();
-        const filePath = `${sanitizedFolderName}/${timestamp}_${file.name}`;
+        // Upload to Google Drive
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('folderName', folder.name);
 
-        const { data, error } = await supabase.storage
-          .from('mission-justificatifs')
-          .upload(filePath, file);
+        const { data, error } = await supabase.functions.invoke('upload-to-drive', {
+          body: formData,
+        });
 
-        if (error) {
-          console.error('Upload error:', error);
+        if (error || !data?.success) {
+          console.error('Upload error:', error || data?.error);
           toast({
             title: "Erreur d'upload",
-            description: `Impossible d'uploader ${file.name}: ${error.message}`,
+            description: `Impossible d'uploader ${file.name}: ${error?.message || data?.error}`,
             variant: "destructive",
           });
           continue;
         }
 
         newUploads.push({
-          id: data.path,
+          id: data.file.id,
           name: file.name,
-          path: data.path,
+          path: data.file.id, // Use Drive ID as path
           size: file.size,
           mimeType: file.type,
         });
@@ -108,7 +109,7 @@ export default function MissionDetailPanel({ folder, onClose }: MissionDetailPan
         setUploadedJustificatifs(prev => [...prev, ...newUploads]);
         toast({
           title: "Upload réussi",
-          description: `${newUploads.length} fichier(s) uploadé(s)`,
+          description: `${newUploads.length} fichier(s) ajouté(s) au Drive`,
         });
       }
     } catch (error: any) {
@@ -127,26 +128,13 @@ export default function MissionDetailPanel({ folder, onClose }: MissionDetailPan
   };
 
   const handleRemoveUploadedFile = async (justificatif: UploadedJustificatif) => {
-    try {
-      const { error } = await supabase.storage
-        .from('mission-justificatifs')
-        .remove([justificatif.path]);
-
-      if (error) throw error;
-
-      setUploadedJustificatifs(prev => prev.filter(j => j.id !== justificatif.id));
-      toast({
-        title: "Fichier supprimé",
-        description: justificatif.name,
-      });
-    } catch (error: any) {
-      console.error('Delete error:', error);
-      toast({
-        title: "Erreur",
-        description: "Impossible de supprimer le fichier",
-        variant: "destructive",
-      });
-    }
+    // Simply remove from local state - file stays on Drive
+    // Users can delete from Drive directly if needed
+    setUploadedJustificatifs(prev => prev.filter(j => j.id !== justificatif.id));
+    toast({
+      title: "Fichier retiré de la liste",
+      description: justificatif.name,
+    });
   };
 
   const handleMergeAndDownload = async () => {
@@ -162,23 +150,18 @@ export default function MissionDetailPanel({ folder, onClose }: MissionDetailPan
     setIsMerging(true);
 
     try {
-      const uploadedUrls: string[] = [];
-      for (const justificatif of uploadedJustificatifs) {
-        const { data } = await supabase.storage
-          .from('mission-justificatifs')
-          .createSignedUrl(justificatif.path, 3600);
-        
-        if (data?.signedUrl) {
-          uploadedUrls.push(data.signedUrl);
-        }
-      }
+      // All justificatifs are now on Drive, pass their IDs
+      const allJustificatifIds = [
+        ...selectedDriveJustificatifs.filter(id => id !== mainDocumentId),
+        ...uploadedJustificatifs.map(j => j.id)
+      ];
 
       const { data, error } = await supabase.functions.invoke('merge-mission-pdfs', {
         body: {
           folderName: folder.name,
           mainDocumentId,
-          justificatifsIds: selectedDriveJustificatifs.filter(id => id !== mainDocumentId),
-          uploadedJustificatifsUrls: uploadedUrls,
+          justificatifsIds: allJustificatifIds,
+          uploadedJustificatifsUrls: [], // No longer using Supabase storage URLs
         }
       });
 
@@ -210,11 +193,7 @@ export default function MissionDetailPanel({ folder, onClose }: MissionDetailPan
         description: `PDF fusionné téléchargé (${data.pageCount} pages)`,
       });
 
-      for (const justificatif of uploadedJustificatifs) {
-        await supabase.storage
-          .from('mission-justificatifs')
-          .remove([justificatif.path]);
-      }
+      // Clear the uploaded justificatifs from local state (they stay on Drive)
       setUploadedJustificatifs([]);
 
     } catch (error: any) {
