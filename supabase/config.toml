@@ -44,3 +44,9 @@ verify_jwt = false
 
 [functions.import-fiches]
 verify_jwt = false
+
+[functions.fetch-apidae-fiches]
+verify_jwt = false
+
+[functions.push-to-apidae]
+verify_jwt = false
