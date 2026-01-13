@@ -136,6 +136,7 @@ const emojiCategories = {
 
 export function RichTextEditor({ value, onChange, placeholder, rows = 4 }: RichTextEditorProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const emojiSearchRef = useRef<HTMLInputElement>(null);
   const [emojiOpen, setEmojiOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -242,17 +243,28 @@ export function RichTextEditor({ value, onChange, placeholder, rows = 4 }: RichT
           <PopoverContent 
             className="w-80 p-2" 
             align="start"
-            onOpenAutoFocus={(e) => e.preventDefault()}
+            onOpenAutoFocus={(e) => {
+              e.preventDefault();
+              // Focus the search input after a short delay
+              setTimeout(() => {
+                emojiSearchRef.current?.focus();
+              }, 0);
+            }}
           >
             <div className="relative mb-2">
               <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
+                ref={emojiSearchRef}
                 placeholder="Rechercher un emoji..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-8 h-8 text-sm"
-                autoFocus={false}
-                onKeyDown={(e) => e.stopPropagation()}
+                onKeyDown={(e) => {
+                  // Prevent popover from closing on Escape while typing
+                  if (e.key !== 'Escape') {
+                    e.stopPropagation();
+                  }
+                }}
               />
             </div>
             
