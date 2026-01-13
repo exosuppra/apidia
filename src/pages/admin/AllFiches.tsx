@@ -94,6 +94,11 @@ export default function AllFiches() {
   const [togglingPublish, setTogglingPublish] = useState<string | null>(null);
   const [transferring, setTransferring] = useState<string | null>(null);
   const [syncingApidae, setSyncingApidae] = useState(false);
+  const [apidaeSyncProgress, setApidaeSyncProgress] = useState<{
+    current: number;
+    total: number;
+    percentage: number;
+  } | null>(null);
   const [apidaeSyncConfig, setApidaeSyncConfig] = useState<{
     id: string;
     is_enabled: boolean;
@@ -237,6 +242,7 @@ export default function AllFiches() {
   // Sync from Apidae API - fetches ALL fiches from the selection progressively
   const syncFromApidae = async () => {
     setSyncingApidae(true);
+    setApidaeSyncProgress({ current: 0, total: 0, percentage: 0 });
     try {
       const selectionIds = apidaeSyncConfig?.selection_ids || [];
       const batchSize = apidaeSyncConfig?.fiches_per_sync || 200;
@@ -246,6 +252,7 @@ export default function AllFiches() {
       let totalErrors: string[] = [];
       let offset = 0;
       let hasMore = true;
+      let totalFiches = 0;
       
       // Loop to fetch all fiches in batches
       while (hasMore) {
@@ -265,20 +272,25 @@ export default function AllFiches() {
           totalErrors = [...totalErrors, ...data.errors];
         }
         
+        // Get total from first response
+        if (totalFiches === 0) {
+          totalFiches = data.total || 0;
+        }
+        
         // Check if there are more fiches to fetch
         const processed = data.processed || 0;
-        const total = data.total || 0;
         
         offset += batchSize;
-        hasMore = offset < total && processed > 0;
+        hasMore = offset < totalFiches && processed > 0;
         
-        // Update progress toast
-        if (hasMore) {
-          toast({
-            title: "Synchronisation en cours...",
-            description: `${offset}/${total} fiches traitées`,
-          });
-        }
+        // Update progress
+        const currentProgress = Math.min(offset, totalFiches);
+        const percentage = totalFiches > 0 ? Math.round((currentProgress / totalFiches) * 100) : 0;
+        setApidaeSyncProgress({
+          current: currentProgress,
+          total: totalFiches,
+          percentage
+        });
       }
 
       toast({
@@ -297,6 +309,7 @@ export default function AllFiches() {
       });
     } finally {
       setSyncingApidae(false);
+      setApidaeSyncProgress(null);
     }
   };
 
@@ -871,6 +884,23 @@ export default function AllFiches() {
                 </Tooltip>
 
                 <div className="border-l border-border pl-2 ml-2 flex items-center gap-2">
+                  {/* Progress bar during sync */}
+                  {syncingApidae && apidaeSyncProgress && (
+                    <div className="flex items-center gap-3 min-w-[200px]">
+                      <div className="flex-1">
+                        <div className="h-2 bg-muted rounded-full overflow-hidden">
+                          <div 
+                            className="h-full bg-primary transition-all duration-300 ease-out"
+                            style={{ width: `${apidaeSyncProgress.percentage}%` }}
+                          />
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {apidaeSyncProgress.current.toLocaleString()}/{apidaeSyncProgress.total.toLocaleString()} fiches ({apidaeSyncProgress.percentage}%)
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                  
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button 
@@ -979,7 +1009,12 @@ export default function AllFiches() {
                           )}
 
                           <div className="space-y-2">
-                            <Label>Fiches par synchronisation</Label>
+                            <Label className="flex flex-col gap-1">
+                              <span>Fiches par lot</span>
+                              <span className="text-sm font-normal text-muted-foreground">
+                                Nombre de fiches récupérées par appel API. La synchronisation récupère <strong>toutes les fiches</strong> de la sélection en plusieurs lots successifs.
+                              </span>
+                            </Label>
                             <Select 
                               value={apidaeSyncConfig.fiches_per_sync.toString()} 
                               onValueChange={(v) => setApidaeSyncConfig({
@@ -991,10 +1026,10 @@ export default function AllFiches() {
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="50">50</SelectItem>
+                                <SelectItem value="50">50 (plus lent, moins de charge)</SelectItem>
                                 <SelectItem value="100">100</SelectItem>
                                 <SelectItem value="200">200</SelectItem>
-                                <SelectItem value="500">500</SelectItem>
+                                <SelectItem value="500">500 (plus rapide)</SelectItem>
                               </SelectContent>
                             </Select>
                           </div>
