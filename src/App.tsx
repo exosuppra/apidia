@@ -26,6 +26,7 @@ import UsersManagement from "./pages/admin/UsersManagement";
 import UserRequests from "./pages/admin/UserRequests";
 import UserActionLogs from "./pages/admin/UserActionLogs";
 import SuiviRH from "./pages/admin/SuiviRH";
+import SuiviMissions from "./pages/admin/SuiviMissions";
 import StatsWeb from "./pages/admin/StatsWeb";
 import StatsEreputation from "./pages/admin/StatsEreputation";
 import VerificationAlerts from "./pages/admin/VerificationAlerts";
@@ -144,6 +145,17 @@ const App = () => (
                   <RequirePermission pageKey="rh">
                     <AdminLayout>
                       <SuiviRH />
+                    </AdminLayout>
+                  </RequirePermission>
+                </RequirePasswordChange>
+              </RequireAdminAuth>
+            } />
+            <Route path="/admin/missions" element={
+              <RequireAdminAuth>
+                <RequirePasswordChange>
+                  <RequirePermission pageKey="missions">
+                    <AdminLayout>
+                      <SuiviMissions />
                     </AdminLayout>
                   </RequirePermission>
                 </RequirePasswordChange>
