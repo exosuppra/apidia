@@ -38,7 +38,10 @@ export default function MissionDetailPanel({ folder, onClose }: MissionDetailPan
   const [isMerging, setIsMerging] = useState(false);
   const { toast } = useToast();
 
-  const pdfFiles = folder.files.filter(f => f.mimeType === 'application/pdf');
+  // Accept both PDFs and Google Docs
+  const documentFiles = folder.files.filter(f => 
+    f.mimeType === 'application/pdf' || f.mimeType === 'application/vnd.google-apps.document'
+  );
 
   const handleJustificatifToggle = (fileId: string) => {
     setSelectedJustificatifs(prev => 
@@ -123,9 +126,9 @@ export default function MissionDetailPanel({ folder, onClose }: MissionDetailPan
       <CardHeader className="pb-4">
         <div className="flex items-start justify-between">
           <div>
-            <CardTitle className="text-lg">{folder.name}</CardTitle>
+            <CardTitle className="text-lg uppercase">{folder.name}</CardTitle>
             <CardDescription>
-              {pdfFiles.length} document{pdfFiles.length > 1 ? 's' : ''} PDF
+              {documentFiles.length} document{documentFiles.length > 1 ? 's' : ''}
             </CardDescription>
           </div>
           <Button variant="ghost" size="icon" onClick={onClose}>
@@ -141,7 +144,7 @@ export default function MissionDetailPanel({ folder, onClose }: MissionDetailPan
           </Label>
           <RadioGroup value={mainDocumentId} onValueChange={setMainDocumentId}>
             <div className="space-y-2">
-              {pdfFiles.map(file => (
+              {documentFiles.map(file => (
                 <div
                   key={file.id}
                   className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent/50 transition-colors"
@@ -152,13 +155,13 @@ export default function MissionDetailPanel({ folder, onClose }: MissionDetailPan
                       htmlFor={`main-${file.id}`}
                       className="flex items-center gap-2 cursor-pointer"
                     >
-                      <FileText className="h-4 w-4 text-red-500" />
+                      <FileText className={`h-4 w-4 ${file.mimeType === 'application/pdf' ? 'text-red-500' : 'text-blue-500'}`} />
                       <span className="text-sm truncate max-w-[200px]">{file.name}</span>
                     </label>
                   </div>
                   <div className="flex items-center gap-2">
                     <Badge variant="outline" className="text-xs">
-                      {formatFileSize(file.size)}
+                      {file.mimeType === 'application/vnd.google-apps.document' ? 'Doc' : formatFileSize(file.size)}
                     </Badge>
                     <a
                       href={file.webViewLink}
@@ -183,7 +186,7 @@ export default function MissionDetailPanel({ folder, onClose }: MissionDetailPan
             Justificatifs de frais à inclure
           </Label>
           <div className="space-y-2">
-            {pdfFiles
+            {documentFiles
               .filter(file => file.id !== mainDocumentId)
               .map(file => (
                 <div
@@ -200,13 +203,13 @@ export default function MissionDetailPanel({ folder, onClose }: MissionDetailPan
                       htmlFor={`just-${file.id}`}
                       className="flex items-center gap-2 cursor-pointer"
                     >
-                      <FileText className="h-4 w-4 text-blue-500" />
+                      <FileText className={`h-4 w-4 ${file.mimeType === 'application/pdf' ? 'text-red-500' : 'text-blue-500'}`} />
                       <span className="text-sm truncate max-w-[200px]">{file.name}</span>
                     </label>
                   </div>
                   <div className="flex items-center gap-2">
                     <Badge variant="outline" className="text-xs">
-                      {formatFileSize(file.size)}
+                      {file.mimeType === 'application/vnd.google-apps.document' ? 'Doc' : formatFileSize(file.size)}
                     </Badge>
                     <a
                       href={file.webViewLink}
@@ -221,9 +224,9 @@ export default function MissionDetailPanel({ folder, onClose }: MissionDetailPan
                   </div>
                 </div>
               ))}
-            {pdfFiles.filter(file => file.id !== mainDocumentId).length === 0 && mainDocumentId && (
+            {documentFiles.filter(file => file.id !== mainDocumentId).length === 0 && mainDocumentId && (
               <p className="text-sm text-muted-foreground text-center py-4">
-                Aucun autre document PDF dans ce dossier
+                Aucun autre document dans ce dossier
               </p>
             )}
           </div>
