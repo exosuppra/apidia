@@ -57,12 +57,14 @@ export default function MissionFolderCard({ folder, isSelected, onClick }: Missi
             <FileText className="h-3 w-3" />
             <span>{folder.files.length} fichier{folder.files.length > 1 ? 's' : ''}</span>
           </div>
-          <div className="flex items-center gap-1">
-            <Calendar className="h-3 w-3" />
-            <span>
-              {format(new Date(folder.modifiedTime), 'd MMM yyyy', { locale: fr })}
-            </span>
-          </div>
+          {folder.modifiedTime && (
+            <div className="flex items-center gap-1">
+              <Calendar className="h-3 w-3" />
+              <span>
+                {format(new Date(folder.modifiedTime), 'd MMM yyyy', { locale: fr })}
+              </span>
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>
