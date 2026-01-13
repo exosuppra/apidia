@@ -13,6 +13,7 @@ interface MissionFile {
   webViewLink: string;
   createdTime: string;
   modifiedTime: string;
+  personName?: string;
 }
 
 interface MissionFolder {
@@ -21,6 +22,86 @@ interface MissionFolder {
   files: MissionFile[];
   createdTime: string;
   modifiedTime: string;
+}
+
+// Extract document content as plain text (for Google Docs)
+async function getDocumentContent(accessToken: string, fileId: string): Promise<string> {
+  const url = `https://www.googleapis.com/drive/v3/files/${fileId}/export?mimeType=text/plain`;
+  const response = await fetch(url, {
+    headers: { 'Authorization': `Bearer ${accessToken}` }
+  });
+  
+  if (!response.ok) {
+    console.warn(`Failed to export document ${fileId}: ${response.status}`);
+    return '';
+  }
+  
+  return await response.text();
+}
+
+// Extract person name from document content
+function extractPersonName(content: string): string {
+  // Look for "Nom – Prénom :" pattern (with various dash types)
+  const patterns = [
+    /Nom\s*[–\-—]\s*Prénom\s*:\s*(.+?)(?:\n|\r|$)/i,
+    /Nom\s*[–\-—]\s*Prenom\s*:\s*(.+?)(?:\n|\r|$)/i,
+    /Nom\s+Prénom\s*:\s*(.+?)(?:\n|\r|$)/i,
+    /Demandeur\s*:\s*(.+?)(?:\n|\r|$)/i,
+  ];
+  
+  for (const pattern of patterns) {
+    const match = content.match(pattern);
+    if (match && match[1]) {
+      const name = match[1].trim();
+      // Clean up: remove trailing spaces, tabs, or common suffixes
+      const cleanName = name.split(/\t/)[0].trim();
+      if (cleanName.length > 0 && cleanName.length < 100) {
+        return cleanName;
+      }
+    }
+  }
+  
+  return 'Non identifié';
+}
+
+// Group files by person name
+function groupFilesByPerson(files: MissionFile[]): MissionFolder[] {
+  const personMap = new Map<string, MissionFile[]>();
+  
+  for (const file of files) {
+    const personName = file.personName || 'Non identifié';
+    if (!personMap.has(personName)) {
+      personMap.set(personName, []);
+    }
+    personMap.get(personName)!.push(file);
+  }
+  
+  // Convert to folders, sorted alphabetically by person name
+  const folders: MissionFolder[] = [];
+  const sortedNames = Array.from(personMap.keys()).sort((a, b) => {
+    // "Non identifié" goes last
+    if (a === 'Non identifié') return 1;
+    if (b === 'Non identifié') return -1;
+    return a.localeCompare(b, 'fr');
+  });
+  
+  for (const personName of sortedNames) {
+    const personFiles = personMap.get(personName)!;
+    // Find the most recent modification date among files
+    const latestModified = personFiles.reduce((latest, file) => {
+      return file.modifiedTime > latest ? file.modifiedTime : latest;
+    }, personFiles[0]?.modifiedTime || '');
+    
+    folders.push({
+      id: `person-${personName.toLowerCase().replace(/\s+/g, '-')}`,
+      name: personName,
+      files: personFiles,
+      createdTime: personFiles[0]?.createdTime || '',
+      modifiedTime: latestModified
+    });
+  }
+  
+  return folders;
 }
 
 async function getAccessToken(serviceAccountJson: string): Promise<string> {
@@ -263,26 +344,39 @@ serve(async (req) => {
       }
     }
 
-    // 1) Subfolders = missions
-    const folders = await listFolders(accessToken, missionsFolderId);
-
-    // 2) Also include PDFs directly inside the parent folder (common setup)
-    const rootPdfFiles = await listPdfFilesInFolder(accessToken, missionsFolderId);
-    if (rootPdfFiles.length > 0) {
-      folders.unshift({
-        id: missionsFolderId,
-        name: 'Documents (racine)',
-        files: rootPdfFiles,
-        createdTime: '',
-        modifiedTime: ''
-      });
+    // Get all Google Docs from the root folder
+    const allFiles = await listPdfFilesInFolder(accessToken, missionsFolderId);
+    
+    // Extract person name from each Google Doc
+    console.log(`Processing ${allFiles.length} files to extract person names...`);
+    
+    for (const file of allFiles) {
+      if (file.mimeType === 'application/vnd.google-apps.document') {
+        try {
+          const content = await getDocumentContent(accessToken, file.id);
+          file.personName = extractPersonName(content);
+          console.log(`File "${file.name}" -> Person: "${file.personName}"`);
+        } catch (e) {
+          console.warn(`Could not extract name from ${file.name}:`, e);
+          file.personName = 'Non identifié';
+        }
+      } else {
+        // For PDFs, we can't extract content easily, group as "Non identifié"
+        file.personName = 'Non identifié';
+      }
     }
+    
+    // Group files by person name
+    const folders = groupFilesByPerson(allFiles);
+    
+    console.log(`Grouped into ${folders.length} person folders`);
 
     return new Response(
       JSON.stringify({
         success: true,
         folders,
         totalFolders: folders.length,
+        totalFiles: allFiles.length,
         ...(debug ? { diagnostics } : {})
       }),
       {
