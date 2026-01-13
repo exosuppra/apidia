@@ -1,5 +1,4 @@
 import { useState, useRef } from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -7,7 +6,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { FileText, Download, ExternalLink, Loader2, Merge, X, Upload, Trash2, Image, File, Calendar, Clock, ChevronDown, ChevronUp, Eye } from "lucide-react";
+import { FileText, Download, ExternalLink, Loader2, Merge, Upload, Trash2, Image, File, Calendar, Clock, ChevronDown, ChevronUp, Eye } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -57,7 +56,6 @@ export default function MissionDetailPanel({ folder, onClose }: MissionDetailPan
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
-  // Accept both PDFs and Google Docs
   const documentFiles = folder.files.filter(f => 
     f.mimeType === 'application/pdf' || f.mimeType === 'application/vnd.google-apps.document'
   );
@@ -271,319 +269,294 @@ export default function MissionDetailPanel({ folder, onClose }: MissionDetailPan
   const totalJustificatifs = selectedDriveJustificatifs.length + uploadedJustificatifs.length;
 
   return (
-    <Card className="h-full overflow-auto">
-      <CardHeader className="pb-4">
-        <div className="flex items-start justify-between">
-          <div>
-            <CardTitle className="text-lg uppercase">{folder.name}</CardTitle>
-            <CardDescription className="flex items-center gap-4 mt-1">
-              <span className="flex items-center gap-1">
-                <FileText className="h-3 w-3" />
-                {documentFiles.length} document{documentFiles.length > 1 ? 's' : ''}
-              </span>
-              <span className="flex items-center gap-1">
-                <Clock className="h-3 w-3" />
-                Modifié le {formatDate(folder.modifiedTime)}
-              </span>
-            </CardDescription>
-          </div>
-          <Button variant="ghost" size="icon" onClick={onClose}>
-            <X className="h-4 w-4" />
-          </Button>
-        </div>
-      </CardHeader>
-      
-      <CardContent className="space-y-6">
-        {/* Documents list as detailed table */}
-        <div className="space-y-3">
-          <Label className="text-sm font-medium flex items-center gap-2">
-            <FileText className="h-4 w-4" />
-            Liste des Ordres de Mission
-          </Label>
-          
-          <div className="border rounded-lg overflow-hidden">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[40%]">Document</TableHead>
-                  <TableHead>Créé le</TableHead>
-                  <TableHead>Modifié le</TableHead>
-                  <TableHead className="text-right">Taille</TableHead>
-                  <TableHead className="w-[60px]"></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {documentFiles.map(file => (
-                  <>
-                    <TableRow key={file.id} className="group">
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          {getFileIcon(file.mimeType)}
-                          <div className="flex flex-col">
-                            <span className="text-sm font-medium truncate max-w-[200px]">
-                              {file.name}
-                            </span>
-                            <Badge variant="outline" className="w-fit text-[10px] mt-0.5">
-                              {file.mimeType === 'application/vnd.google-apps.document' ? 'Google Doc' : 'PDF'}
-                            </Badge>
-                          </div>
+    <div className="space-y-6">
+      {/* Documents list as detailed table */}
+      <div className="space-y-3">
+        <Label className="text-sm font-medium flex items-center gap-2">
+          <FileText className="h-4 w-4" />
+          Liste des Ordres de Mission
+        </Label>
+        
+        <div className="border rounded-lg overflow-hidden bg-card">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-[40%]">Document</TableHead>
+                <TableHead>Créé le</TableHead>
+                <TableHead>Modifié le</TableHead>
+                <TableHead className="text-right">Taille</TableHead>
+                <TableHead className="w-[80px]">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {documentFiles.map(file => (
+                <>
+                  <TableRow key={file.id} className="group">
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        {getFileIcon(file.mimeType)}
+                        <div className="flex flex-col">
+                          <span className="text-sm font-medium truncate max-w-[250px]">
+                            {file.name}
+                          </span>
+                          <Badge variant="outline" className="w-fit text-[10px] mt-0.5">
+                            {file.mimeType === 'application/vnd.google-apps.document' ? 'Google Doc' : 'PDF'}
+                          </Badge>
                         </div>
-                      </TableCell>
-                      <TableCell>
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <span className="text-sm text-muted-foreground flex items-center gap-1">
-                                <Calendar className="h-3 w-3" />
-                                {formatDate(file.createdTime)}
-                              </span>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              {formatDateTime(file.createdTime)}
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      </TableCell>
-                      <TableCell>
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <span className="text-sm text-muted-foreground flex items-center gap-1">
-                                <Clock className="h-3 w-3" />
-                                {formatDate(file.modifiedTime)}
-                              </span>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              {formatDateTime(file.modifiedTime)}
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <span className="text-sm text-muted-foreground">
-                          {file.mimeType === 'application/vnd.google-apps.document' ? '—' : formatFileSize(file.size)}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1">
-                          {file.contentPreview && (
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-7 w-7"
-                                    onClick={() => setExpandedPreview(expandedPreview === file.id ? null : file.id)}
-                                  >
-                                    <Eye className="h-3 w-3" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>Aperçu du contenu</TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-                          )}
-                          <a
-                            href={file.webViewLink}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                          >
-                            <Button variant="ghost" size="icon" className="h-7 w-7">
-                              <ExternalLink className="h-3 w-3" />
-                            </Button>
-                          </a>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="text-sm text-muted-foreground flex items-center gap-1">
+                              <Calendar className="h-3 w-3" />
+                              {formatDate(file.createdTime)}
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            {formatDateTime(file.createdTime)}
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </TableCell>
+                    <TableCell>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="text-sm text-muted-foreground flex items-center gap-1">
+                              <Clock className="h-3 w-3" />
+                              {formatDate(file.modifiedTime)}
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            {formatDateTime(file.modifiedTime)}
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <span className="text-sm text-muted-foreground">
+                        {file.mimeType === 'application/vnd.google-apps.document' ? '—' : formatFileSize(file.size)}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1">
+                        {file.contentPreview && (
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7"
+                                  onClick={() => setExpandedPreview(expandedPreview === file.id ? null : file.id)}
+                                >
+                                  <Eye className="h-3 w-3" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Aperçu du contenu</TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        )}
+                        <a
+                          href={file.webViewLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          <Button variant="ghost" size="icon" className="h-7 w-7">
+                            <ExternalLink className="h-3 w-3" />
+                          </Button>
+                        </a>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                  {expandedPreview === file.id && file.contentPreview && (
+                    <TableRow key={`${file.id}-preview`}>
+                      <TableCell colSpan={5} className="bg-muted/30 py-3">
+                        <div className="text-xs text-muted-foreground italic px-2">
+                          <span className="font-medium text-foreground">Aperçu : </span>
+                          {file.contentPreview}
                         </div>
                       </TableCell>
                     </TableRow>
-                    {/* Content preview row */}
-                    {expandedPreview === file.id && file.contentPreview && (
-                      <TableRow key={`${file.id}-preview`}>
-                        <TableCell colSpan={5} className="bg-muted/30 py-3">
-                          <div className="text-xs text-muted-foreground italic px-2">
-                            <span className="font-medium text-foreground">Aperçu : </span>
-                            {file.contentPreview}
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+                  )}
+                </>
+              ))}
+            </TableBody>
+          </Table>
         </div>
+      </div>
 
-        {/* Collapsible merge options */}
-        <Collapsible open={showMergeOptions} onOpenChange={setShowMergeOptions}>
-          <CollapsibleTrigger asChild>
-            <Button variant="outline" className="w-full justify-between">
-              <span className="flex items-center gap-2">
-                <Merge className="h-4 w-4" />
-                Fusionner les documents
-              </span>
-              {showMergeOptions ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-            </Button>
-          </CollapsibleTrigger>
-          
-          <CollapsibleContent className="space-y-4 pt-4">
-            {/* Main document selection */}
+      {/* Collapsible merge options */}
+      <Collapsible open={showMergeOptions} onOpenChange={setShowMergeOptions}>
+        <CollapsibleTrigger asChild>
+          <Button variant="outline" className="w-full justify-between">
+            <span className="flex items-center gap-2">
+              <Merge className="h-4 w-4" />
+              Fusionner les documents
+            </span>
+            {showMergeOptions ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+          </Button>
+        </CollapsibleTrigger>
+        
+        <CollapsibleContent className="space-y-4 pt-4">
+          {/* Main document selection */}
+          <div className="space-y-3">
+            <Label className="text-sm font-medium">
+              1. Document principal (Ordre de Mission)
+            </Label>
+            <RadioGroup value={mainDocumentId} onValueChange={setMainDocumentId}>
+              <div className="space-y-2">
+                {documentFiles.map(file => (
+                  <div
+                    key={file.id}
+                    className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent/50 transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <RadioGroupItem value={file.id} id={`main-${file.id}`} />
+                      <label 
+                        htmlFor={`main-${file.id}`}
+                        className="flex items-center gap-2 cursor-pointer"
+                      >
+                        {getFileIcon(file.mimeType)}
+                        <span className="text-sm truncate max-w-[300px]">{file.name}</span>
+                      </label>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </RadioGroup>
+          </div>
+
+          {/* Drive Justificatifs selection */}
+          {documentFiles.filter(file => file.id !== mainDocumentId).length > 0 && (
             <div className="space-y-3">
               <Label className="text-sm font-medium">
-                1. Document principal (Ordre de Mission)
+                2. Justificatifs depuis Drive (optionnel)
               </Label>
-              <RadioGroup value={mainDocumentId} onValueChange={setMainDocumentId}>
-                <div className="space-y-2">
-                  {documentFiles.map(file => (
+              <div className="space-y-2">
+                {documentFiles
+                  .filter(file => file.id !== mainDocumentId)
+                  .map(file => (
                     <div
                       key={file.id}
                       className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent/50 transition-colors"
                     >
                       <div className="flex items-center gap-3">
-                        <RadioGroupItem value={file.id} id={`main-${file.id}`} />
+                        <Checkbox
+                          id={`just-${file.id}`}
+                          checked={selectedDriveJustificatifs.includes(file.id)}
+                          onCheckedChange={() => handleDriveJustificatifToggle(file.id)}
+                        />
                         <label 
-                          htmlFor={`main-${file.id}`}
+                          htmlFor={`just-${file.id}`}
                           className="flex items-center gap-2 cursor-pointer"
                         >
                           {getFileIcon(file.mimeType)}
-                          <span className="text-sm truncate max-w-[200px]">{file.name}</span>
+                          <span className="text-sm truncate max-w-[300px]">{file.name}</span>
                         </label>
                       </div>
                     </div>
                   ))}
-                </div>
-              </RadioGroup>
-            </div>
-
-            {/* Drive Justificatifs selection */}
-            {documentFiles.filter(file => file.id !== mainDocumentId).length > 0 && (
-              <div className="space-y-3">
-                <Label className="text-sm font-medium">
-                  2. Justificatifs depuis Drive (optionnel)
-                </Label>
-                <div className="space-y-2">
-                  {documentFiles
-                    .filter(file => file.id !== mainDocumentId)
-                    .map(file => (
-                      <div
-                        key={file.id}
-                        className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent/50 transition-colors"
-                      >
-                        <div className="flex items-center gap-3">
-                          <Checkbox
-                            id={`just-${file.id}`}
-                            checked={selectedDriveJustificatifs.includes(file.id)}
-                            onCheckedChange={() => handleDriveJustificatifToggle(file.id)}
-                          />
-                          <label 
-                            htmlFor={`just-${file.id}`}
-                            className="flex items-center gap-2 cursor-pointer"
-                          >
-                            {getFileIcon(file.mimeType)}
-                            <span className="text-sm truncate max-w-[200px]">{file.name}</span>
-                          </label>
-                        </div>
-                      </div>
-                    ))}
-                </div>
               </div>
-            )}
-
-            {/* Upload Justificatifs */}
-            <div className="space-y-3">
-              <Label className="text-sm font-medium">
-                3. Uploader des justificatifs
-              </Label>
-              
-              <input
-                type="file"
-                ref={fileInputRef}
-                onChange={handleFileUpload}
-                accept="application/pdf,image/jpeg,image/png,image/webp"
-                multiple
-                className="hidden"
-              />
-              
-              <Button
-                variant="outline"
-                className="w-full"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={isUploading}
-              >
-                {isUploading ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Upload en cours...
-                  </>
-                ) : (
-                  <>
-                    <Upload className="h-4 w-4 mr-2" />
-                    Ajouter des justificatifs (PDF, images)
-                  </>
-                )}
-              </Button>
-
-              {/* Uploaded files list */}
-              {uploadedJustificatifs.length > 0 && (
-                <div className="space-y-2 mt-3">
-                  {uploadedJustificatifs.map(justificatif => (
-                    <div
-                      key={justificatif.id}
-                      className="flex items-center justify-between p-3 border rounded-lg bg-green-50 dark:bg-green-950/20"
-                    >
-                      <div className="flex items-center gap-3">
-                        {getFileIcon(justificatif.mimeType)}
-                        <span className="text-sm truncate max-w-[180px]">{justificatif.name}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Badge variant="secondary" className="text-xs">
-                          {formatFileSize(justificatif.size)}
-                        </Badge>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-destructive hover:text-destructive"
-                          onClick={() => handleRemoveUploadedFile(justificatif)}
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
             </div>
+          )}
 
-            {/* Merge button */}
+          {/* Upload Justificatifs */}
+          <div className="space-y-3">
+            <Label className="text-sm font-medium">
+              3. Uploader des justificatifs
+            </Label>
+            
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileUpload}
+              accept="application/pdf,image/jpeg,image/png,image/webp"
+              multiple
+              className="hidden"
+            />
+            
             <Button
+              variant="outline"
               className="w-full"
-              size="lg"
-              onClick={handleMergeAndDownload}
-              disabled={!mainDocumentId || isMerging}
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isUploading}
             >
-              {isMerging ? (
+              {isUploading ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Fusion en cours...
+                  Upload en cours...
                 </>
               ) : (
                 <>
-                  <Download className="h-4 w-4 mr-2" />
-                  Fusionner et télécharger
-                  {totalJustificatifs > 0 && (
-                    <Badge variant="secondary" className="ml-2">
-                      {1 + totalJustificatifs} documents
-                    </Badge>
-                  )}
+                  <Upload className="h-4 w-4 mr-2" />
+                  Ajouter des justificatifs (PDF, images)
                 </>
               )}
             </Button>
 
-            <p className="text-xs text-muted-foreground text-center">
-              Le document fusionné contiendra l'ordre de mission suivi des justificatifs
-            </p>
-          </CollapsibleContent>
-        </Collapsible>
-      </CardContent>
-    </Card>
+            {uploadedJustificatifs.length > 0 && (
+              <div className="space-y-2 mt-3">
+                {uploadedJustificatifs.map(justificatif => (
+                  <div
+                    key={justificatif.id}
+                    className="flex items-center justify-between p-3 border rounded-lg bg-green-50 dark:bg-green-950/20"
+                  >
+                    <div className="flex items-center gap-3">
+                      {getFileIcon(justificatif.mimeType)}
+                      <span className="text-sm truncate max-w-[250px]">{justificatif.name}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="secondary" className="text-xs">
+                        {formatFileSize(justificatif.size)}
+                      </Badge>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-destructive hover:text-destructive"
+                        onClick={() => handleRemoveUploadedFile(justificatif)}
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Merge button */}
+          <Button
+            className="w-full"
+            size="lg"
+            onClick={handleMergeAndDownload}
+            disabled={!mainDocumentId || isMerging}
+          >
+            {isMerging ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Fusion en cours...
+              </>
+            ) : (
+              <>
+                <Download className="h-4 w-4 mr-2" />
+                Fusionner et télécharger
+                {totalJustificatifs > 0 && (
+                  <Badge variant="secondary" className="ml-2">
+                    {1 + totalJustificatifs} documents
+                  </Badge>
+                )}
+              </>
+            )}
+          </Button>
+
+          <p className="text-xs text-muted-foreground text-center">
+            Le document fusionné contiendra l'ordre de mission suivi des justificatifs
+          </p>
+        </CollapsibleContent>
+      </Collapsible>
+    </div>
   );
 }
