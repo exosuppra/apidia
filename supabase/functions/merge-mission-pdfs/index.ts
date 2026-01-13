@@ -113,13 +113,79 @@ async function downloadAsPdfFromDrive(accessToken: string, fileId: string): Prom
   return new Uint8Array(arrayBuffer);
 }
 
+async function downloadFromUrl(url: string): Promise<Uint8Array> {
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`Failed to download file from URL: ${response.status} ${response.statusText}`);
+  }
+  const arrayBuffer = await response.arrayBuffer();
+  return new Uint8Array(arrayBuffer);
+}
+
+async function imageToPdf(imageBytes: Uint8Array, mimeType: string): Promise<PDFDocument> {
+  const pdfDoc = await PDFDocument.create();
+  
+  let image;
+  if (mimeType === 'image/jpeg' || mimeType === 'image/jpg') {
+    image = await pdfDoc.embedJpg(imageBytes);
+  } else if (mimeType === 'image/png') {
+    image = await pdfDoc.embedPng(imageBytes);
+  } else {
+    // For webp and other formats, try to embed as PNG (might not work for all)
+    try {
+      image = await pdfDoc.embedPng(imageBytes);
+    } catch {
+      throw new Error(`Unsupported image format: ${mimeType}`);
+    }
+  }
+  
+  // Create a page with the image dimensions (max A4 size)
+  const maxWidth = 595; // A4 width in points
+  const maxHeight = 842; // A4 height in points
+  
+  let width = image.width;
+  let height = image.height;
+  
+  // Scale down if necessary
+  if (width > maxWidth) {
+    const scale = maxWidth / width;
+    width = maxWidth;
+    height = height * scale;
+  }
+  if (height > maxHeight) {
+    const scale = maxHeight / height;
+    height = maxHeight;
+    width = width * scale;
+  }
+  
+  const page = pdfDoc.addPage([width, height]);
+  page.drawImage(image, {
+    x: 0,
+    y: 0,
+    width,
+    height,
+  });
+  
+  return pdfDoc;
+}
+
+function getMimeTypeFromUrl(url: string): string {
+  const lowered = url.toLowerCase();
+  if (lowered.includes('.jpg') || lowered.includes('.jpeg')) return 'image/jpeg';
+  if (lowered.includes('.png')) return 'image/png';
+  if (lowered.includes('.webp')) return 'image/webp';
+  if (lowered.includes('.pdf')) return 'application/pdf';
+  // Default to PDF
+  return 'application/pdf';
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { folderName, mainDocumentId, justificatifsIds } = await req.json();
+    const { folderName, mainDocumentId, justificatifsIds, uploadedJustificatifsUrls } = await req.json();
     
     if (!mainDocumentId) {
       throw new Error('mainDocumentId is required');
@@ -143,17 +209,43 @@ serve(async (req) => {
     const mainPages = await mergedPdf.copyPages(mainPdfDoc, mainPdfDoc.getPageIndices());
     mainPages.forEach(page => mergedPdf.addPage(page));
 
-    // Download and add all justificatifs
+    // Download and add all Drive justificatifs
     if (justificatifsIds && justificatifsIds.length > 0) {
       for (const justificatifId of justificatifsIds) {
-        console.log(`Downloading justificatif: ${justificatifId}`);
+        console.log(`Downloading Drive justificatif: ${justificatifId}`);
         try {
           const pdfBytes = await downloadAsPdfFromDrive(accessToken, justificatifId);
           const pdfDoc = await PDFDocument.load(pdfBytes);
           const pages = await mergedPdf.copyPages(pdfDoc, pdfDoc.getPageIndices());
           pages.forEach(page => mergedPdf.addPage(page));
         } catch (err) {
-          console.error(`Error processing justificatif ${justificatifId}:`, err);
+          console.error(`Error processing Drive justificatif ${justificatifId}:`, err);
+          // Continue with other files even if one fails
+        }
+      }
+    }
+
+    // Download and add all uploaded justificatifs
+    if (uploadedJustificatifsUrls && uploadedJustificatifsUrls.length > 0) {
+      for (const url of uploadedJustificatifsUrls) {
+        console.log(`Downloading uploaded justificatif from URL`);
+        try {
+          const fileBytes = await downloadFromUrl(url);
+          const mimeType = getMimeTypeFromUrl(url);
+          
+          let pdfDoc: PDFDocument;
+          if (mimeType.startsWith('image/')) {
+            // Convert image to PDF
+            pdfDoc = await imageToPdf(fileBytes, mimeType);
+          } else {
+            // Load as PDF
+            pdfDoc = await PDFDocument.load(fileBytes);
+          }
+          
+          const pages = await mergedPdf.copyPages(pdfDoc, pdfDoc.getPageIndices());
+          pages.forEach(page => mergedPdf.addPage(page));
+        } catch (err) {
+          console.error(`Error processing uploaded justificatif:`, err);
           // Continue with other files even if one fails
         }
       }
