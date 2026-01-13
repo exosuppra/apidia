@@ -18,77 +18,56 @@ interface PushRequest {
   skipValidation?: boolean;
 }
 
-// Field mapping from our internal format to Apidae field paths
+// Champs supportés pour le push Apidae (champs simples uniquement)
+// - apidaeField: nom du champ dans root.fieldList (niveau "métier", pas les sous-champs .libelleFr)
+// - path: chemin complet dans l'objet root pour la valeur
 const FIELD_MAPPINGS: Record<string, { apidaeField: string; path: string[] }> = {
   nom: { apidaeField: "nom", path: ["nom", "libelleFr"] },
   descriptifCourt: { apidaeField: "presentation.descriptifCourt", path: ["presentation", "descriptifCourt", "libelleFr"] },
   descriptifDetaille: { apidaeField: "presentation.descriptifDetaille", path: ["presentation", "descriptifDetaille", "libelleFr"] },
   adresse1: { apidaeField: "localisation.adresse.adresse1", path: ["localisation", "adresse", "adresse1"] },
   codePostal: { apidaeField: "localisation.adresse.codePostal", path: ["localisation", "adresse", "codePostal"] },
-  commune: { apidaeField: "localisation.adresse.commune.nom", path: ["localisation", "adresse", "commune", "nom"] },
-  telephone: { apidaeField: "informations.moyensCommunication", path: ["informations", "moyensCommunication"] },
-  email: { apidaeField: "informations.moyensCommunication", path: ["informations", "moyensCommunication"] },
-  siteWeb: { apidaeField: "informations.moyensCommunication", path: ["informations", "moyensCommunication"] },
   periodeEnClair: { apidaeField: "ouverture.periodeEnClair", path: ["ouverture", "periodeEnClair", "libelleFr"] },
 };
 
-async function getOAuthToken(): Promise<string> {
-  const APIDAE_CLIENT_ID = Deno.env.get("APIDAE_CLIENT_ID");
-  const APIDAE_CLIENT_SECRET = Deno.env.get("APIDAE_CLIENT_SECRET");
+// Champs ignorés avec leur raison (pour feedback utilisateur)
+const IGNORED_FIELDS: Record<string, string> = {
+  commune: "Nécessite un identifiant commune Apidae (commune.id), pas un nom",
+  telephone: "Nécessite la structure complète moyensCommunication avec type.id",
+  email: "Nécessite la structure complète moyensCommunication avec type.id",
+  siteWeb: "Nécessite la structure complète moyensCommunication avec type.id",
+};
 
-  if (!APIDAE_CLIENT_ID || !APIDAE_CLIENT_SECRET) {
-    throw new Error("Missing Apidae OAuth credentials");
-  }
-
-  // Documentation officielle Apidae: http://api.apidae-tourisme.com/oauth/token
-  // Authentification via Basic Auth avec clientId:secret
-  const tokenUrl = "http://api.apidae-tourisme.com/oauth/token?grant_type=client_credentials";
-  
-  const credentials = btoa(`${APIDAE_CLIENT_ID}:${APIDAE_CLIENT_SECRET}`);
-
-  console.log("Requesting OAuth token from Apidae API");
-
-  const response = await fetch(tokenUrl, {
-    method: "GET",
-    headers: {
-      "Authorization": `Basic ${credentials}`,
-      "Accept": "application/json",
-    },
-  });
-
-  const responseText = await response.text();
-  console.log("OAuth response status:", response.status);
-  
-  if (!response.ok) {
-    console.error("OAuth token error:", response.status, responseText);
-    throw new Error(`Failed to get OAuth token: ${response.status} - ${responseText.substring(0, 200)}`);
-  }
-
-  // Check if response is HTML (error page)
-  if (responseText.startsWith("<")) {
-    console.error("OAuth returned HTML instead of JSON:", responseText.substring(0, 200));
-    throw new Error("OAuth endpoint returned HTML error page");
-  }
-
-  const tokenData: TokenResponse = JSON.parse(responseText);
-  console.log("Got OAuth token, expires in:", tokenData.expires_in, "seconds");
-  return tokenData.access_token;
-}
-
-function buildApidaePayload(changes: Record<string, unknown>): { fieldList: string[]; root: Record<string, unknown> } {
+function buildApidaePayload(changes: Record<string, unknown>): { 
+  fieldList: string[]; 
+  root: Record<string, unknown>;
+  ignoredFields: Array<{ field: string; reason: string }>;
+} {
   const fieldList: string[] = [];
   const root: Record<string, unknown> = {};
+  const ignoredFields: Array<{ field: string; reason: string }> = [];
 
   for (const [key, value] of Object.entries(changes)) {
-    const mapping = FIELD_MAPPINGS[key];
-    if (!mapping) {
-      console.log(`Unknown field: ${key}, skipping`);
+    // Vérifier si le champ est ignoré
+    if (IGNORED_FIELDS[key]) {
+      console.log(`Field ignored: ${key} - ${IGNORED_FIELDS[key]}`);
+      ignoredFields.push({ field: key, reason: IGNORED_FIELDS[key] });
       continue;
     }
 
-    fieldList.push(mapping.apidaeField);
+    const mapping = FIELD_MAPPINGS[key];
+    if (!mapping) {
+      console.log(`Unknown field: ${key}, skipping`);
+      ignoredFields.push({ field: key, reason: "Champ non reconnu" });
+      continue;
+    }
 
-    // Build nested structure
+    // Ajouter au fieldList seulement le champ "métier" (pas de doublon)
+    if (!fieldList.includes(mapping.apidaeField)) {
+      fieldList.push(mapping.apidaeField);
+    }
+
+    // Construire la structure imbriquée dans root
     let current = root;
     const pathParts = mapping.path;
     for (let i = 0; i < pathParts.length - 1; i++) {
@@ -101,7 +80,7 @@ function buildApidaePayload(changes: Record<string, unknown>): { fieldList: stri
     current[pathParts[pathParts.length - 1]] = value;
   }
 
-  return { fieldList, root };
+  return { fieldList, root, ignoredFields };
 }
 
 serve(async (req: Request) => {
@@ -139,17 +118,34 @@ serve(async (req: Request) => {
     console.log("Got OAuth token");
 
     // Build the Apidae payload
-    const { fieldList, root } = buildApidaePayload(changes);
+    const { fieldList, root, ignoredFields } = buildApidaePayload(changes);
 
     if (fieldList.length === 0) {
+      const message = ignoredFields.length > 0
+        ? `Aucun champ valide à mettre à jour. Champs ignorés: ${ignoredFields.map(f => f.field).join(", ")}`
+        : "No valid fields to update";
       return new Response(
-        JSON.stringify({ error: "No valid fields to update" }),
+        JSON.stringify({ 
+          error: message,
+          ignoredFields 
+        }),
         {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         }
       );
     }
+
+    // Diagnostic logging
+    console.log("=== APIDAE PUSH DIAGNOSTIC ===");
+    console.log("fields:", JSON.stringify(["root"]));
+    console.log("root.fieldList:", JSON.stringify(fieldList));
+    console.log("root keys:", Object.keys(root));
+    console.log("root content:", JSON.stringify(root));
+    if (ignoredFields.length > 0) {
+      console.log("Ignored fields:", JSON.stringify(ignoredFields));
+    }
+    console.log("==============================");
 
     // Prepare multipart form data for Apidae
     // D'après la doc Apidae, `fields` est la liste des *blocs* modifiés (ex: ["root"]).
@@ -188,7 +184,7 @@ serve(async (req: Request) => {
     }
 
     if (!apidaeResponse.ok) {
-      // Log the failed attempt
+      // Log the failed attempt with debug info
       await supabase.from("fiche_history").insert({
         fiche_id: ficheId,
         action_type: "apidae_push_failed",
@@ -198,6 +194,11 @@ serve(async (req: Request) => {
         metadata: {
           status: apidaeResponse.status,
           error: apidaeResult,
+          debug: {
+            sentFields: ["root"],
+            sentRootFieldList: fieldList,
+            rootKeys: Object.keys(root),
+          }
         },
       });
 
@@ -205,7 +206,13 @@ serve(async (req: Request) => {
         JSON.stringify({ 
           error: "Apidae API error", 
           status: apidaeResponse.status,
-          details: apidaeResult 
+          details: apidaeResult,
+          debug: {
+            sentFields: ["root"],
+            sentRootFieldList: fieldList,
+            rootKeys: Object.keys(root),
+          },
+          ignoredFields
         }),
         {
           status: apidaeResponse.status,
@@ -239,7 +246,9 @@ serve(async (req: Request) => {
       JSON.stringify({ 
         success: true, 
         ficheId,
-        apidaeResponse: apidaeResult 
+        apidaeResponse: apidaeResult,
+        pushedFields: fieldList,
+        ignoredFields
       }),
       {
         status: 200,
