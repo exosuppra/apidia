@@ -152,10 +152,12 @@ serve(async (req: Request) => {
     }
 
     // Prepare multipart form data for Apidae
+    // D'après la doc Apidae, `fields` est la liste des *blocs* modifiés (ex: ["root"]).
+    // La liste des champs modifiés à l'intérieur du bloc est portée par `root.fieldList`.
     const formData = new FormData();
     formData.append("mode", "MODIFICATION");
     formData.append("id", ficheId);
-    formData.append("fields", fieldList.join(","));
+    formData.append("fields", JSON.stringify(["root"]));
     formData.append("root", JSON.stringify(root));
     formData.append("root.fieldList", JSON.stringify(fieldList));
     
