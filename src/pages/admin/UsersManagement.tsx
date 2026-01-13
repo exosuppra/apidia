@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Trash2, Plus, Shield, Eye, FileText, Calendar, KeyRound, ArrowLeft, Clock, History, Globe, BarChart3, Star, Briefcase } from "lucide-react";
+import { Trash2, Plus, Shield, Eye, FileText, Calendar, KeyRound, ArrowLeft, Clock, History, Globe, BarChart3, Star, Briefcase, Loader2 } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useNavigate } from "react-router-dom";
@@ -42,6 +42,7 @@ export default function UsersManagement() {
   const [newUserLastName, setNewUserLastName] = useState("");
   const [selectedPermissions, setSelectedPermissions] = useState<string[]>([]);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -77,6 +78,8 @@ export default function UsersManagement() {
       return;
     }
 
+    setIsCreating(true);
+    
     try {
       const { data, error } = await supabase.functions.invoke('create-admin', {
         body: { 
@@ -108,6 +111,8 @@ export default function UsersManagement() {
         description: error.message || "Impossible de créer l'utilisateur",
         variant: "destructive",
       });
+    } finally {
+      setIsCreating(false);
     }
   };
 
@@ -313,8 +318,15 @@ export default function UsersManagement() {
                     </div>
                   </div>
                   
-                  <Button onClick={handleCreateUser} className="w-full">
-                    Créer l'utilisateur
+                  <Button onClick={handleCreateUser} className="w-full" disabled={isCreating}>
+                    {isCreating ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Création en cours...
+                      </>
+                    ) : (
+                      "Créer l'utilisateur"
+                    )}
                   </Button>
                 </div>
               </DialogContent>
