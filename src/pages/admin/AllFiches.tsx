@@ -90,6 +90,11 @@ export default function AllFiches() {
   const [publishFilter, setPublishFilter] = useState<PublishFilter>("published");
   const [selectedFiche, setSelectedFiche] = useState<FicheData | null>(null);
   const [syncing, setSyncing] = useState(false);
+  const [sheetsSyncProgress, setSheetsSyncProgress] = useState<{
+    current: number;
+    total: number;
+    percentage: number;
+  } | null>(null);
   const [verifying, setVerifying] = useState(false);
   const [togglingPublish, setTogglingPublish] = useState<string | null>(null);
   const [transferring, setTransferring] = useState<string | null>(null);
@@ -413,7 +418,23 @@ export default function AllFiches() {
   };
 
   const syncToSheets = async () => {
+    const totalToSync = unsyncedCount;
+    if (totalToSync === 0) return;
+    
     setSyncing(true);
+    setSheetsSyncProgress({ current: 0, total: totalToSync, percentage: 0 });
+    
+    // Simulate progress while waiting for the actual sync
+    const progressInterval = setInterval(() => {
+      setSheetsSyncProgress(prev => {
+        if (!prev) return null;
+        // Increment slowly, max 90% until real completion
+        const newPercentage = Math.min(prev.percentage + Math.random() * 5, 90);
+        const newCurrent = Math.floor((newPercentage / 100) * prev.total);
+        return { ...prev, current: newCurrent, percentage: Math.round(newPercentage) };
+      });
+    }, 500);
+    
     try {
       const { data, error } = await supabase.functions.invoke('sync-to-sheets', {
         method: 'POST'
@@ -421,6 +442,9 @@ export default function AllFiches() {
 
       if (error) throw error;
 
+      // Complete the progress
+      setSheetsSyncProgress({ current: totalToSync, total: totalToSync, percentage: 100 });
+      
       toast({
         title: "Synchronisation terminée",
         description: data.message || `${data.results?.synced || 0} fiches synchronisées`,
@@ -435,6 +459,8 @@ export default function AllFiches() {
         variant: "destructive",
       });
     } finally {
+      clearInterval(progressInterval);
+      setTimeout(() => setSheetsSyncProgress(null), 1500);
       setSyncing(false);
     }
   };
@@ -879,6 +905,23 @@ export default function AllFiches() {
 
               {/* Action Bar */}
               <div className="flex flex-wrap items-center gap-2 p-4 bg-muted/50 rounded-lg">
+                {/* Progress bar during Sheets sync */}
+                {syncing && sheetsSyncProgress && (
+                  <div className="flex items-center gap-3 min-w-[200px] mr-2">
+                    <div className="flex-1">
+                      <div className="h-2 bg-muted rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-green-500 transition-all duration-300 ease-out"
+                          style={{ width: `${sheetsSyncProgress.percentage}%` }}
+                        />
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {sheetsSyncProgress.current.toLocaleString()}/{sheetsSyncProgress.total.toLocaleString()} fiches ({sheetsSyncProgress.percentage}%)
+                      </p>
+                    </div>
+                  </div>
+                )}
+                
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button 
@@ -893,7 +936,7 @@ export default function AllFiches() {
                         <Upload className="w-4 h-4 mr-2" />
                       )}
                       Sync Sheets
-                      {unsyncedCount > 0 && (
+                      {unsyncedCount > 0 && !syncing && (
                         <Badge variant="secondary" className="ml-2">
                           {unsyncedCount}
                         </Badge>
