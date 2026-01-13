@@ -118,6 +118,19 @@ export default function AllFiches() {
   const [selectionIdsInput, setSelectionIdsInput] = useState("");
   const [savingConfig, setSavingConfig] = useState(false);
   const [configDialogOpen, setConfigDialogOpen] = useState(false);
+  const [syncHistory, setSyncHistory] = useState<Array<{
+    id: string;
+    sync_type: string;
+    status: string;
+    started_at: string;
+    completed_at: string | null;
+    fiches_synced: number;
+    fiches_created: number;
+    fiches_updated: number;
+    error_message: string | null;
+    triggered_by: string | null;
+  }>>([]);
+  const [loadingSyncHistory, setLoadingSyncHistory] = useState(false);
 
   // Apidia state
   const [fichesApidia, setFichesApidia] = useState<FicheVerified[]>([]);
@@ -375,6 +388,32 @@ export default function AllFiches() {
       setSavingConfig(false);
     }
   };
+
+  // Load sync history
+  const loadSyncHistory = async () => {
+    setLoadingSyncHistory(true);
+    try {
+      const { data, error } = await supabase
+        .from('apidae_sync_history')
+        .select('*')
+        .order('started_at', { ascending: false })
+        .limit(20);
+
+      if (error) throw error;
+      setSyncHistory(data || []);
+    } catch (error) {
+      console.error('Erreur chargement historique:', error);
+    } finally {
+      setLoadingSyncHistory(false);
+    }
+  };
+
+  // Load history when config dialog opens
+  useEffect(() => {
+    if (configDialogOpen) {
+      loadSyncHistory();
+    }
+  }, [configDialogOpen]);
 
   // APIDAE functions - fetch ALL fiches with pagination to avoid 1000 row limit
   const loadAllFiches = async () => {
@@ -1158,6 +1197,71 @@ export default function AllFiches() {
                               )}
                             </div>
                           )}
+
+                          {/* Sync History */}
+                          <div className="pt-4 border-t">
+                            <Label className="flex items-center gap-2 mb-3">
+                              <Database className="w-4 h-4" />
+                              Historique des synchronisations
+                            </Label>
+                            {loadingSyncHistory ? (
+                              <div className="flex justify-center py-4">
+                                <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+                              </div>
+                            ) : syncHistory.length === 0 ? (
+                              <p className="text-sm text-muted-foreground text-center py-4">
+                                Aucun historique de synchronisation
+                              </p>
+                            ) : (
+                              <div className="max-h-[200px] overflow-y-auto space-y-2">
+                                {syncHistory.map((entry) => (
+                                  <div 
+                                    key={entry.id} 
+                                    className={`text-xs p-2 rounded border ${
+                                      entry.status === 'success' 
+                                        ? 'bg-green-50 border-green-200 dark:bg-green-950 dark:border-green-800' 
+                                        : entry.status === 'error'
+                                        ? 'bg-red-50 border-red-200 dark:bg-red-950 dark:border-red-800'
+                                        : 'bg-yellow-50 border-yellow-200 dark:bg-yellow-950 dark:border-yellow-800'
+                                    }`}
+                                  >
+                                    <div className="flex items-center justify-between">
+                                      <div className="flex items-center gap-2">
+                                        {entry.status === 'success' ? (
+                                          <CheckCircle className="w-3 h-3 text-green-600" />
+                                        ) : entry.status === 'error' ? (
+                                          <XCircle className="w-3 h-3 text-red-600" />
+                                        ) : (
+                                          <AlertTriangle className="w-3 h-3 text-yellow-600" />
+                                        )}
+                                        <span className="font-medium">
+                                          {entry.sync_type === 'automatic' ? '🤖 Auto' : '👤 Manuel'}
+                                        </span>
+                                      </div>
+                                      <span className="text-muted-foreground">
+                                        {format(new Date(entry.started_at), "dd/MM HH:mm", { locale: fr })}
+                                      </span>
+                                    </div>
+                                    {entry.status === 'success' && (
+                                      <p className="mt-1 text-muted-foreground">
+                                        {entry.fiches_synced} fiches ({entry.fiches_created} nouvelles, {entry.fiches_updated} màj)
+                                      </p>
+                                    )}
+                                    {entry.status === 'error' && entry.error_message && (
+                                      <p className="mt-1 text-red-600 truncate" title={entry.error_message}>
+                                        {entry.error_message}
+                                      </p>
+                                    )}
+                                    {entry.status === 'skipped' && entry.error_message && (
+                                      <p className="mt-1 text-yellow-700 dark:text-yellow-400">
+                                        {entry.error_message}
+                                      </p>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
                         </div>
                       )}
 

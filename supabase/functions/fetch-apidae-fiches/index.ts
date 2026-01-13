@@ -62,6 +62,10 @@ serve(async (req: Request) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const startedAt = new Date().toISOString();
+  let supabase: ReturnType<typeof createClient> | null = null;
+  let syncHistoryId: string | null = null;
+
   try {
     const APIDAE_API_KEY = Deno.env.get("APIDAE_API_KEY");
     const APIDAE_PROJECT_ID = Deno.env.get("APIDAE_PROJECT_ID");
@@ -76,10 +80,24 @@ serve(async (req: Request) => {
       throw new Error("Missing Supabase credentials");
     }
 
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
     const body = await req.json().catch(() => ({}));
-    const { selectionIds = [], count = 100, first = 0 } = body;
+    const { selectionIds = [], count = 100, first = 0, auto = false } = body;
+
+    // Create sync history entry
+    const { data: historyEntry } = await supabase
+      .from("apidae_sync_history")
+      .insert({
+        sync_type: auto ? "automatic" : "manual",
+        status: "success",
+        started_at: startedAt,
+        triggered_by: auto ? "cron-apidae-sync" : "manual",
+      })
+      .select("id")
+      .single();
+    
+    syncHistoryId = historyEntry?.id || null;
 
     // Build the search query - apiKey and projetId go INSIDE the query object
     const searchQuery: Record<string, unknown> = {
@@ -199,7 +217,26 @@ serve(async (req: Request) => {
       }
     }
 
-    // Log the sync operation
+    // Update sync history with results
+    if (supabase && syncHistoryId) {
+      await supabase
+        .from("apidae_sync_history")
+        .update({
+          status: "success",
+          completed_at: new Date().toISOString(),
+          fiches_synced: results.processed,
+          fiches_created: results.inserted,
+          fiches_updated: results.updated,
+          details: {
+            total_found: results.total,
+            errors: results.errors.slice(0, 10),
+            selection_ids: selectionIds,
+          },
+        })
+        .eq("id", syncHistoryId);
+    }
+
+    // Log the sync operation (legacy)
     await supabase.from("fiche_history").insert({
       fiche_id: "SYNC",
       action_type: "apidae_sync",
@@ -220,6 +257,19 @@ serve(async (req: Request) => {
     });
   } catch (error) {
     console.error("fetch-apidae-fiches error:", error);
+    
+    // Update sync history with error
+    if (supabase && syncHistoryId) {
+      await supabase
+        .from("apidae_sync_history")
+        .update({
+          status: "error",
+          completed_at: new Date().toISOString(),
+          error_message: error instanceof Error ? error.message : "Unknown error",
+        })
+        .eq("id", syncHistoryId);
+    }
+
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
       {
