@@ -77,6 +77,48 @@ export type Database = {
         }
         Relationships: []
       }
+      apidae_sync_history: {
+        Row: {
+          completed_at: string | null
+          details: Json | null
+          error_message: string | null
+          fiches_created: number | null
+          fiches_synced: number | null
+          fiches_updated: number | null
+          id: string
+          started_at: string
+          status: string
+          sync_type: string
+          triggered_by: string | null
+        }
+        Insert: {
+          completed_at?: string | null
+          details?: Json | null
+          error_message?: string | null
+          fiches_created?: number | null
+          fiches_synced?: number | null
+          fiches_updated?: number | null
+          id?: string
+          started_at?: string
+          status: string
+          sync_type: string
+          triggered_by?: string | null
+        }
+        Update: {
+          completed_at?: string | null
+          details?: Json | null
+          error_message?: string | null
+          fiches_created?: number | null
+          fiches_synced?: number | null
+          fiches_updated?: number | null
+          id?: string
+          started_at?: string
+          status?: string
+          sync_type?: string
+          triggered_by?: string | null
+        }
+        Relationships: []
+      }
       chat_conversations: {
         Row: {
           created_at: string

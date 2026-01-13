@@ -70,6 +70,16 @@ serve(async (req: Request) => {
 
     // Check if sync is enabled
     if (!syncConfig.is_enabled) {
+      // Log skipped sync
+      await supabase.from("apidae_sync_history").insert({
+        sync_type: "automatic",
+        status: "skipped",
+        started_at: new Date().toISOString(),
+        completed_at: new Date().toISOString(),
+        triggered_by: "cron-apidae-sync",
+        error_message: "Synchronisation automatique désactivée",
+      });
+
       return new Response(
         JSON.stringify({ 
           skipped: true, 
@@ -87,6 +97,7 @@ serve(async (req: Request) => {
     if (syncConfig.next_sync_at) {
       const nextRun = new Date(syncConfig.next_sync_at);
       if (now < nextRun) {
+        // Don't log skipped for timing - too noisy
         return new Response(
           JSON.stringify({
             skipped: true,
