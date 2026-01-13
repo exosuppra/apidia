@@ -149,7 +149,10 @@ async function listFilesInFolder(accessToken: string, folderId: string): Promise
 
 async function listPdfFilesInFolder(accessToken: string, folderId: string): Promise<MissionFile[]> {
   const files = await listFilesInFolder(accessToken, folderId);
-  return files.filter((f) => f.mimeType === 'application/pdf');
+  // Accept PDFs + Google Docs (will be exported to PDF during merge)
+  return files.filter((f) =>
+    f.mimeType === 'application/pdf' || f.mimeType === 'application/vnd.google-apps.document'
+  );
 }
 
 async function listFolders(accessToken: string, parentFolderId: string): Promise<MissionFolder[]> {
@@ -203,6 +206,9 @@ serve(async (req) => {
   }
 
   try {
+    const body = req.method === 'POST' ? await req.json().catch(() => ({})) : {};
+    const debug = Boolean(body?.debug);
+
     const serviceAccountJson = Deno.env.get('GOOGLE_SERVICE_ACCOUNT_JSON');
     const missionsFolderId = Deno.env.get('GOOGLE_DRIVE_MISSIONS_FOLDER_ID');
 
@@ -214,7 +220,48 @@ serve(async (req) => {
       throw new Error('GOOGLE_DRIVE_MISSIONS_FOLDER_ID secret not configured');
     }
 
+    const serviceAccount = JSON.parse(serviceAccountJson);
     const accessToken = await getAccessToken(serviceAccountJson);
+
+    // Optional diagnostics: helps confirm the folder is accessible and reveals the service account email
+    // (only when debug=true is sent).
+    let diagnostics: any = null;
+    if (debug) {
+      diagnostics = {
+        serviceAccountEmail: serviceAccount?.client_email || null,
+        missionsFolderId,
+        folderCheck: null as any,
+        childrenPreview: null as any,
+      };
+
+      try {
+        const metaUrl = new URL(`https://www.googleapis.com/drive/v3/files/${missionsFolderId}`);
+        metaUrl.searchParams.set('fields', 'id,name,mimeType,driveId,createdTime,modifiedTime,capabilities(canListChildren)');
+        metaUrl.searchParams.set('supportsAllDrives', 'true');
+
+        const metaRes = await fetch(metaUrl.toString(), {
+          headers: { 'Authorization': `Bearer ${accessToken}` },
+        });
+
+        const metaJson = await fetchJsonOrThrow(metaRes, `Drive get folder metadata (id=${missionsFolderId})`);
+        diagnostics.folderCheck = { ok: true, metadata: metaJson };
+
+        // Peek at children regardless of mimeType to confirm what's inside (PDF, Google Docs, etc.)
+        const allChildren = await listFilesInFolder(accessToken, missionsFolderId);
+        diagnostics.childrenPreview = {
+          totalChildren: allChildren.length,
+          first20: allChildren.slice(0, 20).map((f) => ({
+            id: f.id,
+            name: f.name,
+            mimeType: f.mimeType,
+            size: f.size,
+            webViewLink: f.webViewLink,
+          })),
+        };
+      } catch (e) {
+        diagnostics.folderCheck = { ok: false, error: String(e?.message || e) };
+      }
+    }
 
     // 1) Subfolders = missions
     const folders = await listFolders(accessToken, missionsFolderId);
@@ -235,7 +282,8 @@ serve(async (req) => {
       JSON.stringify({
         success: true,
         folders,
-        totalFolders: folders.length
+        totalFolders: folders.length,
+        ...(debug ? { diagnostics } : {})
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

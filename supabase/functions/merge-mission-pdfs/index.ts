@@ -69,17 +69,46 @@ async function getAccessToken(serviceAccountJson: string): Promise<string> {
   return tokenData.access_token;
 }
 
-async function downloadPdfFromDrive(accessToken: string, fileId: string): Promise<Uint8Array> {
-  const url = `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`;
-  
-  const response = await fetch(url, {
-    headers: { 'Authorization': `Bearer ${accessToken}` }
+async function downloadAsPdfFromDrive(accessToken: string, fileId: string): Promise<Uint8Array> {
+  // Fetch metadata to decide between direct download (PDF) or export (Google Docs)
+  const metaUrl = new URL(`https://www.googleapis.com/drive/v3/files/${fileId}`);
+  metaUrl.searchParams.set('fields', 'id,mimeType,name');
+  metaUrl.searchParams.set('supportsAllDrives', 'true');
+
+  const metaRes = await fetch(metaUrl.toString(), {
+    headers: { 'Authorization': `Bearer ${accessToken}` },
   });
-  
-  if (!response.ok) {
-    throw new Error(`Failed to download file ${fileId}: ${response.statusText}`);
+
+  if (!metaRes.ok) {
+    throw new Error(`Failed to read metadata for file ${fileId}: ${metaRes.status} ${metaRes.statusText}`);
   }
-  
+
+  const meta = await metaRes.json();
+  const mimeType = meta?.mimeType as string | undefined;
+
+  // If it's a Google Doc, export to PDF
+  let url: string;
+  if (mimeType === 'application/vnd.google-apps.document') {
+    const exportUrl = new URL(`https://www.googleapis.com/drive/v3/files/${fileId}/export`);
+    exportUrl.searchParams.set('mimeType', 'application/pdf');
+    exportUrl.searchParams.set('supportsAllDrives', 'true');
+    url = exportUrl.toString();
+  } else {
+    // Default: download as-is (works for PDFs)
+    const mediaUrl = new URL(`https://www.googleapis.com/drive/v3/files/${fileId}`);
+    mediaUrl.searchParams.set('alt', 'media');
+    mediaUrl.searchParams.set('supportsAllDrives', 'true');
+    url = mediaUrl.toString();
+  }
+
+  const response = await fetch(url, {
+    headers: { 'Authorization': `Bearer ${accessToken}` },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to download/export file ${fileId}: ${response.status} ${response.statusText}`);
+  }
+
   const arrayBuffer = await response.arrayBuffer();
   return new Uint8Array(arrayBuffer);
 }
@@ -109,17 +138,17 @@ serve(async (req) => {
     
     // Download and add the main document first
     console.log(`Downloading main document: ${mainDocumentId}`);
-    const mainPdfBytes = await downloadPdfFromDrive(accessToken, mainDocumentId);
+    const mainPdfBytes = await downloadAsPdfFromDrive(accessToken, mainDocumentId);
     const mainPdfDoc = await PDFDocument.load(mainPdfBytes);
     const mainPages = await mergedPdf.copyPages(mainPdfDoc, mainPdfDoc.getPageIndices());
     mainPages.forEach(page => mergedPdf.addPage(page));
-    
+
     // Download and add all justificatifs
     if (justificatifsIds && justificatifsIds.length > 0) {
       for (const justificatifId of justificatifsIds) {
         console.log(`Downloading justificatif: ${justificatifId}`);
         try {
-          const pdfBytes = await downloadPdfFromDrive(accessToken, justificatifId);
+          const pdfBytes = await downloadAsPdfFromDrive(accessToken, justificatifId);
           const pdfDoc = await PDFDocument.load(pdfBytes);
           const pages = await mergedPdf.copyPages(pdfDoc, pdfDoc.getPageIndices());
           pages.forEach(page => mergedPdf.addPage(page));
