@@ -156,12 +156,51 @@ serve(async (req: Request) => {
 
     console.log(`Pushing changes for fiche ${ficheId}:`, JSON.stringify(changes));
 
+    // Récupérer la fiche locale pour obtenir le type Apidae
+    const { data: ficheData, error: ficheError } = await supabase
+      .from("fiches_data")
+      .select("data, fiche_type")
+      .eq("fiche_id", ficheId)
+      .single();
+
+    if (ficheError || !ficheData) {
+      console.error("Error fetching fiche:", ficheError);
+      return new Response(
+        JSON.stringify({ error: "Fiche not found in local database" }),
+        {
+          status: 404,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    // Extraire le type Apidae depuis les données de la fiche
+    // Le type peut être dans data.type ou dans fiche_type
+    const ficheJson = ficheData.data as Record<string, unknown>;
+    const apidaeType = ficheJson?.type || ficheData.fiche_type;
+    
+    if (!apidaeType) {
+      console.error("No type found for fiche:", ficheId);
+      return new Response(
+        JSON.stringify({ error: "Missing Apidae type for this fiche. Cannot push without type." }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    console.log(`Fiche type: ${apidaeType}`);
+
     // Get OAuth token
     const accessToken = await getOAuthToken();
     console.log("Got OAuth token");
 
     // Build the Apidae payload
     const { fieldList, root, ignoredFields } = buildApidaePayload(changes);
+    
+    // IMPORTANT: Ajouter le type Apidae à l'objet root (requis par l'API)
+    root.type = apidaeType;
 
     if (fieldList.length === 0) {
       const message = ignoredFields.length > 0
