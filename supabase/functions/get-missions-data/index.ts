@@ -56,12 +56,13 @@ function extractPersonName(content: string): string {
       // Clean up: remove trailing spaces, tabs, or common suffixes
       const cleanName = name.split(/\t/)[0].trim();
       if (cleanName.length > 0 && cleanName.length < 100) {
-        return cleanName;
+        // Convert to uppercase
+        return cleanName.toUpperCase();
       }
     }
   }
   
-  return 'Non identifié';
+  return 'NON IDENTIFIÉ';
 }
 
 // Group files by person name
@@ -79,9 +80,9 @@ function groupFilesByPerson(files: MissionFile[]): MissionFolder[] {
   // Convert to folders, sorted alphabetically by person name
   const folders: MissionFolder[] = [];
   const sortedNames = Array.from(personMap.keys()).sort((a, b) => {
-    // "Non identifié" goes last
-    if (a === 'Non identifié') return 1;
-    if (b === 'Non identifié') return -1;
+    // "NON IDENTIFIÉ" goes last
+    if (a === 'NON IDENTIFIÉ') return 1;
+    if (b === 'NON IDENTIFIÉ') return -1;
     return a.localeCompare(b, 'fr');
   });
   
