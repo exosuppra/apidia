@@ -366,19 +366,35 @@ export default function AllFiches() {
     }
   };
 
-  // APIDAE functions
+  // APIDAE functions - fetch ALL fiches with pagination to avoid 1000 row limit
   const loadAllFiches = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('fiches_data')
-        .select('*')
-        .order('updated_at', { ascending: false });
-
-      if (error) throw error;
+      const allFiches: FicheData[] = [];
+      const pageSize = 1000;
+      let offset = 0;
+      let hasMore = true;
       
-      setFiches(data || []);
-      setFilteredFiches(data || []);
+      while (hasMore) {
+        const { data, error } = await supabase
+          .from('fiches_data')
+          .select('*')
+          .order('updated_at', { ascending: false })
+          .range(offset, offset + pageSize - 1);
+
+        if (error) throw error;
+        
+        if (data && data.length > 0) {
+          allFiches.push(...data);
+          offset += pageSize;
+          hasMore = data.length === pageSize;
+        } else {
+          hasMore = false;
+        }
+      }
+      
+      setFiches(allFiches);
+      setFilteredFiches(allFiches);
     } catch (error: unknown) {
       console.error('Erreur lors du chargement des fiches:', error);
       toast({
