@@ -132,8 +132,8 @@ serve(async (req: Request) => {
       }
     }
 
-    // Call Make webhook
-    const makeWebhookUrl = Deno.env.get("MAKE_WEBHOOK_URL");
+    // Call Make webhook for admin creation
+    const makeWebhookUrl = Deno.env.get("MAKE_ADMIN_WEBHOOK_URL");
     if (makeWebhookUrl) {
       try {
         console.log("Calling Make webhook for new admin user");
