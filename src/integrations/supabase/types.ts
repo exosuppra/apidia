@@ -35,6 +35,48 @@ export type Database = {
         }
         Relationships: []
       }
+      apidae_sync_config: {
+        Row: {
+          created_at: string | null
+          fiches_per_sync: number | null
+          id: string
+          is_enabled: boolean | null
+          last_sync_at: string | null
+          last_sync_result: Json | null
+          next_sync_at: string | null
+          schedule_type: string | null
+          selection_ids: number[] | null
+          sync_hour: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          fiches_per_sync?: number | null
+          id?: string
+          is_enabled?: boolean | null
+          last_sync_at?: string | null
+          last_sync_result?: Json | null
+          next_sync_at?: string | null
+          schedule_type?: string | null
+          selection_ids?: number[] | null
+          sync_hour?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          fiches_per_sync?: number | null
+          id?: string
+          is_enabled?: boolean | null
+          last_sync_at?: string | null
+          last_sync_result?: Json | null
+          next_sync_at?: string | null
+          schedule_type?: string | null
+          selection_ids?: number[] | null
+          sync_hour?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       chat_conversations: {
         Row: {
           created_at: string

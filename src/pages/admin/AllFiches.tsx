@@ -8,8 +8,19 @@ import {
   ArrowLeft, Loader2, RefreshCw, Search, Eye, CheckCircle, XCircle, 
   Upload, ShieldCheck, AlertTriangle, EyeOff, Calendar, Radar, FileUp, 
   ArrowRightLeft, CheckCheck, Database, Sparkles, HelpCircle, Trash2,
-  ArrowLeftRight, Info
+  ArrowLeftRight, Info, CloudDownload, Settings, Clock
 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
@@ -82,6 +93,19 @@ export default function AllFiches() {
   const [verifying, setVerifying] = useState(false);
   const [togglingPublish, setTogglingPublish] = useState<string | null>(null);
   const [transferring, setTransferring] = useState<string | null>(null);
+  const [syncingApidae, setSyncingApidae] = useState(false);
+  const [apidaeSyncConfig, setApidaeSyncConfig] = useState<{
+    id: string;
+    is_enabled: boolean;
+    schedule_type: string;
+    sync_hour: number;
+    fiches_per_sync: number;
+    last_sync_at: string | null;
+    next_sync_at: string | null;
+    last_sync_result: Json | null;
+  } | null>(null);
+  const [savingConfig, setSavingConfig] = useState(false);
+  const [configDialogOpen, setConfigDialogOpen] = useState(false);
 
   // Apidia state
   const [fichesApidia, setFichesApidia] = useState<FicheVerified[]>([]);
@@ -187,6 +211,87 @@ export default function AllFiches() {
       .from('fiches_verified')
       .select('*', { count: 'exact', head: true });
     setVerifiedCount(count || 0);
+  };
+
+  // Load Apidae sync config
+  const loadApidaeSyncConfig = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('apidae_sync_config')
+        .select('*')
+        .single();
+      
+      if (error) throw error;
+      setApidaeSyncConfig(data);
+    } catch (error) {
+      console.error('Erreur chargement config Apidae:', error);
+    }
+  };
+
+  // Sync from Apidae API
+  const syncFromApidae = async () => {
+    setSyncingApidae(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('fetch-apidae-fiches', {
+        body: { count: 200 }
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Synchronisation Apidae terminée",
+        description: `${data.inserted || 0} nouvelles, ${data.updated || 0} mises à jour${data.errors?.length > 0 ? `, ${data.errors.length} erreurs` : ''}`,
+      });
+
+      await loadAllFiches();
+      await loadApidaeSyncConfig();
+    } catch (error: unknown) {
+      console.error('Erreur sync Apidae:', error);
+      toast({
+        title: "Erreur de synchronisation",
+        description: "Impossible de synchroniser depuis Apidae",
+        variant: "destructive",
+      });
+    } finally {
+      setSyncingApidae(false);
+    }
+  };
+
+  // Save Apidae sync config
+  const saveApidaeSyncConfig = async () => {
+    if (!apidaeSyncConfig) return;
+    setSavingConfig(true);
+    try {
+      const { error } = await supabase
+        .from('apidae_sync_config')
+        .update({
+          is_enabled: apidaeSyncConfig.is_enabled,
+          schedule_type: apidaeSyncConfig.schedule_type,
+          sync_hour: apidaeSyncConfig.sync_hour,
+          fiches_per_sync: apidaeSyncConfig.fiches_per_sync,
+        })
+        .eq('id', apidaeSyncConfig.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Configuration enregistrée",
+        description: apidaeSyncConfig.is_enabled 
+          ? `Synchronisation automatique ${apidaeSyncConfig.schedule_type === 'hourly' ? 'toutes les heures' : apidaeSyncConfig.schedule_type === 'daily' ? 'quotidienne' : 'hebdomadaire'}`
+          : "Synchronisation automatique désactivée",
+      });
+
+      setConfigDialogOpen(false);
+    } catch (error) {
+      console.error('Erreur sauvegarde config:', error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de sauvegarder la configuration",
+        variant: "destructive",
+      });
+    } finally {
+      setSavingConfig(false);
+    }
   };
 
   // APIDAE functions
@@ -481,6 +586,7 @@ export default function AllFiches() {
     loadFichesApidia();
     loadAlertsCount();
     loadVerifiedCount();
+    loadApidaeSyncConfig();
   }, []);
 
   useEffect(() => {
@@ -704,6 +810,160 @@ export default function AllFiches() {
                     <p>Vérifie si des fiches ont été supprimées du Google Sheet et les marque à resynchroniser</p>
                   </TooltipContent>
                 </Tooltip>
+
+                <div className="border-l border-border pl-2 ml-2 flex items-center gap-2">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button 
+                        onClick={syncFromApidae} 
+                        variant="secondary" 
+                        size="sm"
+                        disabled={syncingApidae}
+                      >
+                        {syncingApidae ? (
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        ) : (
+                          <CloudDownload className="w-4 h-4 mr-2" />
+                        )}
+                        Sync Apidae
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" className="max-w-xs">
+                      <p>Récupère les dernières fiches depuis l'API Apidae</p>
+                    </TooltipContent>
+                  </Tooltip>
+
+                  <Dialog open={configDialogOpen} onOpenChange={setConfigDialogOpen}>
+                    <DialogTrigger asChild>
+                      <Button variant="ghost" size="sm">
+                        <Settings className="w-4 h-4" />
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Configuration synchronisation Apidae</DialogTitle>
+                        <DialogDescription>
+                          Configurez la synchronisation automatique depuis l'API Apidae
+                        </DialogDescription>
+                      </DialogHeader>
+                      
+                      {apidaeSyncConfig && (
+                        <div className="space-y-4 py-4">
+                          <div className="flex items-center justify-between">
+                            <Label htmlFor="sync-enabled" className="flex flex-col gap-1">
+                              <span>Synchronisation automatique</span>
+                              <span className="text-sm font-normal text-muted-foreground">
+                                Récupère les fiches automatiquement selon la fréquence définie
+                              </span>
+                            </Label>
+                            <Switch
+                              id="sync-enabled"
+                              checked={apidaeSyncConfig.is_enabled}
+                              onCheckedChange={(checked) => setApidaeSyncConfig({
+                                ...apidaeSyncConfig,
+                                is_enabled: checked
+                              })}
+                            />
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label>Fréquence</Label>
+                            <Select 
+                              value={apidaeSyncConfig.schedule_type} 
+                              onValueChange={(v) => setApidaeSyncConfig({
+                                ...apidaeSyncConfig,
+                                schedule_type: v
+                              })}
+                            >
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="hourly">Toutes les heures</SelectItem>
+                                <SelectItem value="daily">Quotidienne</SelectItem>
+                                <SelectItem value="weekly">Hebdomadaire</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          {apidaeSyncConfig.schedule_type !== 'hourly' && (
+                            <div className="space-y-2">
+                              <Label>Heure de synchronisation</Label>
+                              <Select 
+                                value={apidaeSyncConfig.sync_hour.toString()} 
+                                onValueChange={(v) => setApidaeSyncConfig({
+                                  ...apidaeSyncConfig,
+                                  sync_hour: parseInt(v)
+                                })}
+                              >
+                                <SelectTrigger>
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {Array.from({ length: 24 }, (_, i) => (
+                                    <SelectItem key={i} value={i.toString()}>
+                                      {i.toString().padStart(2, '0')}:00
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          )}
+
+                          <div className="space-y-2">
+                            <Label>Fiches par synchronisation</Label>
+                            <Select 
+                              value={apidaeSyncConfig.fiches_per_sync.toString()} 
+                              onValueChange={(v) => setApidaeSyncConfig({
+                                ...apidaeSyncConfig,
+                                fiches_per_sync: parseInt(v)
+                              })}
+                            >
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="50">50</SelectItem>
+                                <SelectItem value="100">100</SelectItem>
+                                <SelectItem value="200">200</SelectItem>
+                                <SelectItem value="500">500</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          {apidaeSyncConfig.last_sync_at && (
+                            <div className="pt-2 border-t">
+                              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                <Clock className="w-4 h-4" />
+                                <span>
+                                  Dernière sync: {format(new Date(apidaeSyncConfig.last_sync_at), "dd/MM/yyyy HH:mm", { locale: fr })}
+                                </span>
+                              </div>
+                              {apidaeSyncConfig.next_sync_at && apidaeSyncConfig.is_enabled && (
+                                <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
+                                  <Calendar className="w-4 h-4" />
+                                  <span>
+                                    Prochaine sync: {format(new Date(apidaeSyncConfig.next_sync_at), "dd/MM/yyyy HH:mm", { locale: fr })}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      <DialogFooter>
+                        <Button variant="outline" onClick={() => setConfigDialogOpen(false)}>
+                          Annuler
+                        </Button>
+                        <Button onClick={saveApidaeSyncConfig} disabled={savingConfig}>
+                          {savingConfig && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                          Enregistrer
+                        </Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+                </div>
 
                 <Tooltip>
                   <TooltipTrigger asChild>
