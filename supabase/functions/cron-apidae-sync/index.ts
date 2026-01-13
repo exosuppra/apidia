@@ -114,26 +114,63 @@ serve(async (req: Request) => {
 
     console.log("Running scheduled Apidae sync...");
 
-    // Call fetch-apidae-fiches
-    const response = await fetch(`${SUPABASE_URL}/functions/v1/fetch-apidae-fiches`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-      },
-      body: JSON.stringify({
-        selectionIds: syncConfig.selection_ids || [],
-        count: syncConfig.fiches_per_sync || 200,
-        auto: true,
-      }),
-    });
+    // Paginate through all fiches
+    const batchSize = syncConfig.fiches_per_sync || 200;
+    let offset = 0;
+    let totalSynced = 0;
+    let totalCreated = 0;
+    let totalUpdated = 0;
+    let totalFound = 0;
+    let hasMore = true;
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`fetch-apidae-fiches failed: ${errorText}`);
+    while (hasMore) {
+      console.log(`Fetching batch at offset ${offset}...`);
+      
+      const response = await fetch(`${SUPABASE_URL}/functions/v1/fetch-apidae-fiches`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+        },
+        body: JSON.stringify({
+          selectionIds: syncConfig.selection_ids || [],
+          count: batchSize,
+          first: offset,
+          auto: true,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`fetch-apidae-fiches failed at offset ${offset}: ${errorText}`);
+      }
+
+      const batchResult = await response.json();
+      
+      totalFound = batchResult.total_found || totalFound;
+      totalSynced += batchResult.synced || 0;
+      totalCreated += batchResult.created || 0;
+      totalUpdated += batchResult.updated || 0;
+      
+      offset += batchSize;
+      
+      // Stop if we've fetched all fiches or this batch returned less than expected
+      if (offset >= totalFound || (batchResult.synced || 0) < batchSize) {
+        hasMore = false;
+      }
+      
+      console.log(`Batch complete: ${batchResult.synced} synced, total progress: ${offset}/${totalFound}`);
     }
 
-    const syncResult = await response.json();
+    const syncResult = {
+      total_found: totalFound,
+      synced: totalSynced,
+      created: totalCreated,
+      updated: totalUpdated,
+      batches: Math.ceil(offset / batchSize),
+    };
+    
+    console.log(`Sync complete: ${totalSynced} fiches synced in ${syncResult.batches} batches`);
 
     // Update config with results
     const nextRunAt = calculateNextRun(syncConfig.schedule_type, syncConfig.sync_hour);
