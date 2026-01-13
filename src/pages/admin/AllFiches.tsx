@@ -234,23 +234,56 @@ export default function AllFiches() {
     }
   };
 
-  // Sync from Apidae API
+  // Sync from Apidae API - fetches ALL fiches from the selection progressively
   const syncFromApidae = async () => {
     setSyncingApidae(true);
     try {
       const selectionIds = apidaeSyncConfig?.selection_ids || [];
-      const { data, error } = await supabase.functions.invoke('fetch-apidae-fiches', {
-        body: { 
-          count: apidaeSyncConfig?.fiches_per_sync || 200,
-          selectionIds 
-        }
-      });
+      const batchSize = apidaeSyncConfig?.fiches_per_sync || 200;
+      
+      let totalInserted = 0;
+      let totalUpdated = 0;
+      let totalErrors: string[] = [];
+      let offset = 0;
+      let hasMore = true;
+      
+      // Loop to fetch all fiches in batches
+      while (hasMore) {
+        const { data, error } = await supabase.functions.invoke('fetch-apidae-fiches', {
+          body: { 
+            count: batchSize,
+            first: offset,
+            selectionIds 
+          }
+        });
 
-      if (error) throw error;
+        if (error) throw error;
+
+        totalInserted += data.inserted || 0;
+        totalUpdated += data.updated || 0;
+        if (data.errors?.length > 0) {
+          totalErrors = [...totalErrors, ...data.errors];
+        }
+        
+        // Check if there are more fiches to fetch
+        const processed = data.processed || 0;
+        const total = data.total || 0;
+        
+        offset += batchSize;
+        hasMore = offset < total && processed > 0;
+        
+        // Update progress toast
+        if (hasMore) {
+          toast({
+            title: "Synchronisation en cours...",
+            description: `${offset}/${total} fiches traitées`,
+          });
+        }
+      }
 
       toast({
         title: "Synchronisation Apidae terminée",
-        description: `${data.inserted || 0} nouvelles, ${data.updated || 0} mises à jour${data.errors?.length > 0 ? `, ${data.errors.length} erreurs` : ''}`,
+        description: `${totalInserted} nouvelles, ${totalUpdated} mises à jour${totalErrors.length > 0 ? `, ${totalErrors.length} erreurs` : ''}`,
       });
 
       await loadAllFiches();
@@ -293,10 +326,11 @@ export default function AllFiches() {
 
       if (error) throw error;
 
-      // Update local state immediately so next manual sync uses the selection IDs
+      // Update local state immediately so next manual sync uses the new config
       setApidaeSyncConfig({
         ...apidaeSyncConfig,
         selection_ids: parsedSelectionIds,
+        fiches_per_sync: apidaeSyncConfig.fiches_per_sync,
       });
 
       toast({
