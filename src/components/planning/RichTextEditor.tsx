@@ -239,7 +239,11 @@ export function RichTextEditor({ value, onChange, placeholder, rows = 4 }: RichT
               <Smile className="h-4 w-4" />
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-80 p-2" align="start">
+          <PopoverContent 
+            className="w-80 p-2" 
+            align="start"
+            onOpenAutoFocus={(e) => e.preventDefault()}
+          >
             <div className="relative mb-2">
               <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
@@ -247,6 +251,8 @@ export function RichTextEditor({ value, onChange, placeholder, rows = 4 }: RichT
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-8 h-8 text-sm"
+                autoFocus={false}
+                onKeyDown={(e) => e.stopPropagation()}
               />
             </div>
             
