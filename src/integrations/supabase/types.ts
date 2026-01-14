@@ -752,8 +752,11 @@ export type Database = {
           auto_push_to_apidae: boolean
           created_at: string
           current_run_completed_at: string | null
+          current_run_current_fiche_id: string | null
+          current_run_current_index: number | null
           current_run_errors: number | null
           current_run_id: string | null
+          current_run_last_heartbeat_at: string | null
           current_run_started_at: string | null
           current_run_status: string | null
           current_run_total: number | null
@@ -773,8 +776,11 @@ export type Database = {
           auto_push_to_apidae?: boolean
           created_at?: string
           current_run_completed_at?: string | null
+          current_run_current_fiche_id?: string | null
+          current_run_current_index?: number | null
           current_run_errors?: number | null
           current_run_id?: string | null
+          current_run_last_heartbeat_at?: string | null
           current_run_started_at?: string | null
           current_run_status?: string | null
           current_run_total?: number | null
@@ -794,8 +800,11 @@ export type Database = {
           auto_push_to_apidae?: boolean
           created_at?: string
           current_run_completed_at?: string | null
+          current_run_current_fiche_id?: string | null
+          current_run_current_index?: number | null
           current_run_errors?: number | null
           current_run_id?: string | null
+          current_run_last_heartbeat_at?: string | null
           current_run_started_at?: string | null
           current_run_status?: string | null
           current_run_total?: number | null

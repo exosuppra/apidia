@@ -60,9 +60,20 @@ async function processVerification(
   let errors = 0;
 
   // Vérifier chaque fiche
-  for (const fiche of fichesToVerify) {
+  for (let i = 0; i < fichesToVerify.length; i++) {
+    const fiche = fichesToVerify[i];
     try {
-      console.log(`Verifying fiche: ${fiche.fiche_id} (${verified + errors + 1}/${fichesToVerify.length})`);
+      console.log(`Verifying fiche: ${fiche.fiche_id} (${i + 1}/${fichesToVerify.length})`);
+      
+      // Mettre à jour la fiche en cours AVANT de commencer
+      await supabase
+        .from('verification_config')
+        .update({
+          current_run_current_fiche_id: fiche.fiche_id,
+          current_run_current_index: i + 1,
+          current_run_last_heartbeat_at: new Date().toISOString(),
+        })
+        .eq('id', config.id);
       
       // Appeler la fonction verify-fiche-data
       const response = await fetch(`${supabaseUrl}/functions/v1/verify-fiche-data`, {
@@ -82,12 +93,13 @@ async function processVerification(
         errors++;
       }
 
-      // Mettre à jour la progression toutes les fiches
+      // Mettre à jour la progression avec heartbeat
       await supabase
         .from('verification_config')
         .update({
           current_run_verified: verified,
           current_run_errors: errors,
+          current_run_last_heartbeat_at: new Date().toISOString(),
         })
         .eq('id', config.id);
 
@@ -118,6 +130,8 @@ async function processVerification(
     .update({
       current_run_status: 'completed',
       current_run_completed_at: now.toISOString(),
+      current_run_current_fiche_id: null,
+      current_run_current_index: null,
       last_run_at: now.toISOString(),
       next_run_at: nextRun.toISOString(),
     })
