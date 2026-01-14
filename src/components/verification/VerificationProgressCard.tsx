@@ -167,8 +167,11 @@ export default function VerificationProgressCard({ onComplete }: VerificationPro
               </div>
             )}
             {isRunning && processed > 0 && progress.current_run_started_at && (
-              <div className="flex items-center gap-2 ml-auto">
-                <span className="text-xs text-muted-foreground">
+              <div className="flex items-center gap-4 ml-auto text-xs text-muted-foreground">
+                <span>
+                  ~{Math.round((new Date().getTime() - new Date(progress.current_run_started_at).getTime()) / 1000 / processed)}s/fiche
+                </span>
+                <span>
                   ~{(() => {
                     const elapsedSeconds = Math.floor((new Date().getTime() - new Date(progress.current_run_started_at).getTime()) / 1000);
                     const avgSecondsPerFiche = elapsedSeconds / processed;
