@@ -115,6 +115,12 @@ export default function AllFiches() {
     next_sync_at: string | null;
     last_sync_result: Json | null;
   } | null>(null);
+  
+  // Verification config for auto-push toggle
+  const [verificationConfig, setVerificationConfig] = useState<{
+    id: string;
+    auto_push_to_apidae: boolean;
+  } | null>(null);
   const [selectionIdsInput, setSelectionIdsInput] = useState("");
   const [savingConfig, setSavingConfig] = useState(false);
   const [configDialogOpen, setConfigDialogOpen] = useState(false);
@@ -259,6 +265,49 @@ export default function AllFiches() {
       }
     } catch (error) {
       console.error('Erreur chargement config Apidae:', error);
+    }
+  };
+
+  // Load verification config for auto-push toggle
+  const loadVerificationConfig = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('verification_config')
+        .select('id, auto_push_to_apidae')
+        .single();
+      
+      if (error) throw error;
+      setVerificationConfig(data);
+    } catch (error) {
+      console.error('Erreur chargement config verification:', error);
+    }
+  };
+
+  // Save auto-push toggle
+  const saveAutoPushSetting = async (enabled: boolean) => {
+    if (!verificationConfig) return;
+    try {
+      const { error } = await supabase
+        .from('verification_config')
+        .update({ auto_push_to_apidae: enabled })
+        .eq('id', verificationConfig.id);
+
+      if (error) throw error;
+      
+      setVerificationConfig({ ...verificationConfig, auto_push_to_apidae: enabled });
+      toast({
+        title: enabled ? "Push automatique activé" : "Push automatique désactivé",
+        description: enabled 
+          ? "Les corrections vérifiées seront automatiquement poussées vers Apidae"
+          : "Les corrections ne seront plus poussées automatiquement",
+      });
+    } catch (error) {
+      console.error('Erreur sauvegarde config:', error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de sauvegarder le paramètre",
+        variant: "destructive",
+      });
     }
   };
 
@@ -745,6 +794,7 @@ export default function AllFiches() {
     loadAlertsCount();
     loadVerifiedCount();
     loadApidaeSyncConfig();
+    loadVerificationConfig();
   }, []);
 
   useEffect(() => {
@@ -1086,6 +1136,24 @@ export default function AllFiches() {
                                 ...apidaeSyncConfig,
                                 is_enabled: checked
                               })}
+                            />
+                          </div>
+
+                          {/* Auto-push to Apidae toggle */}
+                          <div className="flex items-center justify-between pt-2 border-t">
+                            <Label htmlFor="auto-push-enabled" className="flex flex-col gap-1">
+                              <span className="flex items-center gap-2">
+                                <ArrowRightLeft className="w-4 h-4" />
+                                Push automatique vers Apidae
+                              </span>
+                              <span className="text-sm font-normal text-muted-foreground">
+                                Pousse automatiquement les corrections vers Apidae après vérification IA
+                              </span>
+                            </Label>
+                            <Switch
+                              id="auto-push-enabled"
+                              checked={verificationConfig?.auto_push_to_apidae || false}
+                              onCheckedChange={(checked) => saveAutoPushSetting(checked)}
                             />
                           </div>
 

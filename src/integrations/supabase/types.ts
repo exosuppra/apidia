@@ -749,6 +749,7 @@ export type Database = {
       }
       verification_config: {
         Row: {
+          auto_push_to_apidae: boolean
           created_at: string
           current_run_completed_at: string | null
           current_run_errors: number | null
@@ -769,6 +770,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          auto_push_to_apidae?: boolean
           created_at?: string
           current_run_completed_at?: string | null
           current_run_errors?: number | null
@@ -789,6 +791,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          auto_push_to_apidae?: boolean
           created_at?: string
           current_run_completed_at?: string | null
           current_run_errors?: number | null
