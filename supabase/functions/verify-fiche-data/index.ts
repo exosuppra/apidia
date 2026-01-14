@@ -700,65 +700,6 @@ serve(async (req) => {
         console.error('Error logging history:', historyError);
       }
 
-      // Push corrections to Apidae automatically (without validation required)
-      try {
-        console.log(`Pushing ${alerts.length} corrections to Apidae for fiche ${fiche_id}...`);
-        
-        // Build changes object for push-to-apidae
-        const pushChanges: Record<string, string> = {};
-        
-        for (const alert of alerts) {
-          if (!alert.found_value) continue;
-          
-          // Map field names to Apidae-compatible field names
-          if (alert.field_name === 'adresse') {
-            // Parse address components
-            const postalMatch = alert.found_value.match(/\b(\d{5})\b/);
-            if (postalMatch) {
-              const beforePostal = alert.found_value.substring(0, alert.found_value.indexOf(postalMatch[0])).trim().replace(/[,\s]+$/, '');
-              if (beforePostal) pushChanges['adresse1'] = beforePostal;
-              pushChanges['codePostal'] = postalMatch[1];
-            } else {
-              pushChanges['adresse1'] = alert.found_value;
-            }
-          } else if (alert.field_name === 'horaires') {
-            pushChanges['periodeEnClair'] = alert.found_value;
-          }
-          // Note: telephone, email, site_web are ignored by push-to-apidae
-          // (requires complex moyensCommunication structure)
-        }
-
-        if (Object.keys(pushChanges).length > 0) {
-          const SUPABASE_URL_ENV = Deno.env.get('SUPABASE_URL');
-          const SUPABASE_SERVICE_ROLE_KEY_ENV = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-          
-          const pushResponse = await fetch(`${SUPABASE_URL_ENV}/functions/v1/push-to-apidae`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY_ENV}`,
-            },
-            body: JSON.stringify({
-              ficheId: fiche_id,
-              changes: pushChanges,
-              skipValidation: true, // Skip Apidae validation since we verified
-            }),
-          });
-
-          const pushResult = await pushResponse.json();
-          
-          if (pushResponse.ok && pushResult.success) {
-            console.log(`Successfully pushed corrections to Apidae for fiche ${fiche_id}:`, pushResult.pushedFields);
-          } else {
-            console.warn(`Failed to push corrections to Apidae for fiche ${fiche_id}:`, pushResult);
-          }
-        } else {
-          console.log(`No pushable changes for Apidae (only complex fields found)`);
-        }
-      } catch (pushError) {
-        console.error('Error pushing to Apidae:', pushError);
-        // Don't fail the verification if push fails
-      }
     }
 
     return new Response(
