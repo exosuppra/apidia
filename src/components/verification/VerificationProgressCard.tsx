@@ -166,10 +166,16 @@ export default function VerificationProgressCard({ onComplete }: VerificationPro
                 <span className="font-medium text-red-600">{progress.current_run_errors}</span>
               </div>
             )}
-            {isRunning && (
+            {isRunning && processed > 0 && progress.current_run_started_at && (
               <div className="flex items-center gap-2 ml-auto">
                 <span className="text-xs text-muted-foreground">
-                  ~{Math.ceil((progress.current_run_total - processed) * 1.5 / 60)} min restantes
+                  ~{(() => {
+                    const elapsedSeconds = Math.floor((new Date().getTime() - new Date(progress.current_run_started_at).getTime()) / 1000);
+                    const avgSecondsPerFiche = elapsedSeconds / processed;
+                    const remaining = progress.current_run_total - processed;
+                    const remainingMinutes = Math.ceil((remaining * avgSecondsPerFiche) / 60);
+                    return remainingMinutes;
+                  })()} min restantes
                 </span>
               </div>
             )}
