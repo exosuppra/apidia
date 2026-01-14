@@ -15,6 +15,9 @@ interface VerificationProgress {
   current_run_errors: number;
   current_run_started_at: string | null;
   current_run_completed_at: string | null;
+  current_run_current_fiche_id: string | null;
+  current_run_current_index: number | null;
+  current_run_last_heartbeat_at: string | null;
 }
 
 interface VerificationProgressCardProps {
@@ -28,7 +31,7 @@ export default function VerificationProgressCard({ onComplete }: VerificationPro
   const loadProgress = async () => {
     const { data, error } = await supabase
       .from("verification_config")
-      .select("current_run_id, current_run_status, current_run_total, current_run_verified, current_run_errors, current_run_started_at, current_run_completed_at")
+      .select("current_run_id, current_run_status, current_run_total, current_run_verified, current_run_errors, current_run_started_at, current_run_completed_at, current_run_current_fiche_id, current_run_current_index, current_run_last_heartbeat_at")
       .limit(1)
       .single();
 
@@ -54,10 +57,10 @@ export default function VerificationProgressCard({ onComplete }: VerificationPro
   useEffect(() => {
     loadProgress();
 
-    // Polling toutes les 2 secondes quand visible
+    // Polling toutes les 1 seconde quand visible pour un suivi plus réactif
     const interval = setInterval(() => {
       loadProgress();
-    }, 2000);
+    }, 1000);
 
     return () => clearInterval(interval);
   }, []);
@@ -120,7 +123,9 @@ export default function VerificationProgressCard({ onComplete }: VerificationPro
                 </h3>
                 <p className="text-sm text-muted-foreground">
                   {isRunning 
-                    ? `Analyse via l'agent IA ApidIA`
+                    ? progress.current_run_current_fiche_id
+                      ? `Fiche en cours: ${progress.current_run_current_fiche_id}`
+                      : `Analyse via l'agent IA ApidIA`
                     : `Terminée en ${getElapsedTime()}`
                   }
                 </p>
