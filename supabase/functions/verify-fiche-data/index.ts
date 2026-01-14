@@ -306,7 +306,7 @@ serve(async (req) => {
       );
     }
 
-    const firecrawlApiKey = Deno.env.get('FIRECRAWL_API_KEY');
+    const firecrawlApiKey = Deno.env.get('FIRECRAWL_API_KEY_1') || Deno.env.get('FIRECRAWL_API_KEY');
     const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
     
     if (!firecrawlApiKey) {
