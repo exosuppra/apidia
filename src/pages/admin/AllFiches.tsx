@@ -43,6 +43,7 @@ import {
 
 import type { Json } from "@/integrations/supabase/types";
 import { isAfter, parseISO } from "date-fns";
+import ApidaeSyncProgressCard from "@/components/sync/ApidaeSyncProgressCard";
 
 interface FicheData {
   id: string;
@@ -942,6 +943,9 @@ export default function AllFiches() {
 
             {/* APIDAE Tab */}
             <TabsContent value="apidae" className="space-y-6">
+              {/* Sync Progress Card */}
+              <ApidaeSyncProgressCard onComplete={loadAllFiches} />
+              
               {/* Description */}
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                 <div className="flex items-start gap-3">
