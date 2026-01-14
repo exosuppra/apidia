@@ -16,6 +16,13 @@ interface VerificationConfig {
   days_consider_recent: number;
   last_run_at: string | null;
   next_run_at: string | null;
+  current_run_id: string | null;
+  current_run_status: string;
+  current_run_total: number;
+  current_run_verified: number;
+  current_run_errors: number;
+  current_run_started_at: string | null;
+  current_run_completed_at: string | null;
 }
 
 function calculateNextRun(scheduleType: string, fromDate: Date = new Date()): Date {
@@ -45,21 +52,17 @@ async function processVerification(
   supabaseServiceKey: string,
   fichesToVerify: Array<{ fiche_id: string; fiche_type: string }>,
   config: VerificationConfig,
-  thresholdDate: Date
+  runId: string
 ) {
-  console.log(`Starting background verification of ${fichesToVerify.length} fiches`);
+  console.log(`Starting background verification of ${fichesToVerify.length} fiches (run: ${runId})`);
   
-  const results = {
-    total: fichesToVerify.length,
-    verified: 0,
-    errors: 0,
-    details: [] as Array<{ fiche_id: string; success: boolean; alerts_count?: number; error?: string }>,
-  };
+  let verified = 0;
+  let errors = 0;
 
   // Vérifier chaque fiche
   for (const fiche of fichesToVerify) {
     try {
-      console.log(`Verifying fiche: ${fiche.fiche_id}`);
+      console.log(`Verifying fiche: ${fiche.fiche_id} (${verified + errors + 1}/${fichesToVerify.length})`);
       
       // Appeler la fonction verify-fiche-data
       const response = await fetch(`${supabaseUrl}/functions/v1/verify-fiche-data`, {
@@ -74,52 +77,53 @@ async function processVerification(
       const result = await response.json();
       
       if (result.success) {
-        results.verified++;
-        results.details.push({
-          fiche_id: fiche.fiche_id,
-          success: true,
-          alerts_count: result.alerts_count,
-        });
+        verified++;
       } else {
-        results.errors++;
-        results.details.push({
-          fiche_id: fiche.fiche_id,
-          success: false,
-          error: result.error,
-        });
+        errors++;
       }
+
+      // Mettre à jour la progression toutes les fiches
+      await supabase
+        .from('verification_config')
+        .update({
+          current_run_verified: verified,
+          current_run_errors: errors,
+        })
+        .eq('id', config.id);
 
       // Délai entre les requêtes pour éviter le rate limiting
       await new Promise(resolve => setTimeout(resolve, 1000));
       
     } catch (error) {
       console.error(`Error verifying fiche ${fiche.fiche_id}:`, error);
-      results.errors++;
-      results.details.push({
-        fiche_id: fiche.fiche_id,
-        success: false,
-        error: error.message,
-      });
+      errors++;
+      
+      // Mettre à jour même en cas d'erreur
+      await supabase
+        .from('verification_config')
+        .update({
+          current_run_verified: verified,
+          current_run_errors: errors,
+        })
+        .eq('id', config.id);
     }
   }
 
-  // Mettre à jour la configuration avec last_run_at et next_run_at
-  if (config.id) {
-    const now = new Date();
-    const nextRun = calculateNextRun(config.schedule_type, now);
-    
-    await supabase
-      .from('verification_config')
-      .update({
-        last_run_at: now.toISOString(),
-        next_run_at: nextRun.toISOString(),
-      })
-      .eq('id', config.id);
-    
-    console.log(`Updated config: last_run=${now.toISOString()}, next_run=${nextRun.toISOString()}`);
-  }
+  // Marquer la vérification comme terminée
+  const now = new Date();
+  const nextRun = calculateNextRun(config.schedule_type, now);
+  
+  await supabase
+    .from('verification_config')
+    .update({
+      current_run_status: 'completed',
+      current_run_completed_at: now.toISOString(),
+      last_run_at: now.toISOString(),
+      next_run_at: nextRun.toISOString(),
+    })
+    .eq('id', config.id);
 
-  console.log(`Background verification complete: ${results.verified} verified, ${results.errors} errors`);
+  console.log(`Background verification complete: ${verified} verified, ${errors} errors (run: ${runId})`);
 }
 
 serve(async (req) => {
@@ -165,7 +169,32 @@ serve(async (req) => {
       days_consider_recent: 7,
       last_run_at: null,
       next_run_at: null,
+      current_run_id: null,
+      current_run_status: 'idle',
+      current_run_total: 0,
+      current_run_verified: 0,
+      current_run_errors: 0,
+      current_run_started_at: null,
+      current_run_completed_at: null,
     };
+
+    // Vérifier si une vérification est déjà en cours
+    if (config.current_run_status === 'running') {
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: 'Une vérification est déjà en cours',
+          current_run: {
+            id: config.current_run_id,
+            total: config.current_run_total,
+            verified: config.current_run_verified,
+            errors: config.current_run_errors,
+            started_at: config.current_run_started_at,
+          }
+        }),
+        { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     // Si appel automatique (cron), vérifier si c'est le bon moment
     if (auto && !manual) {
@@ -199,14 +228,14 @@ serve(async (req) => {
     const fichesLimit = overrideLimit || config.fiches_per_run;
     const daysSinceVerification = overrideDays || config.days_between_verification;
 
-    // En mode manuel on "force" la vérification : on ne bloque pas sur les mises à jour récentes.
+    // En mode manuel on "force" la vérification
     const shouldApplyRecentUpdateFilters = !manual;
 
     // Calculer le seuil de date pour les vérifications
     const thresholdDate = new Date();
     thresholdDate.setDate(thresholdDate.getDate() - daysSinceVerification);
 
-    // Récupérer les IDs des fiches récemment modifiées manuellement (si option activée)
+    // Récupérer les IDs des fiches récemment modifiées manuellement
     let excludedFicheIds: string[] = [];
     if (shouldApplyRecentUpdateFilters && config.exclude_recently_modified) {
       const recentModificationThreshold = new Date();
@@ -271,6 +300,24 @@ serve(async (req) => {
       );
     }
 
+    // Générer un ID unique pour cette exécution
+    const runId = crypto.randomUUID();
+    const now = new Date();
+
+    // Initialiser la progression dans la config
+    await supabase
+      .from('verification_config')
+      .update({
+        current_run_id: runId,
+        current_run_status: 'running',
+        current_run_total: fichesToVerify.length,
+        current_run_verified: 0,
+        current_run_errors: 0,
+        current_run_started_at: now.toISOString(),
+        current_run_completed_at: null,
+      })
+      .eq('id', config.id);
+
     // Compter les fiches en attente de vérification
     const { count: pendingCount } = await supabase
       .from('fiches_data')
@@ -278,26 +325,22 @@ serve(async (req) => {
       .eq('is_published', true)
       .or(`last_verified_at.is.null,last_verified_at.lt.${thresholdDate.toISOString()}`);
 
-    // Lancer le traitement en arrière-plan avec EdgeRuntime.waitUntil
-    // Cela permet de retourner immédiatement la réponse au client
-    // tout en continuant le traitement en arrière-plan
+    // Lancer le traitement en arrière-plan
     const backgroundTask = processVerification(
       supabase,
       supabaseUrl,
       supabaseServiceKey,
       fichesToVerify,
       config,
-      thresholdDate
+      runId
     );
 
-    // Utiliser EdgeRuntime.waitUntil si disponible (Supabase Edge Functions)
     // @ts-ignore - EdgeRuntime is a global in Supabase Edge Functions
     if (typeof EdgeRuntime !== 'undefined' && EdgeRuntime.waitUntil) {
       // @ts-ignore
       EdgeRuntime.waitUntil(backgroundTask);
       console.log('Background task started with EdgeRuntime.waitUntil');
     } else {
-      // Fallback: ne pas attendre le résultat mais laisser tourner
       backgroundTask.catch(err => console.error('Background task error:', err));
       console.log('Background task started without waitUntil');
     }
@@ -307,9 +350,10 @@ serve(async (req) => {
       JSON.stringify({
         success: true,
         started: true,
+        run_id: runId,
         total: fichesToVerify.length,
         pending_fiches: pendingCount,
-        message: `Vérification de ${fichesToVerify.length} fiches lancée en arrière-plan. Les résultats seront disponibles dans quelques minutes.`,
+        message: `Vérification de ${fichesToVerify.length} fiches lancée en arrière-plan.`,
         next_run_at: config.id ? calculateNextRun(config.schedule_type).toISOString() : null,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

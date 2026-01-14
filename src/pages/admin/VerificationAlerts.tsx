@@ -52,6 +52,7 @@ import {
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import Seo from "@/components/Seo";
+import VerificationProgressCard from "@/components/verification/VerificationProgressCard";
 
 interface VerificationAlert {
   id: string;
@@ -129,7 +130,6 @@ export default function VerificationAlerts() {
   const [configLoading, setConfigLoading] = useState(true);
   const [savingConfig, setSavingConfig] = useState(false);
   const [pendingFichesCount, setPendingFichesCount] = useState(0);
-  const [verifyingFiches, setVerifyingFiches] = useState<Array<{ fiche_id: string; name: string }>>([]);
 
   const loadConfig = async () => {
     setConfigLoading(true);
@@ -343,27 +343,8 @@ export default function VerificationAlerts() {
 
   const handleRunVerification = async () => {
     setRunningVerification(true);
-    setVerifyingFiches([]);
     
     try {
-      // Récupérer d'abord les fiches qui seront vérifiées pour les afficher
-      const thresholdDate = new Date();
-      thresholdDate.setDate(thresholdDate.getDate() - (config?.days_between_verification || 30));
-      
-      const { data: fichesToVerify } = await supabase
-        .from("fiches_data")
-        .select("fiche_id, data")
-        .or(`last_verified_at.is.null,last_verified_at.lt.${thresholdDate.toISOString()}`)
-        .limit(config?.fiches_per_run || 10);
-      
-      if (fichesToVerify && fichesToVerify.length > 0) {
-        const fichesInfo = fichesToVerify.map(f => ({
-          fiche_id: f.fiche_id,
-          name: (f.data as { nom?: { libelle?: string } })?.nom?.libelle || f.fiche_id
-        }));
-        setVerifyingFiches(fichesInfo);
-      }
-      
       const { data, error } = await supabase.functions.invoke("verify-all-fiches", {
         body: { 
           manual: true,
@@ -374,22 +355,22 @@ export default function VerificationAlerts() {
 
       if (error) throw error;
 
-      if (data.success) {
-        toast.success(
-          `Vérification terminée : ${data.verified} fiches vérifiées, ${data.details?.filter((d: { alerts_count?: number }) => d.alerts_count && d.alerts_count > 0).length || 0} avec alertes`
-        );
-        loadAlerts();
-        loadConfig(); // Recharger la config pour mettre à jour les dates
-      } else {
-        toast.error(data.error || "Erreur lors de la vérification");
+      if (data.success && data.started) {
+        toast.success(`Vérification de ${data.total} fiches lancée en arrière-plan`);
+      } else if (data.error) {
+        toast.error(data.error);
       }
     } catch (error) {
       console.error("Error running verification:", error);
-      toast.error("Erreur lors de la vérification");
+      toast.error("Erreur lors du lancement de la vérification");
     } finally {
       setRunningVerification(false);
-      setVerifyingFiches([]);
     }
+  };
+
+  const handleVerificationComplete = () => {
+    loadAlerts();
+    loadConfig();
   };
 
   return (
@@ -434,6 +415,9 @@ export default function VerificationAlerts() {
               </Button>
             </div>
           </div>
+
+          {/* Real-time Progress Card */}
+          <VerificationProgressCard onComplete={handleVerificationComplete} />
 
           {/* Configuration Card */}
           <Card className="mb-6">
@@ -563,35 +547,6 @@ export default function VerificationAlerts() {
                       </div>
                     )}
                   </div>
-
-                  {/* Verification in progress indicator */}
-                  {runningVerification && (
-                    <div className="p-4 bg-primary/10 border border-primary/20 rounded-lg">
-                      <div className="flex items-start gap-3">
-                        <Loader2 className="h-5 w-5 animate-spin text-primary mt-0.5" />
-                        <div className="flex-1">
-                          <p className="font-medium text-primary">Vérification en cours...</p>
-                          <p className="text-sm text-muted-foreground mb-2">
-                            Analyse de {verifyingFiches.length || config.fiches_per_run} fiche{(verifyingFiches.length || config.fiches_per_run) > 1 ? 's' : ''} via l'agent IA ApidIA
-                          </p>
-                          {verifyingFiches.length > 0 && (
-                            <div className="space-y-1 max-h-32 overflow-y-auto">
-                              {verifyingFiches.map((fiche, index) => (
-                                <div key={fiche.fiche_id} className="flex items-center gap-2 text-sm">
-                                  <div className="w-4 h-4 flex items-center justify-center">
-                                    <Loader2 className="h-3 w-3 animate-spin text-primary/60" />
-                                  </div>
-                                  <span className="text-muted-foreground truncate">
-                                    {index + 1}. {fiche.name}
-                                  </span>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  )}
 
                   {/* Status info */}
                   <div className="grid gap-4 md:grid-cols-3 pt-4 border-t">

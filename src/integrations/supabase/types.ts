@@ -750,6 +750,13 @@ export type Database = {
       verification_config: {
         Row: {
           created_at: string
+          current_run_completed_at: string | null
+          current_run_errors: number | null
+          current_run_id: string | null
+          current_run_started_at: string | null
+          current_run_status: string | null
+          current_run_total: number | null
+          current_run_verified: number | null
           days_between_verification: number
           days_consider_recent: number
           exclude_recently_modified: boolean
@@ -763,6 +770,13 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          current_run_completed_at?: string | null
+          current_run_errors?: number | null
+          current_run_id?: string | null
+          current_run_started_at?: string | null
+          current_run_status?: string | null
+          current_run_total?: number | null
+          current_run_verified?: number | null
           days_between_verification?: number
           days_consider_recent?: number
           exclude_recently_modified?: boolean
@@ -776,6 +790,13 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          current_run_completed_at?: string | null
+          current_run_errors?: number | null
+          current_run_id?: string | null
+          current_run_started_at?: string | null
+          current_run_status?: string | null
+          current_run_total?: number | null
+          current_run_verified?: number | null
           days_between_verification?: number
           days_consider_recent?: number
           exclude_recently_modified?: boolean
