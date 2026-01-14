@@ -38,6 +38,90 @@ function calculateNextRun(scheduleType: string, fromDate: Date = new Date()): Da
   return next;
 }
 
+// Background processing function
+async function processVerification(
+  supabase: ReturnType<typeof createClient>,
+  supabaseUrl: string,
+  supabaseServiceKey: string,
+  fichesToVerify: Array<{ fiche_id: string; fiche_type: string }>,
+  config: VerificationConfig,
+  thresholdDate: Date
+) {
+  console.log(`Starting background verification of ${fichesToVerify.length} fiches`);
+  
+  const results = {
+    total: fichesToVerify.length,
+    verified: 0,
+    errors: 0,
+    details: [] as Array<{ fiche_id: string; success: boolean; alerts_count?: number; error?: string }>,
+  };
+
+  // Vérifier chaque fiche
+  for (const fiche of fichesToVerify) {
+    try {
+      console.log(`Verifying fiche: ${fiche.fiche_id}`);
+      
+      // Appeler la fonction verify-fiche-data
+      const response = await fetch(`${supabaseUrl}/functions/v1/verify-fiche-data`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${supabaseServiceKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ fiche_id: fiche.fiche_id }),
+      });
+
+      const result = await response.json();
+      
+      if (result.success) {
+        results.verified++;
+        results.details.push({
+          fiche_id: fiche.fiche_id,
+          success: true,
+          alerts_count: result.alerts_count,
+        });
+      } else {
+        results.errors++;
+        results.details.push({
+          fiche_id: fiche.fiche_id,
+          success: false,
+          error: result.error,
+        });
+      }
+
+      // Délai entre les requêtes pour éviter le rate limiting
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+    } catch (error) {
+      console.error(`Error verifying fiche ${fiche.fiche_id}:`, error);
+      results.errors++;
+      results.details.push({
+        fiche_id: fiche.fiche_id,
+        success: false,
+        error: error.message,
+      });
+    }
+  }
+
+  // Mettre à jour la configuration avec last_run_at et next_run_at
+  if (config.id) {
+    const now = new Date();
+    const nextRun = calculateNextRun(config.schedule_type, now);
+    
+    await supabase
+      .from('verification_config')
+      .update({
+        last_run_at: now.toISOString(),
+        next_run_at: nextRun.toISOString(),
+      })
+      .eq('id', config.id);
+    
+    console.log(`Updated config: last_run=${now.toISOString()}, next_run=${nextRun.toISOString()}`);
+  }
+
+  console.log(`Background verification complete: ${results.verified} verified, ${results.errors} errors`);
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -116,7 +200,6 @@ serve(async (req) => {
     const daysSinceVerification = overrideDays || config.days_between_verification;
 
     // En mode manuel on "force" la vérification : on ne bloque pas sur les mises à jour récentes.
-    // (Sinon, si tout a été importé récemment, on peut se retrouver avec 0 fiche à vérifier.)
     const shouldApplyRecentUpdateFilters = !manual;
 
     // Calculer le seuil de date pour les vérifications
@@ -141,21 +224,18 @@ serve(async (req) => {
       console.log(`Excluding ${excludedFicheIds.length} fiches with recent manual edits`);
     }
 
-    // Seuil pour last_data_update_at (éviter de vérifier les fiches récemment mises à jour)
-    // IMPORTANT: ce seuil doit se baser sur days_consider_recent (fenêtre "récent"), pas sur days_between_verification.
+    // Seuil pour last_data_update_at
     const dataUpdateThreshold = new Date();
     dataUpdateThreshold.setDate(dataUpdateThreshold.getDate() - config.days_consider_recent);
 
     // Récupérer les fiches à vérifier
-    // Priorité : jamais vérifiées d'abord, puis les plus anciennes
-    // IMPORTANT: Ne vérifier que les fiches publiées (is_published = true)
     const { data: allFiches, error: fetchError } = await supabase
       .from('fiches_data')
       .select('fiche_id, fiche_type, last_verified_at, last_data_update_at')
       .eq('is_published', true)
       .or(`last_verified_at.is.null,last_verified_at.lt.${thresholdDate.toISOString()}`)
       .order('last_verified_at', { ascending: true, nullsFirst: true })
-      .limit(fichesLimit + excludedFicheIds.length + 50); // Récupérer plus pour compenser les exclusions et filtrages
+      .limit(fichesLimit + excludedFicheIds.length + 50);
 
     if (fetchError) {
       console.error('Error fetching fiches:', fetchError);
@@ -165,9 +245,7 @@ serve(async (req) => {
       );
     }
 
-    // Filtrer les fiches :
-    // - En auto : exclure les modifications manuelles récentes + les mises à jour récentes
-    // - En manuel : ne pas exclure (mode "forcer"), pour respecter la demande utilisateur
+    // Filtrer les fiches
     const fichesToVerify = (allFiches || [])
       .filter(f => (shouldApplyRecentUpdateFilters ? !excludedFicheIds.includes(f.fiche_id) : true))
       .filter(f => {
@@ -180,89 +258,58 @@ serve(async (req) => {
 
     console.log(`Found ${fichesToVerify.length} fiches to verify (after filtering)`);
 
-    const results = {
-      total: fichesToVerify.length,
-      verified: 0,
-      errors: 0,
-      details: [] as Array<{ fiche_id: string; success: boolean; alerts_count?: number; error?: string }>,
-    };
-
-    // Vérifier chaque fiche
-    for (const fiche of fichesToVerify) {
-      try {
-        console.log(`Verifying fiche: ${fiche.fiche_id}`);
-        
-        // Appeler la fonction verify-fiche-data
-        const response = await fetch(`${supabaseUrl}/functions/v1/verify-fiche-data`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${supabaseServiceKey}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ fiche_id: fiche.fiche_id }),
-        });
-
-        const result = await response.json();
-        
-        if (result.success) {
-          results.verified++;
-          results.details.push({
-            fiche_id: fiche.fiche_id,
-            success: true,
-            alerts_count: result.alerts_count,
-          });
-        } else {
-          results.errors++;
-          results.details.push({
-            fiche_id: fiche.fiche_id,
-            success: false,
-            error: result.error,
-          });
-        }
-
-        // Délai entre les requêtes pour éviter le rate limiting
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-      } catch (error) {
-        console.error(`Error verifying fiche ${fiche.fiche_id}:`, error);
-        results.errors++;
-        results.details.push({
-          fiche_id: fiche.fiche_id,
-          success: false,
-          error: error.message,
-        });
-      }
-    }
-
-    // Mettre à jour la configuration avec last_run_at et next_run_at
-    if (config.id) {
-      const now = new Date();
-      const nextRun = calculateNextRun(config.schedule_type, now);
-      
-      await supabase
-        .from('verification_config')
-        .update({
-          last_run_at: now.toISOString(),
-          next_run_at: nextRun.toISOString(),
-        })
-        .eq('id', config.id);
-      
-      console.log(`Updated config: last_run=${now.toISOString()}, next_run=${nextRun.toISOString()}`);
+    if (fichesToVerify.length === 0) {
+      return new Response(
+        JSON.stringify({
+          success: true,
+          total: 0,
+          verified: 0,
+          errors: 0,
+          message: 'No fiches to verify',
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     // Compter les fiches en attente de vérification
     const { count: pendingCount } = await supabase
       .from('fiches_data')
       .select('*', { count: 'exact', head: true })
+      .eq('is_published', true)
       .or(`last_verified_at.is.null,last_verified_at.lt.${thresholdDate.toISOString()}`);
 
-    console.log(`Verification complete: ${results.verified} verified, ${results.errors} errors`);
+    // Lancer le traitement en arrière-plan avec EdgeRuntime.waitUntil
+    // Cela permet de retourner immédiatement la réponse au client
+    // tout en continuant le traitement en arrière-plan
+    const backgroundTask = processVerification(
+      supabase,
+      supabaseUrl,
+      supabaseServiceKey,
+      fichesToVerify,
+      config,
+      thresholdDate
+    );
 
+    // Utiliser EdgeRuntime.waitUntil si disponible (Supabase Edge Functions)
+    // @ts-ignore - EdgeRuntime is a global in Supabase Edge Functions
+    if (typeof EdgeRuntime !== 'undefined' && EdgeRuntime.waitUntil) {
+      // @ts-ignore
+      EdgeRuntime.waitUntil(backgroundTask);
+      console.log('Background task started with EdgeRuntime.waitUntil');
+    } else {
+      // Fallback: ne pas attendre le résultat mais laisser tourner
+      backgroundTask.catch(err => console.error('Background task error:', err));
+      console.log('Background task started without waitUntil');
+    }
+
+    // Retourner immédiatement une réponse au client
     return new Response(
       JSON.stringify({
         success: true,
-        ...results,
+        started: true,
+        total: fichesToVerify.length,
         pending_fiches: pendingCount,
+        message: `Vérification de ${fichesToVerify.length} fiches lancée en arrière-plan. Les résultats seront disponibles dans quelques minutes.`,
         next_run_at: config.id ? calculateNextRun(config.schedule_type).toISOString() : null,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
