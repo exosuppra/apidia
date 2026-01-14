@@ -38,6 +38,12 @@ export type Database = {
       apidae_sync_config: {
         Row: {
           created_at: string | null
+          current_sync_batch: number | null
+          current_sync_completed_at: string | null
+          current_sync_started_at: string | null
+          current_sync_status: string | null
+          current_sync_synced: number | null
+          current_sync_total: number | null
           fiches_per_sync: number | null
           id: string
           is_enabled: boolean | null
@@ -51,6 +57,12 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
+          current_sync_batch?: number | null
+          current_sync_completed_at?: string | null
+          current_sync_started_at?: string | null
+          current_sync_status?: string | null
+          current_sync_synced?: number | null
+          current_sync_total?: number | null
           fiches_per_sync?: number | null
           id?: string
           is_enabled?: boolean | null
@@ -64,6 +76,12 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
+          current_sync_batch?: number | null
+          current_sync_completed_at?: string | null
+          current_sync_started_at?: string | null
+          current_sync_status?: string | null
+          current_sync_synced?: number | null
+          current_sync_total?: number | null
           fiches_per_sync?: number | null
           id?: string
           is_enabled?: boolean | null

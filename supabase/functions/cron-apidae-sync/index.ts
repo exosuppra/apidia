@@ -137,9 +137,24 @@ serve(async (req: Request) => {
     let totalUpdated = 0;
     let totalFound = 0;
     let hasMore = true;
+    let batchNumber = 0;
+
+    // Initialize progress tracking
+    await supabase
+      .from("apidae_sync_config")
+      .update({
+        current_sync_status: "running",
+        current_sync_total: 0,
+        current_sync_synced: 0,
+        current_sync_batch: 0,
+        current_sync_started_at: now.toISOString(),
+        current_sync_completed_at: null,
+      })
+      .eq("id", syncConfig.id);
 
     while (hasMore) {
-      console.log(`Fetching batch at offset ${offset}...`);
+      batchNumber++;
+      console.log(`Fetching batch ${batchNumber} at offset ${offset}...`);
       
       const response = await fetch(`${SUPABASE_URL}/functions/v1/fetch-apidae-fiches`, {
         method: "POST",
@@ -169,12 +184,22 @@ serve(async (req: Request) => {
       
       offset += batchSize;
       
+      // Update progress in real-time
+      await supabase
+        .from("apidae_sync_config")
+        .update({
+          current_sync_total: totalFound,
+          current_sync_synced: totalSynced,
+          current_sync_batch: batchNumber,
+        })
+        .eq("id", syncConfig.id);
+      
       // Stop if we've fetched all fiches or this batch returned less than expected
       if (offset >= totalFound || (batchResult.synced || 0) < batchSize) {
         hasMore = false;
       }
       
-      console.log(`Batch complete: ${batchResult.synced} synced, total progress: ${offset}/${totalFound}`);
+      console.log(`Batch ${batchNumber} complete: ${batchResult.synced} synced, total progress: ${totalSynced}/${totalFound}`);
     }
 
     const syncResult = {
@@ -187,7 +212,7 @@ serve(async (req: Request) => {
     
     console.log(`Sync complete: ${totalSynced} fiches synced in ${syncResult.batches} batches`);
 
-    // Update config with results
+    // Update config with results and mark as completed
     const nextRunAt = calculateNextRun(syncConfig.schedule_type, syncConfig.sync_hour);
     
     await supabase
@@ -196,6 +221,8 @@ serve(async (req: Request) => {
         last_sync_at: now.toISOString(),
         next_sync_at: nextRunAt.toISOString(),
         last_sync_result: syncResult,
+        current_sync_status: "completed",
+        current_sync_completed_at: new Date().toISOString(),
       })
       .eq("id", syncConfig.id);
 
