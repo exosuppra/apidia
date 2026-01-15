@@ -88,6 +88,7 @@ export default function AllFiches() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [typeFilter, setTypeFilter] = useState<string>("all");
+  const [communeFilter, setCommuneFilter] = useState<string>("all");
   const [publishFilter, setPublishFilter] = useState<PublishFilter>("published");
   const [selectedFiche, setSelectedFiche] = useState<FicheData | null>(null);
   const [syncing, setSyncing] = useState(false);
@@ -145,6 +146,7 @@ export default function AllFiches() {
   const [loadingApidia, setLoadingApidia] = useState(true);
   const [searchTermApidia, setSearchTermApidia] = useState("");
   const [typeFilterApidia, setTypeFilterApidia] = useState<string>("all");
+  const [communeFilterApidia, setCommuneFilterApidia] = useState<string>("all");
   const [transferringBack, setTransferringBack] = useState<string | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<FicheVerified | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -818,6 +820,10 @@ export default function AllFiches() {
       result = result.filter(f => f.fiche_type === typeFilter);
     }
 
+    if (communeFilter !== "all") {
+      result = result.filter(f => extractCommune(f.data) === communeFilter);
+    }
+
     if (searchTerm) {
       const search = searchTerm.toLowerCase();
       result = result.filter(f => {
@@ -833,13 +839,17 @@ export default function AllFiches() {
 
     setFilteredFiches(result);
     setCurrentPage(1); // Reset to first page when filters change
-  }, [fiches, typeFilter, searchTerm, publishFilter]);
+  }, [fiches, typeFilter, communeFilter, searchTerm, publishFilter]);
 
   useEffect(() => {
     let result = fichesApidia;
 
     if (typeFilterApidia !== "all") {
       result = result.filter(f => f.fiche_type === typeFilterApidia);
+    }
+
+    if (communeFilterApidia !== "all") {
+      result = result.filter(f => extractCommune(f.data) === communeFilterApidia);
     }
 
     if (searchTermApidia) {
@@ -857,10 +867,12 @@ export default function AllFiches() {
 
     setFilteredFichesApidia(result);
     setCurrentPageApidia(1); // Reset to first page when filters change
-  }, [fichesApidia, typeFilterApidia, searchTermApidia]);
+  }, [fichesApidia, typeFilterApidia, communeFilterApidia, searchTermApidia]);
 
   const ficheTypes = [...new Set(fiches.map(f => f.fiche_type))].sort();
   const ficheTypesApidia = [...new Set(fichesApidia.map(f => f.fiche_type))].sort();
+  const communes = [...new Set(fiches.map(f => extractCommune(f.data)).filter(c => c !== "-"))].sort();
+  const communesApidia = [...new Set(fichesApidia.map(f => extractCommune(f.data)).filter(c => c !== "-"))].sort();
 
   // Pagination calculations
   const totalPages = Math.ceil(filteredFiches.length / ITEMS_PER_PAGE);
@@ -1443,7 +1455,7 @@ export default function AllFiches() {
                   </SelectContent>
                 </Select>
                 <Select value={typeFilter} onValueChange={setTypeFilter}>
-                  <SelectTrigger className="w-full sm:w-[250px]">
+                  <SelectTrigger className="w-full sm:w-[200px]">
                     <SelectValue placeholder="Filtrer par type" />
                   </SelectTrigger>
                   <SelectContent>
@@ -1451,6 +1463,19 @@ export default function AllFiches() {
                     {ficheTypes.map(type => (
                       <SelectItem key={type} value={type}>
                         {type.replace(/_/g, ' ')}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select value={communeFilter} onValueChange={setCommuneFilter}>
+                  <SelectTrigger className="w-full sm:w-[200px]">
+                    <SelectValue placeholder="Filtrer par commune" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Toutes les communes</SelectItem>
+                    {communes.map(commune => (
+                      <SelectItem key={commune} value={commune}>
+                        {commune}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -1740,7 +1765,7 @@ export default function AllFiches() {
                   />
                 </div>
                 <Select value={typeFilterApidia} onValueChange={setTypeFilterApidia}>
-                  <SelectTrigger className="w-full sm:w-[250px]">
+                  <SelectTrigger className="w-full sm:w-[200px]">
                     <SelectValue placeholder="Filtrer par type" />
                   </SelectTrigger>
                   <SelectContent>
@@ -1748,6 +1773,19 @@ export default function AllFiches() {
                     {ficheTypesApidia.map(type => (
                       <SelectItem key={type} value={type}>
                         {type.replace(/_/g, ' ')}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select value={communeFilterApidia} onValueChange={setCommuneFilterApidia}>
+                  <SelectTrigger className="w-full sm:w-[200px]">
+                    <SelectValue placeholder="Filtrer par commune" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Toutes les communes</SelectItem>
+                    {communesApidia.map(commune => (
+                      <SelectItem key={commune} value={commune}>
+                        {commune}
                       </SelectItem>
                     ))}
                   </SelectContent>
