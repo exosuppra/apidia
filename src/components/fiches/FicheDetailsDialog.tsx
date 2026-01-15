@@ -23,11 +23,16 @@ import {
   Radar,
   Loader2,
   AlertTriangle,
-  Upload
+  Upload,
+  Euro,
+  Sparkles
 } from "lucide-react";
 import { Json } from "@/integrations/supabase/types";
 import { FicheHistoryPanel } from "./FicheHistoryPanel";
 import { FicheEditForm } from "./FicheEditForm";
+import { FicheCaracteristiquesTab } from "./FicheCaracteristiquesTab";
+import { FicheTarifsTab } from "./FicheTarifsTab";
+import { FicheInfosLegalesSection } from "./FicheInfosLegalesSection";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -348,16 +353,22 @@ export function FicheDetailsDialog({ open, onOpenChange, fiche, onFicheUpdated }
   
   // Illustrations APIDAE (images originales)
   const illustrations = getArray(data, 'illustrations') as Array<{
+    identifiant?: number;
     traductionFichiers?: Array<{
       url?: string;
       urlFiche?: string;
       urlListe?: string;
       urlDiaporama?: string;
+      largeur?: number;
+      hauteur?: number;
+      tailleFichier?: number;
     }>;
     nom?: { libelleFr?: string };
     legende?: { libelleFr?: string };
     copyright?: { libelleFr?: string };
     type?: string;
+    dateLimiteDePublication?: string;
+    dateUpload?: string;
   }>;
 
   const formatDate = (dateStr: string) => {
@@ -469,14 +480,22 @@ export function FicheDetailsDialog({ open, onOpenChange, fiche, onFicheUpdated }
           </ScrollArea>
         ) : (
           <Tabs defaultValue="general" className="mt-4">
-            <TabsList className="grid w-full grid-cols-6">
+            <TabsList className="grid w-full grid-cols-8">
             <TabsTrigger value="general">Général</TabsTrigger>
+            <TabsTrigger value="caracteristiques" className="flex items-center gap-1">
+              <Sparkles className="h-3 w-3" />
+              Caract.
+            </TabsTrigger>
+            <TabsTrigger value="tarifs" className="flex items-center gap-1">
+              <Euro className="h-3 w-3" />
+              Tarifs
+            </TabsTrigger>
             <TabsTrigger value="media">Médias</TabsTrigger>
             <TabsTrigger value="contact">Contact</TabsTrigger>
             <TabsTrigger value="horaires">Horaires</TabsTrigger>
             <TabsTrigger value="history" className="flex items-center gap-1">
               <History className="h-3 w-3" />
-              Historique
+              Hist.
             </TabsTrigger>
             <TabsTrigger value="json">JSON</TabsTrigger>
           </TabsList>
@@ -545,6 +564,11 @@ export function FicheDetailsDialog({ open, onOpenChange, fiche, onFicheUpdated }
                 </>
               )}
 
+              {/* Informations légales */}
+              <FicheInfosLegalesSection data={data} />
+              {(getString(data, 'informations.informationsLegales.siret') || 
+                getString(data, 'informations.informationsLegales.rcs')) && <Separator />}
+
               {/* Gestion */}
               <Section title="Gestion" icon={Building2}>
                 <InfoRow label="Propriétaire" value={proprietaire} />
@@ -560,6 +584,16 @@ export function FicheDetailsDialog({ open, onOpenChange, fiche, onFicheUpdated }
                   } 
                 />
               </Section>
+            </TabsContent>
+
+            {/* Onglet Caractéristiques */}
+            <TabsContent value="caracteristiques" className="mt-0">
+              <FicheCaracteristiquesTab data={data} ficheType={fiche.fiche_type} />
+            </TabsContent>
+
+            {/* Onglet Tarifs */}
+            <TabsContent value="tarifs" className="mt-0">
+              <FicheTarifsTab data={data} />
             </TabsContent>
 
             <TabsContent value="media" className="space-y-6 mt-0">
@@ -621,6 +655,29 @@ export function FicheDetailsDialog({ open, onOpenChange, fiche, onFicheUpdated }
                             {illus.copyright?.libelleFr && (
                               <p className="text-muted-foreground">© {illus.copyright.libelleFr}</p>
                             )}
+                            {/* Métadonnées enrichies */}
+                            <div className="flex flex-wrap gap-1 mt-1">
+                              {illus.identifiant && (
+                                <Badge variant="outline" className="text-[10px] px-1">
+                                  ID: {illus.identifiant}
+                                </Badge>
+                              )}
+                              {illus.type && (
+                                <Badge variant="outline" className="text-[10px] px-1">
+                                  {illus.type}
+                                </Badge>
+                              )}
+                              {fichier?.largeur && fichier?.hauteur && (
+                                <Badge variant="outline" className="text-[10px] px-1">
+                                  {fichier.largeur}x{fichier.hauteur}
+                                </Badge>
+                              )}
+                              {fichier?.tailleFichier && (
+                                <Badge variant="outline" className="text-[10px] px-1">
+                                  {Math.round(fichier.tailleFichier / 1024)} Ko
+                                </Badge>
+                              )}
+                            </div>
                           </div>
                         </div>
                       );
