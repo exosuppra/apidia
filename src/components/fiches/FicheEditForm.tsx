@@ -532,7 +532,18 @@ export function FicheEditForm({ fiche, onSave, onCancel }: FicheEditFormProps) {
                   <Card key={index} className="bg-muted/30">
                     <CardContent className="pt-4 space-y-3">
                       <div className="flex justify-between items-center">
-                        <span className="text-sm font-medium">Période {index + 1}</span>
+                        <div className="flex items-center gap-3">
+                          <span className="text-sm font-medium">Période {index + 1}</span>
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={periode.tousLesAns || false}
+                              onChange={(e) => updatePeriode(index, 'tousLesAns', e.target.checked)}
+                              className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                            />
+                            <span className="text-xs text-muted-foreground">🔄 Tous les ans</span>
+                          </label>
+                        </div>
                         <Button 
                           type="button" 
                           variant="ghost" 

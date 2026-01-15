@@ -521,6 +521,30 @@ export function FicheDetailsDialog({ open, onOpenChange, fiche, onFicheUpdated }
 
               <Separator />
 
+              {/* Informations complémentaires Apidae */}
+              {(getString(data, 'type') || getString(data, 'informations.structureGestion.nom.libelleFr')) && (
+                <>
+                  <Section title="Informations Apidae" icon={Info}>
+                    {getString(data, 'type') && (
+                      <InfoRow label="Type Apidae" value={getString(data, 'type')} />
+                    )}
+                    {getString(data, 'informations.structureGestion.nom.libelleFr') && (
+                      <InfoRow 
+                        label="Structure de gestion" 
+                        value={getString(data, 'informations.structureGestion.nom.libelleFr')} 
+                      />
+                    )}
+                    {getString(data, 'informations.structureGestion.adresse.adresse1') && (
+                      <InfoRow 
+                        label="Adresse structure" 
+                        value={`${getString(data, 'informations.structureGestion.adresse.adresse1')} ${getString(data, 'informations.structureGestion.adresse.codePostal')} ${getString(data, 'informations.structureGestion.adresse.commune.nom')}`.trim()} 
+                      />
+                    )}
+                  </Section>
+                  <Separator />
+                </>
+              )}
+
               {/* Gestion */}
               <Section title="Gestion" icon={Building2}>
                 <InfoRow label="Propriétaire" value={proprietaire} />
@@ -789,16 +813,38 @@ export function FicheDetailsDialog({ open, onOpenChange, fiche, onFicheUpdated }
                 <>
                   <Separator />
                   <Section title="Périodes détaillées" icon={Calendar}>
-                    <div className="space-y-2">
+                    <div className="space-y-3">
                       {getArray(data, 'ouverture.periodesOuvertures').map((periode, index) => {
                         const dateDebut = getString(periode, 'dateDebut');
                         const dateFin = getString(periode, 'dateFin');
                         const type = getString(periode, 'type');
+                        const tousLesAns = get(periode, 'tousLesAns') === true;
+                        const ouverturesJournalieres = getArray(periode, 'ouverturesJournalieres') as Array<{
+                          jour?: string;
+                          horaireOuverture?: string;
+                          horaireFermeture?: string;
+                        }>;
+                        
+                        // Mapping des jours
+                        const jourLabels: Record<string, string> = {
+                          'LUNDI': 'Lundi',
+                          'MARDI': 'Mardi',
+                          'MERCREDI': 'Mercredi',
+                          'JEUDI': 'Jeudi',
+                          'VENDREDI': 'Vendredi',
+                          'SAMEDI': 'Samedi',
+                          'DIMANCHE': 'Dimanche'
+                        };
                         
                         return (
-                          <div key={index} className="p-3 rounded-lg bg-muted/50 text-sm">
-                            <div className="flex items-center gap-2">
+                          <div key={index} className="p-3 rounded-lg bg-muted/50 text-sm space-y-2">
+                            <div className="flex items-center gap-2 flex-wrap">
                               <Badge variant="outline" className="text-xs">{type}</Badge>
+                              {tousLesAns && (
+                                <Badge variant="default" className="text-xs bg-green-600 hover:bg-green-700">
+                                  🔄 Tous les ans
+                                </Badge>
+                              )}
                               {dateDebut && dateFin && (
                                 <span>
                                   Du {new Date(dateDebut).toLocaleDateString('fr-FR')} au {new Date(dateFin).toLocaleDateString('fr-FR')}
@@ -808,7 +854,54 @@ export function FicheDetailsDialog({ open, onOpenChange, fiche, onFicheUpdated }
                                 <span>Jusqu'au {new Date(dateFin).toLocaleDateString('fr-FR')}</span>
                               )}
                             </div>
+                            
+                            {/* Jours de la semaine avec horaires */}
+                            {ouverturesJournalieres.length > 0 && (
+                              <div className="pl-2 border-l-2 border-primary/30 space-y-1">
+                                {ouverturesJournalieres.map((oj, ojIndex) => (
+                                  <div key={ojIndex} className="flex items-center gap-2 text-xs text-muted-foreground">
+                                    <span className="font-medium min-w-[70px]">
+                                      {jourLabels[oj.jour || ''] || oj.jour}
+                                    </span>
+                                    {(oj.horaireOuverture || oj.horaireFermeture) && (
+                                      <span>
+                                        {oj.horaireOuverture || '?'} - {oj.horaireFermeture || '?'}
+                                      </span>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
                           </div>
+                        );
+                      })}
+                    </div>
+                  </Section>
+                </>
+              )}
+
+              {/* Indications période (saisons) */}
+              {getArray(data, 'ouverture.indicationsPeriode').length > 0 && (
+                <>
+                  <Separator />
+                  <Section title="Saisons" icon={Calendar}>
+                    <div className="flex flex-wrap gap-2">
+                      {getArray(data, 'ouverture.indicationsPeriode').map((indic, index) => {
+                        const label = getString(indic, 'libelleFr');
+                        if (!label) return null;
+                        
+                        // Emoji selon la saison
+                        const saisonEmoji: Record<string, string> = {
+                          'Printemps': '🌸',
+                          'Été': '☀️',
+                          'Automne': '🍂',
+                          'Hiver': '❄️'
+                        };
+                        
+                        return (
+                          <Badge key={index} variant="secondary" className="text-xs">
+                            {saisonEmoji[label] || '📅'} {label}
+                          </Badge>
                         );
                       })}
                     </div>
