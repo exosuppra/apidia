@@ -51,5 +51,8 @@ verify_jwt = false
 [functions.push-to-apidae]
 verify_jwt = false
 
+[functions.public-fiches-api]
+verify_jwt = false
+
 [functions.cron-apidae-sync]
 verify_jwt = false
