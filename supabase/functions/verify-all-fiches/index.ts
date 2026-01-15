@@ -150,6 +150,7 @@ serve(async (req) => {
     const { 
       auto = false, 
       manual = false,
+      resume = false,  // Nouveau: reprendre une vérification interrompue
       limit: overrideLimit,
       days_since_verification: overrideDays 
     } = body;
@@ -192,8 +193,173 @@ serve(async (req) => {
       current_run_completed_at: null,
     };
 
+    // Mode reprise: vérifier si on peut reprendre une exécution interrompue
+    if (resume) {
+      // Vérifier qu'il y a une exécution interrompue
+      if (config.current_run_status !== 'interrupted' && config.current_run_status !== 'running') {
+        return new Response(
+          JSON.stringify({ 
+            success: false, 
+            error: 'Aucune vérification à reprendre',
+            current_status: config.current_run_status
+          }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      
+      // Calculer combien de fiches restent
+      const alreadyProcessed = (config.current_run_verified || 0) + (config.current_run_errors || 0);
+      const totalToVerify = config.current_run_total || 0;
+      const remaining = totalToVerify - alreadyProcessed;
+      
+      if (remaining <= 0) {
+        // Tout est déjà traité, marquer comme terminé
+        await supabase
+          .from('verification_config')
+          .update({
+            current_run_status: 'completed',
+            current_run_completed_at: new Date().toISOString(),
+          })
+          .eq('id', config.id);
+          
+        return new Response(
+          JSON.stringify({ 
+            success: true, 
+            message: 'Vérification déjà terminée',
+            verified: config.current_run_verified,
+            errors: config.current_run_errors
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      
+      console.log(`Resuming verification: ${alreadyProcessed}/${totalToVerify} already done, ${remaining} remaining`);
+      
+      // Récupérer les fiches restantes à vérifier
+      // On utilise le même seuil que l'exécution originale
+      const thresholdDate = new Date();
+      thresholdDate.setDate(thresholdDate.getDate() - config.days_between_verification);
+      
+      const { data: allFiches, error: fetchError } = await supabase
+        .from('fiches_data')
+        .select('fiche_id, fiche_type, last_verified_at')
+        .eq('is_published', true)
+        .or(`last_verified_at.is.null,last_verified_at.lt.${thresholdDate.toISOString()}`)
+        .order('last_verified_at', { ascending: true, nullsFirst: true })
+        .limit(totalToVerify + 50);
+      
+      if (fetchError) {
+        console.error('Error fetching fiches:', fetchError);
+        return new Response(
+          JSON.stringify({ success: false, error: 'Failed to fetch fiches' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      
+      // Prendre les fiches restantes (skip les déjà traitées)
+      const fichesToVerify = (allFiches || []).slice(alreadyProcessed, totalToVerify);
+      
+      if (fichesToVerify.length === 0) {
+        await supabase
+          .from('verification_config')
+          .update({
+            current_run_status: 'completed',
+            current_run_completed_at: new Date().toISOString(),
+          })
+          .eq('id', config.id);
+          
+        return new Response(
+          JSON.stringify({ 
+            success: true, 
+            message: 'Aucune fiche restante à vérifier',
+            verified: config.current_run_verified,
+            errors: config.current_run_errors
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      
+      // Mettre à jour le statut pour reprendre
+      await supabase
+        .from('verification_config')
+        .update({
+          current_run_status: 'running',
+          current_run_last_heartbeat_at: new Date().toISOString(),
+        })
+        .eq('id', config.id);
+      
+      // Créer une config modifiée pour continuer avec les compteurs existants
+      const resumeConfig = {
+        ...config,
+        current_run_status: 'running',
+      };
+      
+      // Lancer le traitement en arrière-plan avec les compteurs actuels
+      const backgroundTask = processVerificationResume(
+        supabase,
+        supabaseUrl,
+        supabaseServiceKey,
+        fichesToVerify,
+        resumeConfig,
+        config.current_run_id || crypto.randomUUID(),
+        config.current_run_verified || 0,
+        config.current_run_errors || 0
+      );
+
+      // @ts-ignore
+      if (typeof EdgeRuntime !== 'undefined' && EdgeRuntime.waitUntil) {
+        // @ts-ignore
+        EdgeRuntime.waitUntil(backgroundTask);
+      } else {
+        backgroundTask.catch(err => console.error('Background task error:', err));
+      }
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          resumed: true,
+          run_id: config.current_run_id,
+          remaining: fichesToVerify.length,
+          already_verified: config.current_run_verified,
+          already_errors: config.current_run_errors,
+          message: `Reprise de la vérification: ${fichesToVerify.length} fiches restantes.`,
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Vérifier si une vérification est déjà en cours
     if (config.current_run_status === 'running') {
+      // Vérifier si c'est vraiment en cours ou stale
+      const lastHeartbeat = configData?.current_run_last_heartbeat_at;
+      const isStale = lastHeartbeat && 
+        (new Date().getTime() - new Date(lastHeartbeat).getTime()) > 2 * 60 * 1000;
+      
+      if (isStale) {
+        // Marquer comme interrompu
+        await supabase
+          .from('verification_config')
+          .update({
+            current_run_status: 'interrupted',
+          })
+          .eq('id', config.id);
+        
+        return new Response(
+          JSON.stringify({ 
+            success: false, 
+            error: 'Vérification précédente interrompue',
+            can_resume: true,
+            current_run: {
+              id: config.current_run_id,
+              total: config.current_run_total,
+              verified: config.current_run_verified,
+              errors: config.current_run_errors,
+            }
+          }),
+          { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      
       return new Response(
         JSON.stringify({ 
           success: false, 
@@ -329,6 +495,7 @@ serve(async (req) => {
         current_run_errors: 0,
         current_run_started_at: now.toISOString(),
         current_run_completed_at: null,
+        current_run_last_heartbeat_at: now.toISOString(),
       })
       .eq('id', config.id);
 
@@ -381,3 +548,93 @@ serve(async (req) => {
     );
   }
 });
+
+// Version de processVerification qui reprend avec des compteurs existants
+async function processVerificationResume(
+  supabase: ReturnType<typeof createClient>,
+  supabaseUrl: string,
+  supabaseServiceKey: string,
+  fichesToVerify: Array<{ fiche_id: string; fiche_type: string }>,
+  config: VerificationConfig,
+  runId: string,
+  startingVerified: number,
+  startingErrors: number
+) {
+  console.log(`Resuming verification of ${fichesToVerify.length} fiches (run: ${runId}), starting from verified=${startingVerified}, errors=${startingErrors}`);
+  
+  let verified = startingVerified;
+  let errors = startingErrors;
+
+  for (let i = 0; i < fichesToVerify.length; i++) {
+    const fiche = fichesToVerify[i];
+    try {
+      console.log(`Verifying fiche: ${fiche.fiche_id} (${verified + errors + 1 - startingVerified}/${fichesToVerify.length} remaining)`);
+      
+      await supabase
+        .from('verification_config')
+        .update({
+          current_run_current_fiche_id: fiche.fiche_id,
+          current_run_current_index: verified + errors + 1,
+          current_run_last_heartbeat_at: new Date().toISOString(),
+        })
+        .eq('id', config.id);
+      
+      const response = await fetch(`${supabaseUrl}/functions/v1/verify-fiche-data`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${supabaseServiceKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ fiche_id: fiche.fiche_id }),
+      });
+
+      const result = await response.json();
+      
+      if (result.success) {
+        verified++;
+      } else {
+        errors++;
+      }
+
+      await supabase
+        .from('verification_config')
+        .update({
+          current_run_verified: verified,
+          current_run_errors: errors,
+          current_run_last_heartbeat_at: new Date().toISOString(),
+        })
+        .eq('id', config.id);
+
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+    } catch (error) {
+      console.error(`Error verifying fiche ${fiche.fiche_id}:`, error);
+      errors++;
+      
+      await supabase
+        .from('verification_config')
+        .update({
+          current_run_verified: verified,
+          current_run_errors: errors,
+        })
+        .eq('id', config.id);
+    }
+  }
+
+  const now = new Date();
+  const nextRun = calculateNextRun(config.schedule_type, now);
+  
+  await supabase
+    .from('verification_config')
+    .update({
+      current_run_status: 'completed',
+      current_run_completed_at: now.toISOString(),
+      current_run_current_fiche_id: null,
+      current_run_current_index: null,
+      last_run_at: now.toISOString(),
+      next_run_at: nextRun.toISOString(),
+    })
+    .eq('id', config.id);
+
+  console.log(`Resumed verification complete: ${verified} verified, ${errors} errors (run: ${runId})`);
+}
