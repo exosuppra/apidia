@@ -39,16 +39,21 @@ export default function VerificationProgressCard({ onComplete }: VerificationPro
       const progressData = data as VerificationProgress;
       setProgress(progressData);
       
-      // Afficher si en cours ou terminé récemment (moins de 10 secondes)
-      const isRunning = progressData.current_run_status === "running";
-      const isRecentlyCompleted = progressData.current_run_status === "completed" && 
+      // Détecter si stale (heartbeat > 2 minutes)
+      const isStale = progressData.current_run_status === "running" && 
+        progressData.current_run_last_heartbeat_at && 
+        (new Date().getTime() - new Date(progressData.current_run_last_heartbeat_at).getTime()) > 2 * 60 * 1000;
+      
+      // Afficher si en cours (même stale) ou terminé récemment
+      const isRunningOrStale = progressData.current_run_status === "running";
+      const isRecentlyCompleted = (progressData.current_run_status === "completed" || progressData.current_run_status === "interrupted") && 
         progressData.current_run_completed_at && 
         (new Date().getTime() - new Date(progressData.current_run_completed_at).getTime()) < 10000;
       
-      setIsVisible(isRunning || isRecentlyCompleted);
+      setIsVisible(isRunningOrStale || isRecentlyCompleted);
 
       // Appeler onComplete quand la vérification se termine
-      if (progressData.current_run_status === "completed" && isRecentlyCompleted) {
+      if ((progressData.current_run_status === "completed" || progressData.current_run_status === "interrupted") && isRecentlyCompleted) {
         onComplete?.();
       }
     }
@@ -79,12 +84,28 @@ export default function VerificationProgressCard({ onComplete }: VerificationPro
     return null;
   }
 
-  const isRunning = progress.current_run_status === "running";
+  // Détecter si le processus est stale (heartbeat > 2 minutes)
+  const isStale = progress.current_run_status === "running" && 
+    progress.current_run_last_heartbeat_at && 
+    (new Date().getTime() - new Date(progress.current_run_last_heartbeat_at).getTime()) > 2 * 60 * 1000;
+  
+  const isRunning = progress.current_run_status === "running" && !isStale;
   const isCompleted = progress.current_run_status === "completed";
   const processed = progress.current_run_verified + progress.current_run_errors;
   const progressPercent = progress.current_run_total > 0 
     ? Math.round((processed / progress.current_run_total) * 100) 
     : 0;
+
+  const handleResetStale = async () => {
+    await supabase
+      .from("verification_config")
+      .update({
+        current_run_status: "interrupted",
+        current_run_completed_at: new Date().toISOString(),
+      })
+      .eq("current_run_id", progress.current_run_id);
+    loadProgress();
+  };
 
   const getElapsedTime = () => {
     if (!progress.current_run_started_at) return "";
@@ -102,13 +123,17 @@ export default function VerificationProgressCard({ onComplete }: VerificationPro
   };
 
   return (
-    <Card className={`mb-6 border-2 ${isRunning ? 'border-primary/50 bg-primary/5' : 'border-green-500/50 bg-green-500/5'} animate-in fade-in slide-in-from-top-2 duration-300`}>
+    <Card className={`mb-6 border-2 ${isStale ? 'border-orange-500/50 bg-orange-500/5' : isRunning ? 'border-primary/50 bg-primary/5' : 'border-green-500/50 bg-green-500/5'} animate-in fade-in slide-in-from-top-2 duration-300`}>
       <CardContent className="pt-6">
         <div className="space-y-4">
           {/* Header */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              {isRunning ? (
+              {isStale ? (
+                <div className="p-2 rounded-full bg-orange-500/10">
+                  <XCircle className="h-5 w-5 text-orange-600" />
+                </div>
+              ) : isRunning ? (
                 <div className="p-2 rounded-full bg-primary/10">
                   <Loader2 className="h-5 w-5 text-primary animate-spin" />
                 </div>
@@ -119,14 +144,16 @@ export default function VerificationProgressCard({ onComplete }: VerificationPro
               )}
               <div>
                 <h3 className="font-semibold">
-                  {isRunning ? "Vérification en cours..." : "Vérification terminée"}
+                  {isStale ? "Vérification interrompue" : isRunning ? "Vérification en cours..." : "Vérification terminée"}
                 </h3>
                 <p className="text-sm text-muted-foreground">
-                  {isRunning 
-                    ? progress.current_run_current_fiche_id
-                      ? `Fiche en cours: ${progress.current_run_current_fiche_id}`
-                      : `Analyse via l'agent IA ApidIA`
-                    : `Terminée en ${getElapsedTime()}`
+                  {isStale 
+                    ? `Processus arrêté à ${processed}/${progress.current_run_total} fiches (timeout Edge Function)`
+                    : isRunning 
+                      ? progress.current_run_current_fiche_id
+                        ? `Fiche en cours: ${progress.current_run_current_fiche_id}`
+                        : `Analyse via l'agent IA ApidIA`
+                      : `Terminée en ${getElapsedTime()}`
                   }
                 </p>
               </div>
@@ -136,6 +163,11 @@ export default function VerificationProgressCard({ onComplete }: VerificationPro
                 <Clock className="h-4 w-4" />
                 <span>{getElapsedTime()}</span>
               </div>
+            )}
+            {isStale && (
+              <Button variant="outline" size="sm" onClick={handleResetStale}>
+                Fermer
+              </Button>
             )}
             {isCompleted && (
               <Button variant="ghost" size="sm" onClick={() => setIsVisible(false)}>
