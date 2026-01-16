@@ -105,61 +105,75 @@ Deno.serve(async (req: Request) => {
 
     const credentials: ServiceAccountCredentials = JSON.parse(credentialsJson);
 
-    // Fetch ALL unsynced fiches using pagination to bypass the 1000 row limit
-    const BATCH_SIZE = 1000;
-    let allUnsynced: Array<Record<string, unknown>> = [];
-    let offset = 0;
-    let hasMore = true;
+    // Limit fiches per execution to avoid CPU timeout (edge functions have limited compute)
+    const MAX_FICHES_PER_RUN = 500;
+    
+    // Fetch unsynced fiches - only get what we can process in one run
+    const { data: unsynced, error: fetchError } = await supabase
+      .from("fiches_data")
+      .select("*")
+      .eq("synced_to_sheets", false)
+      .limit(MAX_FICHES_PER_RUN);
 
-    while (hasMore) {
-      const { data: batch, error: fetchError } = await supabase
-        .from("fiches_data")
-        .select("*")
-        .eq("synced_to_sheets", false)
-        .range(offset, offset + BATCH_SIZE - 1);
-
-      if (fetchError) {
-        console.error("Error fetching unsynced fiches:", fetchError);
-        return new Response(
-          JSON.stringify({ error: "Failed to fetch unsynced fiches", details: fetchError.message }),
-          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-
-      if (batch && batch.length > 0) {
-        allUnsynced = [...allUnsynced, ...batch];
-        offset += BATCH_SIZE;
-        hasMore = batch.length === BATCH_SIZE;
-        console.log(`Fetched batch: ${batch.length} fiches (total so far: ${allUnsynced.length})`);
-      } else {
-        hasMore = false;
-      }
+    if (fetchError) {
+      console.error("Error fetching unsynced fiches:", fetchError);
+      return new Response(
+        JSON.stringify({ error: "Failed to fetch unsynced fiches", details: fetchError.message }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
-    if (allUnsynced.length === 0) {
+    if (!unsynced || unsynced.length === 0) {
       return new Response(
-        JSON.stringify({ success: true, message: "No fiches to sync", synced: 0 }),
+        JSON.stringify({ success: true, message: "No fiches to sync", synced: 0, hasMore: false }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    console.log(`Found ${allUnsynced.length} total fiches to sync`);
+    // Check if there are more fiches to sync after this batch
+    const { count: remainingCount } = await supabase
+      .from("fiches_data")
+      .select("*", { count: "exact", head: true })
+      .eq("synced_to_sheets", false);
+    
+    const totalRemaining = remainingCount || 0;
+    const hasMoreToSync = totalRemaining > MAX_FICHES_PER_RUN;
+
+    console.log(`Processing ${unsynced.length} fiches (${totalRemaining} total remaining)`);
 
     // Get access token
     const accessToken = await getAccessToken(credentials);
 
     // Group by fiche_type
-    const grouped: Record<string, typeof allUnsynced> = {};
-    for (const fiche of allUnsynced) {
-      if (!grouped[fiche.fiche_type as string]) {
-        grouped[fiche.fiche_type as string] = [];
+    const grouped: Record<string, typeof unsynced> = {};
+    for (const fiche of unsynced) {
+      if (!grouped[fiche.fiche_type]) {
+        grouped[fiche.fiche_type] = [];
       }
-      grouped[fiche.fiche_type as string].push(fiche);
+      grouped[fiche.fiche_type].push(fiche);
     }
 
     const results = {
       synced: 0,
       errors: [] as { fiche_id: string; error: string }[],
+      hasMore: hasMoreToSync,
+      remaining: totalRemaining - unsynced.length,
+    };
+    
+    // Helper to update fiches in chunks to avoid URL length limits
+    const UPDATE_CHUNK_SIZE = 50;
+    const updateFichesAsSynced = async (ficheIds: string[]) => {
+      for (let i = 0; i < ficheIds.length; i += UPDATE_CHUNK_SIZE) {
+        const chunk = ficheIds.slice(i, i + UPDATE_CHUNK_SIZE);
+        const { error } = await supabase
+          .from("fiches_data")
+          .update({ synced_to_sheets: true })
+          .in("id", chunk);
+        if (error) {
+          console.error(`Error updating chunk ${i / UPDATE_CHUNK_SIZE + 1}:`, error);
+          throw error;
+        }
+      }
     };
 
     // Helper to extract nested values safely
@@ -487,21 +501,17 @@ Deno.serve(async (req: Request) => {
           throw new Error(`Failed to append data: ${errorText}`);
         }
 
-        // Mark as synced
-        const ficheIds = fiches.map((f) => f.id);
-        const { error: updateError } = await supabase
-          .from("fiches_data")
-          .update({ synced_to_sheets: true })
-          .in("id", ficheIds);
-
-        if (updateError) {
-          console.error("Error marking fiches as synced:", updateError);
-          for (const fiche of fiches) {
-            results.errors.push({ fiche_id: fiche.fiche_id, error: updateError.message });
-          }
-        } else {
+        // Mark as synced using chunked updates to avoid URL length limits
+        const ficheIds = fiches.map((f) => f.id as string);
+        try {
+          await updateFichesAsSynced(ficheIds);
           results.synced += fiches.length;
           console.log(`Synced ${fiches.length} fiches to sheet: ${sheetName}`);
+        } catch (updateError) {
+          console.error("Error marking fiches as synced:", updateError);
+          for (const fiche of fiches) {
+            results.errors.push({ fiche_id: fiche.fiche_id as string, error: String(updateError) });
+          }
         }
       } catch (sheetError) {
         console.error(`Error syncing type ${ficheType}:`, sheetError);
@@ -511,13 +521,16 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-    console.log("Sync complete:", results);
+    console.log("Sync batch complete:", results);
 
     return new Response(
       JSON.stringify({
         success: true,
-        message: `Synced ${results.synced} fiches to Google Sheets`,
-        results,
+        message: `Synced ${results.synced} fiches to Google Sheets${results.hasMore ? ` (${results.remaining} remaining)` : ''}`,
+        synced: results.synced,
+        hasMore: results.hasMore,
+        remaining: results.remaining,
+        errors: results.errors,
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
