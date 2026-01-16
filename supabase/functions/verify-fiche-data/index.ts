@@ -198,7 +198,8 @@ async function analyzeWithAI(
   currentData: Record<string, string | null>,
   webContent: string,
   sourceUrl: string,
-  lovableApiKey: string
+  apiKey: string,
+  useGemini: boolean = false
 ): Promise<AIAnalysisResult | null> {
   try {
     const prompt = `Tu es un expert en vérification de données d'établissements touristiques français.
@@ -246,44 +247,93 @@ IMPORTANT:
 - Si le contenu ne concerne pas CET établissement dans CETTE ville, retourne {}
 - Si tu as le moindre doute, retourne {}`;
 
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${lovableApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
-        messages: [
-          { role: 'system', content: 'Tu es un assistant spécialisé dans la vérification de données touristiques françaises. Tu réponds toujours en JSON valide. Tu es très prudent et ne signales que des différences dont tu es certain.' },
-          { role: 'user', content: prompt }
-        ],
-      }),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Lovable AI API error:', response.status, errorText);
-      return null;
-    }
-
-    const aiResponse = await response.json();
-    const content = aiResponse.choices?.[0]?.message?.content;
+    let response;
     
-    if (!content) {
-      console.error('Empty AI response');
-      return null;
-    }
+    if (useGemini) {
+      // Use Gemini API directly
+      response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contents: [{
+            parts: [{
+              text: `Tu es un assistant spécialisé dans la vérification de données touristiques françaises. Tu réponds toujours en JSON valide. Tu es très prudent et ne signales que des différences dont tu es certain.\n\n${prompt}`
+            }]
+          }],
+          generationConfig: {
+            temperature: 0.2,
+            maxOutputTokens: 2048,
+          }
+        }),
+      });
 
-    // Parse JSON from response (handle markdown code blocks)
-    let jsonContent = content.trim();
-    if (jsonContent.startsWith('```')) {
-      jsonContent = jsonContent.replace(/```json?\n?/g, '').replace(/```/g, '');
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Gemini API error:', response.status, errorText);
+        return null;
+      }
+
+      const geminiResponse = await response.json();
+      const content = geminiResponse.candidates?.[0]?.content?.parts?.[0]?.text;
+      
+      if (!content) {
+        console.error('Empty Gemini response');
+        return null;
+      }
+
+      // Parse JSON from response (handle markdown code blocks)
+      let jsonContent = content.trim();
+      if (jsonContent.startsWith('```')) {
+        jsonContent = jsonContent.replace(/```json?\n?/g, '').replace(/```/g, '');
+      }
+      
+      const parsed = JSON.parse(jsonContent);
+      console.log('Gemini AI analysis result:', parsed);
+      return parsed;
+      
+    } else {
+      // Use Lovable AI Gateway
+      response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'google/gemini-2.5-flash',
+          messages: [
+            { role: 'system', content: 'Tu es un assistant spécialisé dans la vérification de données touristiques françaises. Tu réponds toujours en JSON valide. Tu es très prudent et ne signales que des différences dont tu es certain.' },
+            { role: 'user', content: prompt }
+          ],
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Lovable AI API error:', response.status, errorText);
+        return null;
+      }
+
+      const aiResponse = await response.json();
+      const content = aiResponse.choices?.[0]?.message?.content;
+      
+      if (!content) {
+        console.error('Empty AI response');
+        return null;
+      }
+
+      // Parse JSON from response (handle markdown code blocks)
+      let jsonContent = content.trim();
+      if (jsonContent.startsWith('```')) {
+        jsonContent = jsonContent.replace(/```json?\n?/g, '').replace(/```/g, '');
+      }
+      
+      const parsed = JSON.parse(jsonContent);
+      console.log('AI analysis result:', parsed);
+      return parsed;
     }
-    
-    const parsed = JSON.parse(jsonContent);
-    console.log('AI analysis result:', parsed);
-    return parsed;
     
   } catch (error) {
     console.error('Error in AI analysis:', error);
@@ -307,7 +357,12 @@ serve(async (req) => {
     }
 
     const firecrawlApiKey = Deno.env.get('FIRECRAWL_API_KEY_1') || Deno.env.get('FIRECRAWL_API_KEY');
+    const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
     const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
+    
+    // Determine which AI to use - prioritize Gemini if available
+    const useGemini = !!geminiApiKey;
+    const aiApiKey = geminiApiKey || lovableApiKey;
     
     if (!firecrawlApiKey) {
       console.error('FIRECRAWL_API_KEY not configured');
@@ -317,13 +372,15 @@ serve(async (req) => {
       );
     }
 
-    if (!lovableApiKey) {
-      console.error('LOVABLE_API_KEY not configured');
+    if (!aiApiKey) {
+      console.error('No AI API key configured (GEMINI_API_KEY or LOVABLE_API_KEY)');
       return new Response(
-        JSON.stringify({ success: false, error: 'Lovable AI not configured' }),
+        JSON.stringify({ success: false, error: 'No AI API configured' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+    
+    console.log(`Using ${useGemini ? 'Gemini API' : 'Lovable AI'} for analysis`);
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -427,7 +484,8 @@ serve(async (req) => {
         apidaeData,
         markdown,
         sourceUrl,
-        lovableApiKey
+        aiApiKey,
+        useGemini
       );
 
       if (aiResult) {
