@@ -105,39 +105,56 @@ Deno.serve(async (req: Request) => {
 
     const credentials: ServiceAccountCredentials = JSON.parse(credentialsJson);
 
-    // Fetch unsynced fiches
-    const { data: unsynced, error: fetchError } = await supabase
-      .from("fiches_data")
-      .select("*")
-      .eq("synced_to_sheets", false);
+    // Fetch ALL unsynced fiches using pagination to bypass the 1000 row limit
+    const BATCH_SIZE = 1000;
+    let allUnsynced: Array<Record<string, unknown>> = [];
+    let offset = 0;
+    let hasMore = true;
 
-    if (fetchError) {
-      console.error("Error fetching unsynced fiches:", fetchError);
-      return new Response(
-        JSON.stringify({ error: "Failed to fetch unsynced fiches", details: fetchError.message }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+    while (hasMore) {
+      const { data: batch, error: fetchError } = await supabase
+        .from("fiches_data")
+        .select("*")
+        .eq("synced_to_sheets", false)
+        .range(offset, offset + BATCH_SIZE - 1);
+
+      if (fetchError) {
+        console.error("Error fetching unsynced fiches:", fetchError);
+        return new Response(
+          JSON.stringify({ error: "Failed to fetch unsynced fiches", details: fetchError.message }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      if (batch && batch.length > 0) {
+        allUnsynced = [...allUnsynced, ...batch];
+        offset += BATCH_SIZE;
+        hasMore = batch.length === BATCH_SIZE;
+        console.log(`Fetched batch: ${batch.length} fiches (total so far: ${allUnsynced.length})`);
+      } else {
+        hasMore = false;
+      }
     }
 
-    if (!unsynced || unsynced.length === 0) {
+    if (allUnsynced.length === 0) {
       return new Response(
         JSON.stringify({ success: true, message: "No fiches to sync", synced: 0 }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    console.log(`Found ${unsynced.length} fiches to sync`);
+    console.log(`Found ${allUnsynced.length} total fiches to sync`);
 
     // Get access token
     const accessToken = await getAccessToken(credentials);
 
     // Group by fiche_type
-    const grouped: Record<string, typeof unsynced> = {};
-    for (const fiche of unsynced) {
-      if (!grouped[fiche.fiche_type]) {
-        grouped[fiche.fiche_type] = [];
+    const grouped: Record<string, typeof allUnsynced> = {};
+    for (const fiche of allUnsynced) {
+      if (!grouped[fiche.fiche_type as string]) {
+        grouped[fiche.fiche_type as string] = [];
       }
-      grouped[fiche.fiche_type].push(fiche);
+      grouped[fiche.fiche_type as string].push(fiche);
     }
 
     const results = {
