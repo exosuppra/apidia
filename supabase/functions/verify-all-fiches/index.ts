@@ -55,6 +55,9 @@ async function processVerification(
   runId: string
 ) {
   console.log(`Starting background verification of ${fichesToVerify.length} fiches (run: ${runId})`);
+  // Important: a single fiche can sometimes take too long (network/AI), which can make the run look "stale"
+  // and/or exceed worker limits. We cap per-fiche execution time and continue.
+  const PER_FICHE_TIMEOUT_MS = 90_000;
   
   let verified = 0;
   let errors = 0;
@@ -76,6 +79,9 @@ async function processVerification(
         .eq('id', config.id);
       
       // Appeler la fonction verify-fiche-data
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), PER_FICHE_TIMEOUT_MS);
+
       const response = await fetch(`${supabaseUrl}/functions/v1/verify-fiche-data`, {
         method: 'POST',
         headers: {
@@ -83,7 +89,8 @@ async function processVerification(
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ fiche_id: fiche.fiche_id }),
-      });
+        signal: controller.signal,
+      }).finally(() => clearTimeout(timeout));
 
       const result = await response.json();
       
@@ -561,6 +568,7 @@ async function processVerificationResume(
   startingErrors: number
 ) {
   console.log(`Resuming verification of ${fichesToVerify.length} fiches (run: ${runId}), starting from verified=${startingVerified}, errors=${startingErrors}`);
+  const PER_FICHE_TIMEOUT_MS = 90_000;
   
   let verified = startingVerified;
   let errors = startingErrors;
@@ -579,6 +587,9 @@ async function processVerificationResume(
         })
         .eq('id', config.id);
       
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), PER_FICHE_TIMEOUT_MS);
+
       const response = await fetch(`${supabaseUrl}/functions/v1/verify-fiche-data`, {
         method: 'POST',
         headers: {
@@ -586,7 +597,8 @@ async function processVerificationResume(
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ fiche_id: fiche.fiche_id }),
-      });
+        signal: controller.signal,
+      }).finally(() => clearTimeout(timeout));
 
       const result = await response.json();
       
