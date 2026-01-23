@@ -29,7 +29,9 @@ export default function VerificationProgressCard({ onComplete }: VerificationPro
   const [progress, setProgress] = useState<VerificationProgress | null>(null);
   const [isVisible, setIsVisible] = useState(false);
   const [isResuming, setIsResuming] = useState(false);
-  const autoResumeAttempted = useRef(false);
+  // The backend run can be killed by worker limits (heavy AI/network). We need to auto-resume multiple times.
+  const autoResumeAttempts = useRef(0);
+  const lastAutoResumeAt = useRef<number>(0);
 
   const loadProgress = async () => {
     const { data, error } = await supabase
@@ -105,27 +107,27 @@ export default function VerificationProgressCard({ onComplete }: VerificationPro
       progress.current_run_last_heartbeat_at && 
       (new Date().getTime() - new Date(progress.current_run_last_heartbeat_at).getTime()) > 2 * 60 * 1000;
     
-    // Reprendre automatiquement si stale et pas encore tenté
-    if (isStale && !autoResumeAttempted.current && !isResuming) {
-      autoResumeAttempted.current = true;
-      console.log("Auto-resuming stale verification...");
-      
-      // Marquer comme interrompu d'abord
-      supabase
-        .from("verification_config")
-        .update({ current_run_status: "interrupted" })
-        .eq("current_run_id", progress.current_run_id)
-        .then(() => {
-          // Puis relancer
-          setTimeout(() => {
-            handleResume();
-          }, 500);
-        });
+    const now = Date.now();
+    const MIN_DELAY_BETWEEN_AUTO_RESUMES_MS = 15_000;
+    const MAX_AUTO_RESUME_ATTEMPTS = 25;
+
+    // Reprendre automatiquement si stale, avec throttling et plusieurs tentatives
+    if (
+      isStale &&
+      !isResuming &&
+      autoResumeAttempts.current < MAX_AUTO_RESUME_ATTEMPTS &&
+      (now - lastAutoResumeAt.current) > MIN_DELAY_BETWEEN_AUTO_RESUMES_MS
+    ) {
+      autoResumeAttempts.current += 1;
+      lastAutoResumeAt.current = now;
+      console.log(`Auto-resuming stale verification (attempt ${autoResumeAttempts.current}/${MAX_AUTO_RESUME_ATTEMPTS})...`);
+      handleResume();
     }
-    
-    // Reset le flag si on est dans un nouvel état non-stale
+
+    // Reset les tentatives une fois terminé / idle
     if (progress.current_run_status === "completed" || progress.current_run_status === "idle") {
-      autoResumeAttempted.current = false;
+      autoResumeAttempts.current = 0;
+      lastAutoResumeAt.current = 0;
     }
   }, [progress?.current_run_status, progress?.current_run_last_heartbeat_at]);
 
