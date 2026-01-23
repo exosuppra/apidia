@@ -147,6 +147,101 @@ async function processVerification(
   console.log(`Background verification complete: ${verified} verified, ${errors} errors (run: ${runId})`);
 }
 
+type ChunkResult = {
+  verified: number;
+  errors: number;
+  processedInCall: number;
+};
+
+async function processVerificationChunk(
+  supabase: ReturnType<typeof createClient>,
+  supabaseUrl: string,
+  supabaseServiceKey: string,
+  fichesToVerify: Array<{ fiche_id: string; fiche_type: string }>,
+  config: VerificationConfig,
+  runId: string,
+  startingVerified: number,
+  startingErrors: number,
+  maxPerInvocation: number
+): Promise<ChunkResult> {
+  // NOTE: Long background loops tend to be killed by worker limits. We process a small chunk per invocation.
+  const PER_FICHE_TIMEOUT_MS = 90_000;
+
+  let verified = startingVerified;
+  let errors = startingErrors;
+  let processedInCall = 0;
+
+  const toProcess = fichesToVerify.slice(0, Math.max(0, maxPerInvocation));
+
+  console.log(
+    `Processing chunk: ${toProcess.length} fiche(s) (run: ${runId}) startingVerified=${startingVerified} startingErrors=${startingErrors}`
+  );
+
+  for (let i = 0; i < toProcess.length; i++) {
+    const fiche = toProcess[i];
+    try {
+      const globalIndex = verified + errors + 1;
+      console.log(`Verifying fiche: ${fiche.fiche_id} (global ${globalIndex})`);
+
+      await supabase
+        .from('verification_config')
+        .update({
+          current_run_current_fiche_id: fiche.fiche_id,
+          current_run_current_index: globalIndex,
+          current_run_last_heartbeat_at: new Date().toISOString(),
+        })
+        .eq('id', config.id);
+
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), PER_FICHE_TIMEOUT_MS);
+
+      const response = await fetch(`${supabaseUrl}/functions/v1/verify-fiche-data`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${supabaseServiceKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ fiche_id: fiche.fiche_id }),
+        signal: controller.signal,
+      }).finally(() => clearTimeout(timeout));
+
+      const result = await response.json().catch(() => ({}));
+
+      if (result?.success) verified++;
+      else errors++;
+
+      processedInCall++;
+
+      await supabase
+        .from('verification_config')
+        .update({
+          current_run_verified: verified,
+          current_run_errors: errors,
+          current_run_last_heartbeat_at: new Date().toISOString(),
+        })
+        .eq('id', config.id);
+
+      // Small delay to reduce rate limiting pressure
+      await new Promise((resolve) => setTimeout(resolve, 500));
+    } catch (error) {
+      console.error(`Error verifying fiche ${fiche.fiche_id}:`, error);
+      errors++;
+      processedInCall++;
+
+      await supabase
+        .from('verification_config')
+        .update({
+          current_run_verified: verified,
+          current_run_errors: errors,
+          current_run_last_heartbeat_at: new Date().toISOString(),
+        })
+        .eq('id', config.id);
+    }
+  }
+
+  return { verified, errors, processedInCall };
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -294,31 +389,40 @@ serve(async (req) => {
           current_run_last_heartbeat_at: new Date().toISOString(),
         })
         .eq('id', config.id);
-      
-      // Créer une config modifiée pour continuer avec les compteurs existants
-      const resumeConfig = {
-        ...config,
-        current_run_status: 'running',
-      };
-      
-      // Lancer le traitement en arrière-plan avec les compteurs actuels
-      const backgroundTask = processVerificationResume(
+
+      const MAX_FICHES_PER_INVOCATION = 1;
+
+      const { verified, errors, processedInCall } = await processVerificationChunk(
         supabase,
         supabaseUrl,
         supabaseServiceKey,
         fichesToVerify,
-        resumeConfig,
-        config.current_run_id || crypto.randomUUID(),
+        config,
+        config.current_run_id || runId,
         config.current_run_verified || 0,
-        config.current_run_errors || 0
+        config.current_run_errors || 0,
+        MAX_FICHES_PER_INVOCATION
       );
 
-      // @ts-ignore
-      if (typeof EdgeRuntime !== 'undefined' && EdgeRuntime.waitUntil) {
-        // @ts-ignore
-        EdgeRuntime.waitUntil(backgroundTask);
-      } else {
-        backgroundTask.catch(err => console.error('Background task error:', err));
+      const newAlreadyProcessed = verified + errors;
+      const newRemaining = totalToVerify - newAlreadyProcessed;
+
+      if (newRemaining <= 0) {
+        const now = new Date();
+        const nextRun = calculateNextRun(config.schedule_type, now);
+
+        await supabase
+          .from('verification_config')
+          .update({
+            current_run_status: 'completed',
+            current_run_completed_at: now.toISOString(),
+            current_run_current_fiche_id: null,
+            current_run_current_index: null,
+            last_run_at: now.toISOString(),
+            next_run_at: nextRun.toISOString(),
+            current_run_last_heartbeat_at: now.toISOString(),
+          })
+          .eq('id', config.id);
       }
 
       return new Response(
@@ -326,10 +430,15 @@ serve(async (req) => {
           success: true,
           resumed: true,
           run_id: config.current_run_id,
-          remaining: fichesToVerify.length,
-          already_verified: config.current_run_verified,
-          already_errors: config.current_run_errors,
-          message: `Reprise de la vérification: ${fichesToVerify.length} fiches restantes.`,
+          processed_in_this_call: processedInCall,
+          remaining: Math.max(0, newRemaining),
+          already_verified: verified,
+          already_errors: errors,
+          in_progress: newRemaining > 0,
+          message:
+            newRemaining > 0
+              ? `Reprise: ${processedInCall} fiche traitée, ${newRemaining} restantes.`
+              : `Reprise: terminé (${verified} OK, ${errors} erreurs).`,
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
@@ -513,27 +622,42 @@ serve(async (req) => {
       .eq('is_published', true)
       .or(`last_verified_at.is.null,last_verified_at.lt.${thresholdDate.toISOString()}`);
 
-    // Lancer le traitement en arrière-plan
-    const backgroundTask = processVerification(
+    // IMPORTANT: process a tiny chunk immediately to avoid background worker limits.
+    const MAX_FICHES_PER_INVOCATION = 1;
+
+    const { verified, errors, processedInCall } = await processVerificationChunk(
       supabase,
       supabaseUrl,
       supabaseServiceKey,
       fichesToVerify,
       config,
-      runId
+      runId,
+      0,
+      0,
+      MAX_FICHES_PER_INVOCATION
     );
 
-    // @ts-ignore - EdgeRuntime is a global in Supabase Edge Functions
-    if (typeof EdgeRuntime !== 'undefined' && EdgeRuntime.waitUntil) {
-      // @ts-ignore
-      EdgeRuntime.waitUntil(backgroundTask);
-      console.log('Background task started with EdgeRuntime.waitUntil');
-    } else {
-      backgroundTask.catch(err => console.error('Background task error:', err));
-      console.log('Background task started without waitUntil');
+    const alreadyProcessed = verified + errors;
+    const remaining = fichesToVerify.length - alreadyProcessed;
+
+    if (remaining <= 0) {
+      const nowDone = new Date();
+      const nextRun = calculateNextRun(config.schedule_type, nowDone);
+
+      await supabase
+        .from('verification_config')
+        .update({
+          current_run_status: 'completed',
+          current_run_completed_at: nowDone.toISOString(),
+          current_run_current_fiche_id: null,
+          current_run_current_index: null,
+          last_run_at: nowDone.toISOString(),
+          next_run_at: nextRun.toISOString(),
+          current_run_last_heartbeat_at: nowDone.toISOString(),
+        })
+        .eq('id', config.id);
     }
 
-    // Retourner immédiatement une réponse au client
     return new Response(
       JSON.stringify({
         success: true,
@@ -541,7 +665,13 @@ serve(async (req) => {
         run_id: runId,
         total: fichesToVerify.length,
         pending_fiches: pendingCount,
-        message: `Vérification de ${fichesToVerify.length} fiches lancée en arrière-plan.`,
+        processed_in_this_call: processedInCall,
+        remaining: Math.max(0, remaining),
+        in_progress: remaining > 0,
+        message:
+          remaining > 0
+            ? `Vérification démarrée: ${processedInCall} fiche traitée, ${remaining} restantes.`
+            : `Vérification terminée (${verified} OK, ${errors} erreurs).`,
         next_run_at: config.id ? calculateNextRun(config.schedule_type).toISOString() : null,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -555,98 +685,3 @@ serve(async (req) => {
     );
   }
 });
-
-// Version de processVerification qui reprend avec des compteurs existants
-async function processVerificationResume(
-  supabase: ReturnType<typeof createClient>,
-  supabaseUrl: string,
-  supabaseServiceKey: string,
-  fichesToVerify: Array<{ fiche_id: string; fiche_type: string }>,
-  config: VerificationConfig,
-  runId: string,
-  startingVerified: number,
-  startingErrors: number
-) {
-  console.log(`Resuming verification of ${fichesToVerify.length} fiches (run: ${runId}), starting from verified=${startingVerified}, errors=${startingErrors}`);
-  const PER_FICHE_TIMEOUT_MS = 90_000;
-  
-  let verified = startingVerified;
-  let errors = startingErrors;
-
-  for (let i = 0; i < fichesToVerify.length; i++) {
-    const fiche = fichesToVerify[i];
-    try {
-      console.log(`Verifying fiche: ${fiche.fiche_id} (${verified + errors + 1 - startingVerified}/${fichesToVerify.length} remaining)`);
-      
-      await supabase
-        .from('verification_config')
-        .update({
-          current_run_current_fiche_id: fiche.fiche_id,
-          current_run_current_index: verified + errors + 1,
-          current_run_last_heartbeat_at: new Date().toISOString(),
-        })
-        .eq('id', config.id);
-      
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), PER_FICHE_TIMEOUT_MS);
-
-      const response = await fetch(`${supabaseUrl}/functions/v1/verify-fiche-data`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${supabaseServiceKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ fiche_id: fiche.fiche_id }),
-        signal: controller.signal,
-      }).finally(() => clearTimeout(timeout));
-
-      const result = await response.json();
-      
-      if (result.success) {
-        verified++;
-      } else {
-        errors++;
-      }
-
-      await supabase
-        .from('verification_config')
-        .update({
-          current_run_verified: verified,
-          current_run_errors: errors,
-          current_run_last_heartbeat_at: new Date().toISOString(),
-        })
-        .eq('id', config.id);
-
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-    } catch (error) {
-      console.error(`Error verifying fiche ${fiche.fiche_id}:`, error);
-      errors++;
-      
-      await supabase
-        .from('verification_config')
-        .update({
-          current_run_verified: verified,
-          current_run_errors: errors,
-        })
-        .eq('id', config.id);
-    }
-  }
-
-  const now = new Date();
-  const nextRun = calculateNextRun(config.schedule_type, now);
-  
-  await supabase
-    .from('verification_config')
-    .update({
-      current_run_status: 'completed',
-      current_run_completed_at: now.toISOString(),
-      current_run_current_fiche_id: null,
-      current_run_current_index: null,
-      last_run_at: now.toISOString(),
-      next_run_at: nextRun.toISOString(),
-    })
-    .eq('id', config.id);
-
-  console.log(`Resumed verification complete: ${verified} verified, ${errors} errors (run: ${runId})`);
-}

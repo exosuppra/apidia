@@ -32,6 +32,8 @@ export default function VerificationProgressCard({ onComplete }: VerificationPro
   // The backend run can be killed by worker limits (heavy AI/network). We need to auto-resume multiple times.
   const autoResumeAttempts = useRef(0);
   const lastAutoResumeAt = useRef<number>(0);
+  // New backend behavior: verification is processed in small chunks; we need to keep invoking until done.
+  const lastChunkLoopAt = useRef<number>(0);
 
   const loadProgress = async () => {
     const { data, error } = await supabase
@@ -75,7 +77,11 @@ export default function VerificationProgressCard({ onComplete }: VerificationPro
       if (error) throw error;
       
       if (data?.success) {
-        toast.success(`Reprise: ${data.remaining} fiches restantes`);
+        if (typeof data.remaining === "number") {
+          toast.success(`Reprise: ${data.remaining} fiches restantes`);
+        } else {
+          toast.success("Reprise en cours");
+        }
       } else {
         toast.error(data?.error || "Erreur lors de la reprise");
       }
@@ -130,6 +136,31 @@ export default function VerificationProgressCard({ onComplete }: VerificationPro
       lastAutoResumeAt.current = 0;
     }
   }, [progress?.current_run_status, progress?.current_run_last_heartbeat_at]);
+
+  // Auto-loop chunks while running (backend processes 1 fiche per invoke)
+  useEffect(() => {
+    if (!progress) return;
+
+    const processed = progress.current_run_verified + progress.current_run_errors;
+    const remaining = progress.current_run_total - processed;
+    if (remaining <= 0) return;
+
+    const isStale = progress.current_run_status === "running" &&
+      progress.current_run_last_heartbeat_at &&
+      (new Date().getTime() - new Date(progress.current_run_last_heartbeat_at).getTime()) > 2 * 60 * 1000;
+
+    // If stale, the other effect will handle resume.
+    if (progress.current_run_status !== "running" || isStale) return;
+    if (isResuming) return;
+
+    const now = Date.now();
+    const AUTO_LOOP_INTERVAL_MS = 1500;
+    if (now - lastChunkLoopAt.current < AUTO_LOOP_INTERVAL_MS) return;
+    lastChunkLoopAt.current = now;
+
+    // Process next chunk
+    handleResume();
+  }, [progress?.current_run_status, progress?.current_run_total, progress?.current_run_verified, progress?.current_run_errors, progress?.current_run_last_heartbeat_at, isResuming]);
 
   // Auto-hide après complétion
   useEffect(() => {
