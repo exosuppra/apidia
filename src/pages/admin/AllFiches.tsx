@@ -1130,33 +1130,16 @@ export default function AllFiches() {
                     </DialogTrigger>
                     <DialogContent>
                       <DialogHeader>
-                        <DialogTitle>Configuration synchronisation Apidae</DialogTitle>
+                        <DialogTitle>Configuration Apidae</DialogTitle>
                         <DialogDescription>
-                          Configurez la synchronisation automatique depuis l'API Apidae
+                          Configurez les sélections territoriales à synchroniser
                         </DialogDescription>
                       </DialogHeader>
                       
                       {apidaeSyncConfig && (
                         <div className="space-y-4 py-4">
-                          <div className="flex items-center justify-between">
-                            <Label htmlFor="sync-enabled" className="flex flex-col gap-1">
-                              <span>Synchronisation automatique</span>
-                              <span className="text-sm font-normal text-muted-foreground">
-                                Récupère les fiches automatiquement selon la fréquence définie
-                              </span>
-                            </Label>
-                            <Switch
-                              id="sync-enabled"
-                              checked={apidaeSyncConfig.is_enabled}
-                              onCheckedChange={(checked) => setApidaeSyncConfig({
-                                ...apidaeSyncConfig,
-                                is_enabled: checked
-                              })}
-                            />
-                          </div>
-
                           {/* Auto-push to Apidae toggle */}
-                          <div className="flex items-center justify-between pt-2 border-t">
+                          <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
                             <Label htmlFor="auto-push-enabled" className="flex flex-col gap-1">
                               <span className="flex items-center gap-2">
                                 <ArrowRightLeft className="w-4 h-4" />
@@ -1171,76 +1154,6 @@ export default function AllFiches() {
                               checked={verificationConfig?.auto_push_to_apidae || false}
                               onCheckedChange={(checked) => saveAutoPushSetting(checked)}
                             />
-                          </div>
-
-                          <div className="space-y-2">
-                            <Label>Fréquence</Label>
-                            <Select 
-                              value={apidaeSyncConfig.schedule_type} 
-                              onValueChange={(v) => setApidaeSyncConfig({
-                                ...apidaeSyncConfig,
-                                schedule_type: v
-                              })}
-                            >
-                              <SelectTrigger>
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="hourly">Toutes les heures</SelectItem>
-                                <SelectItem value="daily">Quotidienne</SelectItem>
-                                <SelectItem value="weekly">Hebdomadaire</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-
-                          {apidaeSyncConfig.schedule_type !== 'hourly' && (
-                            <div className="space-y-2">
-                              <Label>Heure de synchronisation</Label>
-                              <Select 
-                                value={apidaeSyncConfig.sync_hour.toString()} 
-                                onValueChange={(v) => setApidaeSyncConfig({
-                                  ...apidaeSyncConfig,
-                                  sync_hour: parseInt(v)
-                                })}
-                              >
-                                <SelectTrigger>
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {Array.from({ length: 24 }, (_, i) => (
-                                    <SelectItem key={i} value={i.toString()}>
-                                      {i.toString().padStart(2, '0')}:00
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                            </div>
-                          )}
-
-                          <div className="space-y-2">
-                            <Label className="flex flex-col gap-1">
-                              <span>Fiches par lot</span>
-                              <span className="text-sm font-normal text-muted-foreground">
-                                Nombre de fiches récupérées par appel API. La synchronisation récupère <strong>toutes les fiches</strong> de la sélection en plusieurs lots successifs.
-                              </span>
-                            </Label>
-                            <Select 
-                              value={apidaeSyncConfig.fiches_per_sync.toString()} 
-                              onValueChange={(v) => setApidaeSyncConfig({
-                                ...apidaeSyncConfig,
-                                fiches_per_sync: parseInt(v)
-                              })}
-                            >
-                              <SelectTrigger>
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="50">50 (plus lent, moins de charge)</SelectItem>
-                                <SelectItem value="100">100</SelectItem>
-                                <SelectItem value="200">200</SelectItem>
-                                <SelectItem value="500">500 (plus rapide)</SelectItem>
-                              </SelectContent>
-                            </Select>
                           </div>
 
                           <div className="space-y-2">
@@ -1271,14 +1184,6 @@ export default function AllFiches() {
                                   Dernière sync: {format(new Date(apidaeSyncConfig.last_sync_at), "dd/MM/yyyy HH:mm", { locale: fr })}
                                 </span>
                               </div>
-                              {apidaeSyncConfig.next_sync_at && apidaeSyncConfig.is_enabled && (
-                                <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
-                                  <Calendar className="w-4 h-4" />
-                                  <span>
-                                    Prochaine sync: {format(new Date(apidaeSyncConfig.next_sync_at), "dd/MM/yyyy HH:mm", { locale: fr })}
-                                  </span>
-                                </div>
-                              )}
                             </div>
                           )}
 
@@ -1319,7 +1224,7 @@ export default function AllFiches() {
                                           <AlertTriangle className="w-3 h-3 text-yellow-600" />
                                         )}
                                         <span className="font-medium">
-                                          {entry.sync_type === 'automatic' ? '🤖 Auto' : '👤 Manuel'}
+                                          {entry.sync_type === 'automatic' ? '🔗 Make' : '👤 Manuel'}
                                         </span>
                                       </div>
                                       <span className="text-muted-foreground">
@@ -1345,6 +1250,16 @@ export default function AllFiches() {
                                 ))}
                               </div>
                             )}
+                          </div>
+
+                          <div className="pt-4 border-t">
+                            <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+                              <p className="text-xs text-blue-700 dark:text-blue-300">
+                                <strong>💡 Synchronisation automatique via Make</strong><br />
+                                La synchronisation est déclenchée automatiquement par vos workflows Make. 
+                                Utilisez le bouton "Sync Apidae" pour une synchronisation manuelle.
+                              </p>
+                            </div>
                           </div>
                         </div>
                       )}
