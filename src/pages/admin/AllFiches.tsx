@@ -101,6 +101,7 @@ export default function AllFiches() {
   const [togglingPublish, setTogglingPublish] = useState<string | null>(null);
   const [transferring, setTransferring] = useState<string | null>(null);
   const [syncingApidae, setSyncingApidae] = useState(false);
+  const [makeSyncRunning, setMakeSyncRunning] = useState(false);
   const [apidaeSyncProgress, setApidaeSyncProgress] = useState<{
     current: number;
     total: number;
@@ -973,7 +974,10 @@ export default function AllFiches() {
             {/* APIDAE Tab */}
             <TabsContent value="apidae" className="space-y-6">
               {/* Sync Progress Card */}
-              <ApidaeSyncProgressCard onComplete={loadAllFiches} />
+              <ApidaeSyncProgressCard 
+                onComplete={loadAllFiches} 
+                onSyncStatusChange={setMakeSyncRunning}
+              />
               
               {/* Description */}
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
@@ -1115,7 +1119,7 @@ export default function AllFiches() {
                         onClick={syncFromApidae} 
                         variant="secondary" 
                         size="sm"
-                        disabled={syncingApidae}
+                        disabled={syncingApidae || makeSyncRunning}
                       >
                         {syncingApidae ? (
                           <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -1131,7 +1135,9 @@ export default function AllFiches() {
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent side="bottom" className="max-w-xs">
-                      {apidaeSyncConfig?.selection_ids?.length === 0 ? (
+                      {makeSyncRunning ? (
+                        <p className="text-blue-600">🔄 Synchronisation automatique en cours (via Make) - attendez qu'elle se termine</p>
+                      ) : apidaeSyncConfig?.selection_ids?.length === 0 ? (
                         <p className="text-orange-600">⚠️ Aucune sélection configurée - cliquez sur ⚙️ pour ajouter vos IDs de sélection territoriale</p>
                       ) : (
                         <p>Récupère les dernières fiches depuis l'API Apidae ({apidaeSyncConfig?.selection_ids?.length || 0} sélection(s))</p>
