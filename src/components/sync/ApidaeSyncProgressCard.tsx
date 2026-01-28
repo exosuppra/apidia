@@ -65,13 +65,24 @@ export default function ApidaeSyncProgressCard({ onComplete, onSyncStatusChange 
     setIsStopping(true);
     manuallyStopped.current = true;
     try {
+      // First get the config id
+      const { data: configData } = await supabase
+        .from("apidae_sync_config")
+        .select("id")
+        .limit(1)
+        .single();
+
+      if (!configData?.id) {
+        throw new Error("Config not found");
+      }
+
       const { error } = await supabase
         .from("apidae_sync_config")
         .update({
           current_sync_status: "interrupted",
           current_sync_completed_at: new Date().toISOString(),
         })
-        .neq("id", ""); // Update all rows
+        .eq("id", configData.id);
 
       if (error) throw error;
 
