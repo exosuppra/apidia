@@ -553,25 +553,43 @@ serve(async (req) => {
     const dataUpdateThreshold = new Date();
     dataUpdateThreshold.setDate(dataUpdateThreshold.getDate() - config.days_consider_recent);
 
-    // Récupérer les fiches à vérifier
-    const { data: allFiches, error: fetchError } = await supabase
-      .from('fiches_data')
-      .select('fiche_id, fiche_type, last_verified_at, last_data_update_at')
-      .eq('is_published', true)
-      .or(`last_verified_at.is.null,last_verified_at.lt.${thresholdDate.toISOString()}`)
-      .order('last_verified_at', { ascending: true, nullsFirst: true })
-      .limit(fichesLimit + excludedFicheIds.length + 50);
+    // Récupérer les fiches à vérifier avec pagination pour dépasser la limite de 1000
+    const allFiches: Array<{ fiche_id: string; fiche_type: string; last_verified_at: string | null; last_data_update_at: string | null }> = [];
+    const pageSize = 1000;
+    let offset = 0;
+    let hasMore = true;
+    const maxToFetch = fichesLimit + excludedFicheIds.length + 100;
+    
+    while (hasMore && allFiches.length < maxToFetch) {
+      const { data: pageFiches, error: fetchError } = await supabase
+        .from('fiches_data')
+        .select('fiche_id, fiche_type, last_verified_at, last_data_update_at')
+        .eq('is_published', true)
+        .or(`last_verified_at.is.null,last_verified_at.lt.${thresholdDate.toISOString()}`)
+        .order('last_verified_at', { ascending: true, nullsFirst: true })
+        .range(offset, offset + pageSize - 1);
 
-    if (fetchError) {
-      console.error('Error fetching fiches:', fetchError);
-      return new Response(
-        JSON.stringify({ success: false, error: 'Failed to fetch fiches' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      if (fetchError) {
+        console.error('Error fetching fiches:', fetchError);
+        return new Response(
+          JSON.stringify({ success: false, error: 'Failed to fetch fiches' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      
+      if (pageFiches && pageFiches.length > 0) {
+        allFiches.push(...pageFiches);
+        offset += pageSize;
+        hasMore = pageFiches.length === pageSize;
+      } else {
+        hasMore = false;
+      }
     }
+    
+    console.log(`Fetched ${allFiches.length} fiches via pagination (limit: ${fichesLimit})`);
 
     // Filtrer les fiches
-    const fichesToVerify = (allFiches || [])
+    const fichesToVerify = allFiches
       .filter(f => (shouldApplyRecentUpdateFilters ? !excludedFicheIds.includes(f.fiche_id) : true))
       .filter(f => {
         if (!shouldApplyRecentUpdateFilters) return true;

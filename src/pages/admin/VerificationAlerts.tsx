@@ -491,10 +491,13 @@ export default function VerificationAlerts() {
                       <Input
                         type="number"
                         min={1}
-                        max={100}
+                        max={5000}
                         value={config.fiches_per_run}
                         onChange={(e) => setConfig({ ...config, fiches_per_run: parseInt(e.target.value) || 30 })}
                       />
+                      <p className="text-xs text-muted-foreground">
+                        Maximum 5000 fiches par exécution (traitement automatique en boucle)
+                      </p>
                     </div>
 
                     {/* Jours entre vérifications */}
