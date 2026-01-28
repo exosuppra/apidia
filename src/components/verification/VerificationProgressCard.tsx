@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { CheckCircle, Loader2, XCircle, Clock, RefreshCw } from "lucide-react";
+import { CheckCircle, Loader2, XCircle, Clock, RefreshCw, StopCircle } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { toast } from "sonner";
@@ -29,11 +29,14 @@ export default function VerificationProgressCard({ onComplete }: VerificationPro
   const [progress, setProgress] = useState<VerificationProgress | null>(null);
   const [isVisible, setIsVisible] = useState(false);
   const [isResuming, setIsResuming] = useState(false);
+  const [isStopping, setIsStopping] = useState(false);
   // The backend run can be killed by worker limits (heavy AI/network). We need to auto-resume multiple times.
   const autoResumeAttempts = useRef(0);
   const lastAutoResumeAt = useRef<number>(0);
   // New backend behavior: verification is processed in small chunks; we need to keep invoking until done.
   const lastChunkLoopAt = useRef<number>(0);
+  // Flag to prevent auto-resume after manual stop
+  const manuallyStopped = useRef(false);
 
   const loadProgress = async () => {
     const { data, error } = await supabase
@@ -68,6 +71,9 @@ export default function VerificationProgressCard({ onComplete }: VerificationPro
 
   // Fonction pour reprendre la vérification
   const handleResume = async () => {
+    // Don't resume if manually stopped
+    if (manuallyStopped.current) return;
+    
     setIsResuming(true);
     try {
       const { data, error } = await supabase.functions.invoke("verify-all-fiches", {
@@ -91,6 +97,30 @@ export default function VerificationProgressCard({ onComplete }: VerificationPro
     } finally {
       setIsResuming(false);
       loadProgress();
+    }
+  };
+
+  // Fonction pour arrêter la vérification
+  const handleStop = async () => {
+    setIsStopping(true);
+    manuallyStopped.current = true;
+    try {
+      await supabase
+        .from("verification_config")
+        .update({
+          current_run_status: "interrupted",
+          current_run_completed_at: new Date().toISOString(),
+        })
+        .eq("current_run_id", progress?.current_run_id);
+      
+      toast.success("Vérification arrêtée");
+      await loadProgress();
+      onComplete?.();
+    } catch (error: any) {
+      console.error("Error stopping verification:", error);
+      toast.error("Erreur lors de l'arrêt");
+    } finally {
+      setIsStopping(false);
     }
   };
 
@@ -118,9 +148,11 @@ export default function VerificationProgressCard({ onComplete }: VerificationPro
     const MAX_AUTO_RESUME_ATTEMPTS = 25;
 
     // Reprendre automatiquement si stale, avec throttling et plusieurs tentatives
+    // But not if manually stopped
     if (
       isStale &&
       !isResuming &&
+      !manuallyStopped.current &&
       autoResumeAttempts.current < MAX_AUTO_RESUME_ATTEMPTS &&
       (now - lastAutoResumeAt.current) > MIN_DELAY_BETWEEN_AUTO_RESUMES_MS
     ) {
@@ -130,10 +162,11 @@ export default function VerificationProgressCard({ onComplete }: VerificationPro
       handleResume();
     }
 
-    // Reset les tentatives une fois terminé / idle
+    // Reset les tentatives et le flag manually stopped une fois terminé / idle
     if (progress.current_run_status === "completed" || progress.current_run_status === "idle") {
       autoResumeAttempts.current = 0;
       lastAutoResumeAt.current = 0;
+      manuallyStopped.current = false;
     }
   }, [progress?.current_run_status, progress?.current_run_last_heartbeat_at]);
 
@@ -276,10 +309,26 @@ export default function VerificationProgressCard({ onComplete }: VerificationPro
             </div>
             <div className="flex items-center gap-2">
               {isRunning && (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Clock className="h-4 w-4" />
-                  <span>{getElapsedTime()}</span>
-                </div>
+                <>
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Clock className="h-4 w-4" />
+                    <span>{getElapsedTime()}</span>
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={handleStop}
+                    disabled={isStopping}
+                    className="gap-2 text-destructive border-destructive/50 hover:bg-destructive/10"
+                  >
+                    {isStopping ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <StopCircle className="h-4 w-4" />
+                    )}
+                    Arrêter
+                  </Button>
+                </>
               )}
               {(isStale || isInterrupted) && !isResuming && (
                 <>
