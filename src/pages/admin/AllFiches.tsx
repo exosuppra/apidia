@@ -690,18 +690,35 @@ export default function AllFiches() {
   };
 
   // Apidia functions
+  // Apidia functions - fetch ALL fiches with pagination to avoid 1000 row limit
   const loadFichesApidia = async () => {
     setLoadingApidia(true);
     try {
-      const { data, error } = await supabase
-        .from('fiches_verified')
-        .select('*')
-        .order('verified_at', { ascending: false });
-
-      if (error) throw error;
+      const allFiches: FicheVerified[] = [];
+      const pageSize = 1000;
+      let offset = 0;
+      let hasMore = true;
       
-      setFichesApidia(data || []);
-      setFilteredFichesApidia(data || []);
+      while (hasMore) {
+        const { data, error } = await supabase
+          .from('fiches_verified')
+          .select('*')
+          .order('verified_at', { ascending: false })
+          .range(offset, offset + pageSize - 1);
+
+        if (error) throw error;
+        
+        if (data && data.length > 0) {
+          allFiches.push(...data);
+          offset += pageSize;
+          hasMore = data.length === pageSize;
+        } else {
+          hasMore = false;
+        }
+      }
+      
+      setFichesApidia(allFiches);
+      setFilteredFichesApidia(allFiches);
     } catch (error: unknown) {
       console.error('Erreur lors du chargement des fiches Apidia:', error);
       toast({
