@@ -37,7 +37,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, Trash2, Send, Loader2 } from "lucide-react";
+import { CalendarIcon, Trash2, Send, Loader2, Clock, CheckCircle2, XCircle } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
@@ -472,25 +472,43 @@ export function EditTaskDialog({
                 >
                   Annuler
                 </Button>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  onClick={requestValidation}
-                  disabled={loading || deleting || requestingValidation || task.validation_status === "pending"}
-                  title={task.validation_status === "pending" ? "Une validation est déjà en cours" : "Envoyer une demande de validation"}
-                >
-                  {requestingValidation ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Envoi...
-                    </>
-                  ) : (
-                    <>
-                      <Send className="h-4 w-4 mr-2" />
-                      Demander validation
-                    </>
-                  )}
-                </Button>
+                
+                {/* Validation section - show status or request button */}
+                {task.validation_status === "pending" ? (
+                  <div className="flex items-center gap-2 px-3 py-2 bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300 rounded-md text-sm">
+                    <Clock className="h-4 w-4" />
+                    <span>Validation en attente</span>
+                  </div>
+                ) : task.validation_status === "validated" ? (
+                  <div className="flex items-center gap-2 px-3 py-2 bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 rounded-md text-sm" title={task.validation_comment || undefined}>
+                    <CheckCircle2 className="h-4 w-4" />
+                    <span>Validé</span>
+                  </div>
+                ) : task.validation_status === "rejected" ? (
+                  <div className="flex items-center gap-2 px-3 py-2 bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300 rounded-md text-sm" title={task.validation_comment || undefined}>
+                    <XCircle className="h-4 w-4" />
+                    <span>Rejeté</span>
+                  </div>
+                ) : (
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={requestValidation}
+                    disabled={loading || deleting || requestingValidation}
+                  >
+                    {requestingValidation ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Envoi...
+                      </>
+                    ) : (
+                      <>
+                        <Send className="h-4 w-4 mr-2" />
+                        Demander validation
+                      </>
+                    )}
+                  </Button>
+                )}
                 <Button type="submit" disabled={loading || deleting || requestingValidation}>
                   {loading ? "Mise à jour..." : "Mettre à jour"}
                 </Button>
