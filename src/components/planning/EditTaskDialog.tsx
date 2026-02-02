@@ -37,7 +37,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, Trash2 } from "lucide-react";
+import { CalendarIcon, Trash2, Send, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
@@ -77,6 +77,7 @@ export function EditTaskDialog({
   const [loading, setLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [requestingValidation, setRequestingValidation] = useState(false);
   const [localTags, setLocalTags] = useState<Tag[]>(allTags);
 
   const form = useForm<TaskFormValues>({
@@ -209,6 +210,41 @@ export function EditTaskDialog({
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const requestValidation = async () => {
+    setRequestingValidation(true);
+    try {
+      const values = form.getValues();
+      
+      const { data, error } = await supabase.functions.invoke("request-task-validation", {
+        body: { 
+          taskId: task.id, 
+          title: values.title, 
+          description: values.description || "",
+          dueDate: values.due_date?.toISOString() || null,
+        },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      toast({
+        title: "Demande envoyée",
+        description: "La demande de validation a été envoyée avec succès.",
+      });
+
+      onOpenChange(false);
+      onSuccess();
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Erreur de validation",
+        description: error.message,
+      });
+    } finally {
+      setRequestingValidation(false);
     }
   };
 
@@ -422,7 +458,7 @@ export function EditTaskDialog({
                 type="button"
                 variant="destructive"
                 onClick={() => setShowDeleteDialog(true)}
-                disabled={loading || deleting}
+                disabled={loading || deleting || requestingValidation}
               >
                 <Trash2 className="h-4 w-4 mr-2" />
                 Supprimer
@@ -432,11 +468,30 @@ export function EditTaskDialog({
                   type="button"
                   variant="outline"
                   onClick={() => onOpenChange(false)}
-                  disabled={loading || deleting}
+                  disabled={loading || deleting || requestingValidation}
                 >
                   Annuler
                 </Button>
-                <Button type="submit" disabled={loading || deleting}>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={requestValidation}
+                  disabled={loading || deleting || requestingValidation || task.validation_status === "pending"}
+                  title={task.validation_status === "pending" ? "Une validation est déjà en cours" : "Envoyer une demande de validation"}
+                >
+                  {requestingValidation ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Envoi...
+                    </>
+                  ) : (
+                    <>
+                      <Send className="h-4 w-4 mr-2" />
+                      Demander validation
+                    </>
+                  )}
+                </Button>
+                <Button type="submit" disabled={loading || deleting || requestingValidation}>
                   {loading ? "Mise à jour..." : "Mettre à jour"}
                 </Button>
               </div>

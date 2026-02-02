@@ -59,3 +59,9 @@ verify_jwt = false
 
 [functions.trigger-apidae-sync]
 verify_jwt = false
+
+[functions.request-task-validation]
+verify_jwt = false
+
+[functions.handle-task-validation]
+verify_jwt = false

@@ -27,7 +27,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, Send, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
@@ -67,6 +67,7 @@ export function CreateTaskDialog({
 }: CreateTaskDialogProps) {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [requestingValidation, setRequestingValidation] = useState(false);
   const [localTags, setLocalTags] = useState<Tag[]>(tags);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [uploadingFiles, setUploadingFiles] = useState(false);
@@ -136,7 +137,7 @@ export function CreateTaskDialog({
     }
   };
 
-  const onSubmit = async (values: TaskFormValues) => {
+  const onSubmit = async (values: TaskFormValues, requestValidation: boolean = false) => {
     setLoading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -177,9 +178,16 @@ export function CreateTaskDialog({
         await uploadSelectedFiles(task.id);
       }
 
+      // Request validation if requested
+      if (requestValidation && task?.id) {
+        await requestTaskValidation(task.id, values.title, values.description || "", values.due_date?.toISOString() || null);
+      }
+
       toast({
         title: "Tâche créée",
-        description: "La tâche a été créée avec succès.",
+        description: requestValidation 
+          ? "La tâche a été créée et une demande de validation a été envoyée."
+          : "La tâche a été créée avec succès.",
       });
 
       form.reset();
@@ -197,6 +205,35 @@ export function CreateTaskDialog({
     }
   };
 
+  const requestTaskValidation = async (taskId: string, title: string, description: string, dueDate: string | null) => {
+    setRequestingValidation(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("request-task-validation", {
+        body: { taskId, title, description, dueDate },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Erreur de validation",
+        description: error.message,
+      });
+      throw error;
+    } finally {
+      setRequestingValidation(false);
+    }
+  };
+
+  const handleCreateAndValidate = async () => {
+    const isValid = await form.trigger();
+    if (isValid) {
+      const values = form.getValues();
+      await onSubmit(values, true);
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
@@ -205,7 +242,7 @@ export function CreateTaskDialog({
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-4 overflow-hidden">
+          <form onSubmit={form.handleSubmit((values) => onSubmit(values, false))} className="flex flex-col gap-4 overflow-hidden">
             <div className="overflow-y-auto pr-2 space-y-4 flex-1 min-h-0">
             <FormField
               control={form.control}
@@ -409,7 +446,25 @@ export function CreateTaskDialog({
               >
                 Annuler
               </Button>
-              <Button type="submit" disabled={loading || uploadingFiles}>
+              <Button 
+                type="button" 
+                variant="secondary"
+                onClick={handleCreateAndValidate}
+                disabled={loading || uploadingFiles || requestingValidation}
+              >
+                {requestingValidation ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Envoi...
+                  </>
+                ) : (
+                  <>
+                    <Send className="h-4 w-4 mr-2" />
+                    Créer et demander validation
+                  </>
+                )}
+              </Button>
+              <Button type="submit" disabled={loading || uploadingFiles || requestingValidation}>
                 {loading || uploadingFiles 
                   ? uploadingFiles 
                     ? "Upload des fichiers..." 
