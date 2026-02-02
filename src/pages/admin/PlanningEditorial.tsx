@@ -52,6 +52,30 @@ export default function PlanningEditorial() {
     loadData();
   }, []);
 
+  // Subscribe to realtime updates on tasks (for validation status changes)
+  useEffect(() => {
+    const channel = supabase
+      .channel('tasks-validation-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'tasks',
+        },
+        (payload) => {
+          console.log('Task updated via realtime:', payload);
+          // Refresh data when a task is updated (e.g., validation status changed)
+          loadData();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
   const loadData = async () => {
     try {
       const {
