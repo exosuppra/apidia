@@ -38,4 +38,8 @@ export interface Task {
   updated_at: string;
   tags?: Tag[];
   attachments?: TaskAttachment[];
+  validation_status?: "pending" | "validated" | "rejected" | null;
+  validation_comment?: string | null;
+  validation_requested_at?: string | null;
+  validation_responded_at?: string | null;
 }

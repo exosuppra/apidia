@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Calendar, MoreVertical, Trash2, Edit2, Paperclip, Check } from "lucide-react";
+import { Calendar, MoreVertical, Trash2, Edit2, Paperclip, Check, Clock, CheckCircle2, XCircle } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,6 +15,12 @@ import {
   ContextMenuItem,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
@@ -58,6 +64,57 @@ export function TaskCard({ task, onRefresh, allTags }: TaskCardProps) {
       default:
         return "Non définie";
     }
+  };
+
+  const getValidationBadge = () => {
+    if (!task.validation_status) return null;
+
+    const badgeConfig = {
+      pending: {
+        icon: Clock,
+        label: "En attente",
+        className: "bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-700",
+      },
+      validated: {
+        icon: CheckCircle2,
+        label: "Validé",
+        className: "bg-green-100 text-green-800 border-green-300 dark:bg-green-900/30 dark:text-green-300 dark:border-green-700",
+      },
+      rejected: {
+        icon: XCircle,
+        label: "Rejeté",
+        className: "bg-red-100 text-red-800 border-red-300 dark:bg-red-900/30 dark:text-red-300 dark:border-red-700",
+      },
+    };
+
+    const config = badgeConfig[task.validation_status];
+    if (!config) return null;
+
+    const Icon = config.icon;
+    const badge = (
+      <Badge variant="outline" className={`text-xs ${config.className}`}>
+        <Icon className="h-3 w-3 mr-1" />
+        {config.label}
+      </Badge>
+    );
+
+    if (task.validation_comment) {
+      return (
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              {badge}
+            </TooltipTrigger>
+            <TooltipContent className="max-w-xs">
+              <p className="font-medium mb-1">Commentaire :</p>
+              <p>{task.validation_comment}</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      );
+    }
+
+    return badge;
   };
 
   const handleDelete = async () => {
@@ -186,6 +243,7 @@ export function TaskCard({ task, onRefresh, allTags }: TaskCardProps) {
                     {tag.name}
                   </Badge>
                 ))}
+                {getValidationBadge()}
               </div>
 
               {task.attachments && task.attachments.length > 0 && (
