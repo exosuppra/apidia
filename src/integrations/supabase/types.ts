@@ -578,6 +578,10 @@ export type Database = {
           status: string
           title: string
           updated_at: string
+          validation_comment: string | null
+          validation_requested_at: string | null
+          validation_responded_at: string | null
+          validation_status: string | null
         }
         Insert: {
           assigned_to?: string | null
@@ -591,6 +595,10 @@ export type Database = {
           status?: string
           title: string
           updated_at?: string
+          validation_comment?: string | null
+          validation_requested_at?: string | null
+          validation_responded_at?: string | null
+          validation_status?: string | null
         }
         Update: {
           assigned_to?: string | null
@@ -604,6 +612,10 @@ export type Database = {
           status?: string
           title?: string
           updated_at?: string
+          validation_comment?: string | null
+          validation_requested_at?: string | null
+          validation_responded_at?: string | null
+          validation_status?: string | null
         }
         Relationships: [
           {
