@@ -30,7 +30,7 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Verify task exists and is pending validation
+    // Verify task exists
     const { data: task, error: taskError } = await supabase
       .from("tasks")
       .select("id, validation_status")
@@ -45,13 +45,8 @@ serve(async (req) => {
       );
     }
 
-    if (task.validation_status !== "pending") {
-      console.warn("Task is not pending validation:", task.validation_status);
-      return new Response(
-        JSON.stringify({ error: "Cette tâche n'est pas en attente de validation" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+    // Allow updates even if already validated/rejected (Laura may change her mind)
+    console.log("Current validation status:", task.validation_status, "-> updating to:", validated ? "validated" : "rejected");
 
     // Update task with validation response
     const newStatus = validated ? "validated" : "rejected";
