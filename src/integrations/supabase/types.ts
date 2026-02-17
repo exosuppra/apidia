@@ -40,6 +40,7 @@ export type Database = {
           created_at: string | null
           current_sync_batch: number | null
           current_sync_completed_at: string | null
+          current_sync_offset: number | null
           current_sync_started_at: string | null
           current_sync_status: string | null
           current_sync_synced: number | null
@@ -59,6 +60,7 @@ export type Database = {
           created_at?: string | null
           current_sync_batch?: number | null
           current_sync_completed_at?: string | null
+          current_sync_offset?: number | null
           current_sync_started_at?: string | null
           current_sync_status?: string | null
           current_sync_synced?: number | null
@@ -78,6 +80,7 @@ export type Database = {
           created_at?: string | null
           current_sync_batch?: number | null
           current_sync_completed_at?: string | null
+          current_sync_offset?: number | null
           current_sync_started_at?: string | null
           current_sync_status?: string | null
           current_sync_synced?: number | null
