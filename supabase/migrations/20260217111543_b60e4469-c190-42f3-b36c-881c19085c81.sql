@@ -1,0 +1,1 @@
+ALTER TABLE public.apidae_sync_config ADD COLUMN current_sync_offset integer DEFAULT 0;
