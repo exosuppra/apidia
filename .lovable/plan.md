@@ -1,29 +1,59 @@
 
+# Ajout de l'outil `query_fiches_apidae` au chatbot Apidia
 
-# Synchronisation Apidae en une seule invocation
+## Objectif
+Permettre au chatbot d'interroger directement les ~5000 fiches synchronisees depuis Apidae (table `fiches_data`) avec recherche par nom, type, commune, etc.
 
-## Probleme actuel
-La fonction `trigger-apidae-sync` ne traite qu'un seul batch (200 fiches) par appel, ce qui oblige a configurer 24 appels successifs dans Make.com pour synchroniser les ~4800 fiches.
+## Structure des donnees `fiches_data`
+Les fiches contiennent un champ JSONB `data` avec cette structure :
+- `data->'nom'->'libelleFr'` : nom de la fiche
+- `data->'localisation'->'adresse'->'commune'->'nom'` : commune
+- `data->'localisation'->'adresse'->'codePostal'` : code postal
+- `data->'presentation'->'descriptifCourt'->'libelleFr'` : description courte
+- `data->'presentation'->'descriptifDetaille'->'libelleFr'` : description detaillee
+- `data->'ouverture'` : horaires d'ouverture
+- `data->'illustrations'` : photos/medias
+- `data->'informations'` : informations complementaires
+- `fiche_type` : type (STRUCTURE, COMMERCE_ET_SERVICE, HEBERGEMENT_LOCATIF, FETE_ET_MANIFESTATION, EQUIPEMENT, RESTAURATION, PATRIMOINE_CULTUREL, ACTIVITE, etc.)
+- `source` : provenance (apidae, make_webhook)
 
-## Solution
-Modifier `trigger-apidae-sync` pour qu'elle boucle en interne et traite tous les batches en un seul appel, avec une limite de temps de securite (50 secondes) pour eviter le timeout de 60 secondes des Edge Functions.
+Types principaux et volumes :
+- STRUCTURE : ~2900
+- COMMERCE_ET_SERVICE : ~550
+- HEBERGEMENT_LOCATIF : ~670
+- FETE_ET_MANIFESTATION : ~440
+- EQUIPEMENT : ~300
+- RESTAURATION : ~215
+- PATRIMOINE_CULTUREL : ~310
 
-- Si la synchronisation se termine en moins de 50 secondes : la reponse contient `completed: true` et Make n'a rien d'autre a faire.
-- Si le temps est depasse avant la fin : la reponse contient `completed: false` avec la progression sauvegardee. Make n'aurait qu'a rappeler une 2e fois (au lieu de 24 fois).
+## Modifications
 
-En pratique, avec 24 batches et chaque batch prenant environ 2-3 secondes, la totalite devrait tenir dans un seul appel.
+### 1. Ajouter la definition de l'outil dans le tableau `tools`
 
-## Changements techniques
+Nouvel outil `query_fiches_apidae` avec les parametres :
+- `search_term` (string) : recherche par nom (dans `data->'nom'->'libelleFr'`)
+- `fiche_type` (string, enum des types principaux) : filtre par type de fiche
+- `commune` (string) : recherche par commune (dans `data->'localisation'->'adresse'->'commune'->'nom'`)
+- `source` (string, enum: apidae/make_webhook) : filtre par source
+- `is_published` (boolean) : filtre par statut de publication
+- `limit` (number) : nombre max de resultats (defaut: 20)
 
-### 1. Modifier `trigger-apidae-sync`
-- Ajouter une boucle `while` qui traite les batches les uns apres les autres
-- Verifier le temps ecoule avant chaque batch (limite a 50s)
-- Sauvegarder la progression a chaque batch (au cas ou)
-- Ne sortir que quand c'est termine ou que le temps est ecoule
+### 2. Ajouter le cas dans `executeTool`
 
-### 2. Modifier `cron-apidae-sync`
-- Appliquer la meme logique de boucle interne pour que le cron automatique fonctionne aussi en une seule invocation
+La requete Supabase interrogera `fiches_data` avec :
+- Recherche textuelle `ilike` sur le nom via un cast text du JSONB
+- Filtre exact sur `fiche_type`
+- Recherche textuelle sur la commune via cast text du JSONB localisation
+- Filtre sur `source` et `is_published`
+- Retourne les champs utiles extraits du JSON (nom, commune, code postal, description, type) pour eviter de renvoyer le JSON brut complet (trop volumineux)
 
-### Resultat cote Make
-- Un seul module HTTP suffit dans la grande majorite des cas
-- Si jamais la sync prend plus de 50 secondes, un simple "repeat if `completed` is false" suffit (2 appels max au lieu de 24)
+### 3. Mettre a jour le system prompt
+
+Ajouter une ligne dans la section "Base de donnees Apidia" du prompt systeme pour mentionner `query_fiches_apidae` et ses capacites (recherche de fiches Apidae par nom, type, commune).
+
+## Fichier modifie
+- `supabase/functions/make-chat/index.ts`
+
+## Points techniques
+- Les resultats seront formates (extraction nom, commune, code postal, description, type) pour ne pas depasser les limites de tokens du modele AI
+- La limite par defaut est 20 fiches pour garder des reponses rapides sur les ~5000 fiches
