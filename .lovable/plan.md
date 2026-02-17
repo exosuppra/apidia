@@ -1,168 +1,29 @@
 
 
-# Plan : Fonctionnalité "Demander la validation" pour les tâches
+# Synchronisation Apidae en une seule invocation
 
-## Résumé
+## Probleme actuel
+La fonction `trigger-apidae-sync` ne traite qu'un seul batch (200 fiches) par appel, ce qui oblige a configurer 24 appels successifs dans Make.com pour synchroniser les ~4800 fiches.
 
-Cette fonctionnalité permettra de :
-1. Demander une validation externe via un webhook Make.com depuis la création/modification d'une tâche
-2. Recevoir la réponse de Make.com (validé/non validé + commentaire optionnel)
-3. Afficher le statut de validation sur les cartes de tâches
+## Solution
+Modifier `trigger-apidae-sync` pour qu'elle boucle en interne et traite tous les batches en un seul appel, avec une limite de temps de securite (50 secondes) pour eviter le timeout de 60 secondes des Edge Functions.
 
----
+- Si la synchronisation se termine en moins de 50 secondes : la reponse contient `completed: true` et Make n'a rien d'autre a faire.
+- Si le temps est depasse avant la fin : la reponse contient `completed: false` avec la progression sauvegardee. Make n'aurait qu'a rappeler une 2e fois (au lieu de 24 fois).
 
-## 1. Mise à jour de la base de données
+En pratique, avec 24 batches et chaque batch prenant environ 2-3 secondes, la totalite devrait tenir dans un seul appel.
 
-Ajouter de nouvelles colonnes à la table `tasks` pour suivre l'état de validation :
+## Changements techniques
 
-```text
-+----------------------------------+------------+------------------+
-| Colonne                          | Type       | Description      |
-+----------------------------------+------------+------------------+
-| validation_status                | text       | pending/validated|
-|                                  |            | /rejected/null   |
-| validation_comment               | text       | Retour de Make   |
-| validation_requested_at          | timestamptz| Date de demande  |
-| validation_responded_at          | timestamptz| Date de réponse  |
-+----------------------------------+------------+------------------+
-```
+### 1. Modifier `trigger-apidae-sync`
+- Ajouter une boucle `while` qui traite les batches les uns apres les autres
+- Verifier le temps ecoule avant chaque batch (limite a 50s)
+- Sauvegarder la progression a chaque batch (au cas ou)
+- Ne sortir que quand c'est termine ou que le temps est ecoule
 
----
+### 2. Modifier `cron-apidae-sync`
+- Appliquer la meme logique de boucle interne pour que le cron automatique fonctionne aussi en une seule invocation
 
-## 2. Nouveau secret pour le webhook
-
-Ajouter un secret `MAKE_TASK_VALIDATION_WEBHOOK_URL` pour stocker l'URL du webhook Make dédié aux demandes de validation.
-
----
-
-## 3. Edge Function : Envoyer la demande de validation
-
-Créer `request-task-validation` qui :
-- Récupère les détails de la tâche (titre, description, date d'échéance)
-- Envoie ces informations au webhook Make.com
-- Met à jour le statut de validation à "pending"
-
-**Données envoyées à Make :**
-```json
-{
-  "taskId": "uuid-de-la-tache",
-  "title": "Titre de la tâche",
-  "description": "Description de la tâche",
-  "dueDate": "2025-02-15T10:00:00Z"
-}
-```
-
----
-
-## 4. Edge Function : Recevoir la réponse de validation
-
-Créer `handle-task-validation` que Make.com appellera pour envoyer la réponse :
-
-**Données attendues de Make :**
-```json
-{
-  "taskId": "uuid-de-la-tache",
-  "validated": true,
-  "comment": "Commentaire optionnel"
-}
-```
-
-Cette fonction :
-- Valide que la tâche existe et est en attente de validation
-- Met à jour `validation_status` ("validated" ou "rejected")
-- Enregistre le `validation_comment` si fourni
-- Met à jour `validation_responded_at`
-
----
-
-## 5. Modifications de l'interface utilisateur
-
-### 5.1 Bouton "Demander la validation"
-
-Ajouter un bouton dans les dialogues de création et modification de tâche :
-- **CreateTaskDialog.tsx** : Nouveau bouton à côté de "Créer"
-- **EditTaskDialog.tsx** : Nouveau bouton à côté de "Mettre à jour"
-
-Le bouton sera :
-- Désactivé si une validation est déjà en cours
-- Affiche un indicateur de chargement pendant l'envoi
-
-### 5.2 Affichage du statut de validation
-
-Dans **TaskCard.tsx**, ajouter un badge indiquant le statut :
-- 🟡 "En attente" (orange) - validation demandée
-- ✅ "Validé" (vert) - validation acceptée  
-- ❌ "Rejeté" (rouge) - validation refusée
-
-Si un commentaire existe, il sera affiché dans une info-bulle.
-
-### 5.3 Mise à jour des types TypeScript
-
-Modifier `src/types/planning.ts` pour ajouter les nouveaux champs :
-```typescript
-export interface Task {
-  // ... champs existants
-  validation_status?: "pending" | "validated" | "rejected" | null;
-  validation_comment?: string | null;
-  validation_requested_at?: string | null;
-  validation_responded_at?: string | null;
-}
-```
-
----
-
-## 6. Configuration du webhook Make
-
-Ajouter les nouvelles fonctions dans `supabase/config.toml` :
-- `request-task-validation` - avec JWT désactivé (appelée depuis le frontend authentifié)
-- `handle-task-validation` - avec JWT désactivé (appelée par Make.com)
-
----
-
-## Fichiers à modifier/créer
-
-| Fichier | Action |
-|---------|--------|
-| `src/types/planning.ts` | Modifier - ajouter les champs de validation |
-| `src/components/planning/CreateTaskDialog.tsx` | Modifier - ajouter bouton validation |
-| `src/components/planning/EditTaskDialog.tsx` | Modifier - ajouter bouton validation |
-| `src/components/planning/TaskCard.tsx` | Modifier - afficher le statut |
-| `supabase/functions/request-task-validation/index.ts` | Créer |
-| `supabase/functions/handle-task-validation/index.ts` | Créer |
-| `supabase/config.toml` | Modifier - ajouter les fonctions |
-| Migration SQL | Créer - ajouter les colonnes |
-
----
-
-## Workflow complet
-
-```text
-┌─────────────────┐     ┌──────────────────┐     ┌─────────────┐
-│  Utilisateur    │     │  Edge Function   │     │   Make.com  │
-│  (Interface)    │     │  (Backend)       │     │   (Webhook) │
-└────────┬────────┘     └────────┬─────────┘     └──────┬──────┘
-         │                       │                      │
-         │ 1. Clic "Demander     │                      │
-         │    la validation"     │                      │
-         ├──────────────────────>│                      │
-         │                       │                      │
-         │                       │ 2. Envoi webhook     │
-         │                       │    (titre, desc,     │
-         │                       │    date échéance)    │
-         │                       ├─────────────────────>│
-         │                       │                      │
-         │                       │ 3. Mise à jour       │
-         │                       │    status: pending   │
-         │<──────────────────────┤                      │
-         │                       │                      │
-         │                       │         ...          │
-         │                       │                      │
-         │                       │ 4. Réponse Make      │
-         │                       │<─────────────────────┤
-         │                       │                      │
-         │                       │ 5. Mise à jour       │
-         │ 6. Affichage statut   │    status + comment  │
-         │<──────────────────────┤                      │
-         │                       │                      │
-```
-
+### Resultat cote Make
+- Un seul module HTTP suffit dans la grande majorite des cas
+- Si jamais la sync prend plus de 50 secondes, un simple "repeat if `completed` is false" suffit (2 appels max au lieu de 24)
