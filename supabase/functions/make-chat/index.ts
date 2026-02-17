@@ -195,6 +195,28 @@ const tools = [
         }
       }
     }
+  },
+  {
+    type: "function",
+    function: {
+      name: "query_fiches_apidae",
+      description: "Recherche dans les ~5000 fiches touristiques synchronisées depuis Apidae (table fiches_data). Permet de chercher par nom, type de fiche, commune, source, statut de publication. Retourne les informations essentielles : nom, type, commune, code postal, description courte.",
+      parameters: {
+        type: "object",
+        properties: {
+          search_term: { type: "string", description: "Recherche par nom de la fiche (recherche partielle insensible à la casse)" },
+          fiche_type: { 
+            type: "string", 
+            enum: ["STRUCTURE", "COMMERCE_ET_SERVICE", "HEBERGEMENT_LOCATIF", "FETE_ET_MANIFESTATION", "EQUIPEMENT", "RESTAURATION", "PATRIMOINE_CULTUREL", "ACTIVITE", "HEBERGEMENT_COLLECTIF", "SEJOUR_PACKAGE", "DEGUSTATION"],
+            description: "Type de fiche Apidae" 
+          },
+          commune: { type: "string", description: "Recherche par nom de commune (recherche partielle insensible à la casse)" },
+          source: { type: "string", enum: ["apidae", "make_webhook"], description: "Filtrer par source de la fiche" },
+          is_published: { type: "boolean", description: "Filtrer par statut de publication" },
+          limit: { type: "number", description: "Nombre maximum de résultats (défaut: 20, max: 50)" }
+        }
+      }
+    }
   }
 ];
 
@@ -358,6 +380,47 @@ async function executeTool(toolName: string, args: any, supabaseAdmin: any, thre
         return JSON.stringify(data);
       }
       
+      case "query_fiches_apidae": {
+        let query = supabaseAdmin.from("fiches_data").select("fiche_id, fiche_type, source, is_published, data");
+        
+        if (args.search_term) {
+          query = query.ilike("data->>nom", `%${args.search_term}%`);
+        }
+        if (args.fiche_type) {
+          query = query.eq("fiche_type", args.fiche_type);
+        }
+        if (args.commune) {
+          query = query.ilike("data->localisation->adresse->commune->>nom", `%${args.commune}%`);
+        }
+        if (args.source) {
+          query = query.eq("source", args.source);
+        }
+        if (args.is_published !== undefined) {
+          query = query.eq("is_published", args.is_published);
+        }
+        
+        const limit = Math.min(args.limit || 20, 50);
+        query = query.limit(limit);
+        
+        const { data, error } = await query;
+        if (error) throw error;
+        
+        // Format results to extract useful fields from JSONB
+        const formatted = (data || []).map((f: any) => ({
+          fiche_id: f.fiche_id,
+          type: f.fiche_type,
+          source: f.source,
+          is_published: f.is_published,
+          nom: f.data?.nom?.libelleFr || f.data?.nom?.libelleEn || "Sans nom",
+          commune: f.data?.localisation?.adresse?.commune?.nom || "",
+          code_postal: f.data?.localisation?.adresse?.codePostal || "",
+          description_courte: f.data?.presentation?.descriptifCourt?.libelleFr || "",
+          description_detaillee: f.data?.presentation?.descriptifDetaille?.libelleFr || "",
+        }));
+        
+        return JSON.stringify({ count: formatted.length, fiches: formatted });
+      }
+
       case "query_fiches_sheets": {
         return await queryGoogleSheets("fiches", args);
       }
@@ -552,6 +615,7 @@ Tu peux interroger directement :
 - Demandes utilisateurs (query_user_requests) : demandes de modifications de fiches
 - Notes Google (query_google_ratings) : notes et avis Google des établissements
 - Logs d'actions (query_action_logs) : historique des actions utilisateurs
+- Fiches Apidae (query_fiches_apidae) : ~5000 fiches touristiques synchronisées depuis Apidae, recherche par nom, type (STRUCTURE, RESTAURATION, HEBERGEMENT_LOCATIF, etc.), commune, source
 
 *Google Sheets :*
 - Fiches touristiques (query_fiches_sheets) : BD COS, BD FETE_ET_MANIFESTATION
