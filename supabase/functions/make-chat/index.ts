@@ -446,6 +446,18 @@ async function executeTool(toolName: string, args: any, supabaseAdmin: any, thre
             if (!PREVIEW_TYPES.includes(f.fiche_type)) continue;
             const raw = f._rawData || {};
             const periode = raw.ouverture?.periodesOuvertures?.[0];
+            
+            // Extract the first available image URL from the fiche data
+            let imageUrl: string | undefined;
+            const illustrations = raw.illustrations || raw.multimedias || [];
+            for (const media of illustrations) {
+              const url = media?.traductionFichiers?.[0]?.url || media?.url || media?.urlImage;
+              if (url && typeof url === "string" && url.startsWith("http")) {
+                imageUrl = url;
+                break;
+              }
+            }
+            
             fichesPreviews.push({
               fiche_id: f.fiche_id,
               nom: f.nom,
@@ -455,6 +467,7 @@ async function executeTool(toolName: string, args: any, supabaseAdmin: any, thre
               date_debut: periode?.dateDebut || undefined,
               heure_debut: periode?.horaireOuverture || undefined,
               date_fin: periode?.dateFin || undefined,
+              image_url: imageUrl,
             });
           }
         }

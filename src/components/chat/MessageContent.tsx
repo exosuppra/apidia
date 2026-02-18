@@ -29,7 +29,7 @@ export default function MessageContent({ content, isUser }: MessageContentProps)
             className={`${listType === 'ol' ? 'list-decimal' : 'list-disc'} pl-4 my-2 space-y-1`}
           >
             {listItems.map((item, i) => (
-              <li key={i} className="text-sm">{formatInlineText(item)}</li>
+              <li key={i} className="text-sm break-words">{formatInlineText(item)}</li>
             ))}
           </ListTag>
         );
@@ -176,7 +176,7 @@ export default function MessageContent({ content, isUser }: MessageContentProps)
       // Regular paragraph
       flushList();
       elements.push(
-        <p key={`p-${index}`} className="text-sm mb-2 last:mb-0">
+        <p key={`p-${index}`} className="text-sm mb-2 last:mb-0 break-words">
           {formatInlineText(trimmedLine)}
         </p>
       );
