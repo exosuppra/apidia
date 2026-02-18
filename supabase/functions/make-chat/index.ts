@@ -200,13 +200,12 @@ const tools = [
     type: "function",
     function: {
       name: "query_fiches_apidae",
-      description: `Recherche dans les ~5000 fiches touristiques synchronisées depuis Apidae (table fiches_data). Permet de chercher par nom, type de fiche, commune, source, statut de publication. Retourne les informations essentielles : nom, type, commune, code postal, description courte et description détaillée.
+      description: `Recherche dans les ~5000 fiches touristiques synchronisées depuis Apidae (table fiches_data). Permet de chercher par nom, type de fiche, commune, source, statut de publication.
 
-IMPORTANT - GESTION DES DATES :
-- Les fiches retournées contiennent des données JSON avec des périodes d'ouverture (ouverture.periodeEnClair, ouverture.periodesOuvertures) et pour les événements des dates de début/fin.
-- Après avoir récupéré les fiches, TU DOIS examiner les champs de dates dans la description détaillée pour déterminer si la fiche est actuellement valide ou applicable à la période demandée par l'utilisateur.
-- Pour les FETE_ET_MANIFESTATION, vérifie les dates d'événement et n'en recommande que des futures ou en cours.
-- Pour les hébergements et activités, indique si les informations d'ouverture correspondent à la période demandée.`,
+GESTION DES DATES :
+- Utilise le paramètre 'date_active' (format YYYY-MM-DD) pour filtrer directement en base les fiches actives à une date précise. C'est la méthode RECOMMANDÉE pour les questions du type "que faire le [date] à [lieu]".
+- Pour les FETE_ET_MANIFESTATION, utilise toujours date_active quand l'utilisateur précise une date.
+- Sans date_active, toutes les fiches sont retournées quelle que soit leur période d'ouverture.`,
       parameters: {
         type: "object",
         properties: {
@@ -219,7 +218,8 @@ IMPORTANT - GESTION DES DATES :
           commune: { type: "string", description: "Recherche par nom de commune (recherche partielle insensible à la casse)" },
           source: { type: "string", enum: ["apidae", "make_webhook"], description: "Filtrer par source de la fiche" },
           is_published: { type: "boolean", description: "Filtrer par statut de publication" },
-          limit: { type: "number", description: "Nombre maximum de résultats (défaut: 20, max: 50)" }
+          date_active: { type: "string", description: "Date au format YYYY-MM-DD. Filtre les fiches dont les périodes d'ouverture couvrent cette date. Utilise ce paramètre quand l'utilisateur demande ce qui se passe à une date précise." },
+          limit: { type: "number", description: "Nombre maximum de résultats (défaut: 20, max: 100)" }
         }
       }
     }
@@ -387,9 +387,10 @@ async function executeTool(toolName: string, args: any, supabaseAdmin: any, thre
       }
       
       case "query_fiches_apidae": {
-        const limit = Math.min(args.limit || 20, 50);
+        const limit = Math.min(args.limit || 20, 100);
         
         // Use the dedicated SQL function for JSONB filtering (avoids PostgREST limitations)
+        // Now supports date_active for filtering fiches active on a specific date
         const { data: rpcData, error: rpcError } = await supabaseAdmin.rpc("search_fiches_apidae", {
           p_search_term: args.search_term || null,
           p_fiche_type: args.fiche_type || null,
@@ -397,6 +398,7 @@ async function executeTool(toolName: string, args: any, supabaseAdmin: any, thre
           p_source: args.source || null,
           p_is_published: args.is_published !== undefined ? args.is_published : null,
           p_limit: limit,
+          p_date_active: args.date_active || null,
         });
         
         if (rpcError) {
@@ -404,14 +406,13 @@ async function executeTool(toolName: string, args: any, supabaseAdmin: any, thre
           throw rpcError;
         }
 
-        // Also fetch raw data fields useful for date filtering (ouverture, periodesOuvertures)
-        // We enrich results with opening period info from the raw JSON
+        // Enrich results with opening period description for the AI
         const ficheIds = (rpcData || []).map((f: any) => f.fiche_id);
         let enriched = rpcData || [];
         if (ficheIds.length > 0) {
           const { data: rawData } = await supabaseAdmin
             .from("fiches_data")
-            .select("fiche_id, data->ouverture, data->gpisDuPatrimoineNaturel")
+            .select("fiche_id, data->ouverture")
             .in("fiche_id", ficheIds);
           
           if (rawData) {
