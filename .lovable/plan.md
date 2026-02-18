@@ -1,59 +1,60 @@
 
-# Ajout de l'outil `query_fiches_apidae` au chatbot Apidia
+# Auto-chainage des batches Apidae : déclenchement unique depuis Make.com
 
-## Objectif
-Permettre au chatbot d'interroger directement les ~5000 fiches synchronisees depuis Apidae (table `fiches_data`) avec recherche par nom, type, commune, etc.
+## Problème actuel
 
-## Structure des donnees `fiches_data`
-Les fiches contiennent un champ JSONB `data` avec cette structure :
-- `data->'nom'->'libelleFr'` : nom de la fiche
-- `data->'localisation'->'adresse'->'commune'->'nom'` : commune
-- `data->'localisation'->'adresse'->'codePostal'` : code postal
-- `data->'presentation'->'descriptifCourt'->'libelleFr'` : description courte
-- `data->'presentation'->'descriptifDetaille'->'libelleFr'` : description detaillee
-- `data->'ouverture'` : horaires d'ouverture
-- `data->'illustrations'` : photos/medias
-- `data->'informations'` : informations complementaires
-- `fiche_type` : type (STRUCTURE, COMMERCE_ET_SERVICE, HEBERGEMENT_LOCATIF, FETE_ET_MANIFESTATION, EQUIPEMENT, RESTAURATION, PATRIMOINE_CULTUREL, ACTIVITE, etc.)
-- `source` : provenance (apidae, make_webhook)
+Make.com envoie un signal → `trigger-apidae-sync` traite ~1-2 batches (50s) → retourne `completed: false` → **s'arrête et attend que Make rappelle**, ce qui ne se fait pas automatiquement.
 
-Types principaux et volumes :
-- STRUCTURE : ~2900
-- COMMERCE_ET_SERVICE : ~550
-- HEBERGEMENT_LOCATIF : ~670
-- FETE_ET_MANIFESTATION : ~440
-- EQUIPEMENT : ~300
-- RESTAURATION : ~215
-- PATRIMOINE_CULTUREL : ~310
+Résultat : la sync reste bloquée après le batch 4 (ou peu importe le nombre traité dans les 50 premières secondes).
 
-## Modifications
+## Solution : Auto-rappel asynchrone (Self-Chaining)
 
-### 1. Ajouter la definition de l'outil dans le tableau `tools`
+Quand le budget temps est dépassé et qu'il reste des fiches à synchroniser, la fonction **se rappelle elle-même** en fire-and-forget avant de retourner la réponse à Make. Make n'a donc plus besoin de boucler.
 
-Nouvel outil `query_fiches_apidae` avec les parametres :
-- `search_term` (string) : recherche par nom (dans `data->'nom'->'libelleFr'`)
-- `fiche_type` (string, enum des types principaux) : filtre par type de fiche
-- `commune` (string) : recherche par commune (dans `data->'localisation'->'adresse'->'commune'->'nom'`)
-- `source` (string, enum: apidae/make_webhook) : filtre par source
-- `is_published` (boolean) : filtre par statut de publication
-- `limit` (number) : nombre max de resultats (defaut: 20)
+```text
+Make.com → trigger-apidae-sync (batch 1-2, 50s)
+                ↓ auto-rappel async (fire-and-forget)
+           trigger-apidae-sync (batch 3-4, 50s)
+                ↓ auto-rappel async
+           trigger-apidae-sync (batch 5-6, 50s)
+                ↓ ...
+           trigger-apidae-sync → completed: true ✓
+```
 
-### 2. Ajouter le cas dans `executeTool`
+## Modification : `supabase/functions/trigger-apidae-sync/index.ts`
 
-La requete Supabase interrogera `fiches_data` avec :
-- Recherche textuelle `ilike` sur le nom via un cast text du JSONB
-- Filtre exact sur `fiche_type`
-- Recherche textuelle sur la commune via cast text du JSONB localisation
-- Filtre sur `source` et `is_published`
-- Retourne les champs utiles extraits du JSON (nom, commune, code postal, description, type) pour eviter de renvoyer le JSON brut complet (trop volumineux)
+Remplacer le bloc final "Time budget exceeded" par un auto-rappel :
 
-### 3. Mettre a jour le system prompt
+```typescript
+// Au lieu de simplement retourner completed: false...
+// On se rappelle en fire-and-forget :
+fetch(`${SUPABASE_URL}/functions/v1/trigger-apidae-sync`, {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    "Authorization": `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+  },
+  body: JSON.stringify({ resume: true }),
+}).catch((e) => console.error("Self-invoke error:", e));
+// Pas de await → fire-and-forget
 
-Ajouter une ligne dans la section "Base de donnees Apidia" du prompt systeme pour mentionner `query_fiches_apidae` et ses capacites (recherche de fiches Apidae par nom, type, commune).
+// Puis on retourne immédiatement à Make
+return json({
+  success: true,
+  completed: false,
+  message: `Batch en cours, continuation automatique lancée...`,
+  batch: batchNumber,
+  synced: totalSynced,
+  total: totalFound,
+});
+```
 
-## Fichier modifie
-- `supabase/functions/make-chat/index.ts`
+## Garde-fous importants
 
-## Points techniques
-- Les resultats seront formates (extraction nom, commune, code postal, description, type) pour ne pas depasser les limites de tokens du modele AI
-- La limite par defaut est 20 fiches pour garder des reponses rapides sur les ~5000 fiches
+- **Anti-boucle infinie** : au début de la fonction, si `current_sync_status === "running"` ET que la requête contient `resume: true`, on reprend directement sans réinitialiser. Si le statut est `interrupted`, on s'arrête immédiatement (déjà implémenté).
+- **Un seul processus actif** : si `current_sync_status === "running"` et qu'un nouveau signal Make arrive (pas `resume`), on le traite normalement (reprise de là où on en était, déjà géré).
+- **Fin de sync** : quand `isComplete === true`, on finalise normalement et on n'envoie pas d'auto-rappel.
+
+## Fichier modifié
+
+- `supabase/functions/trigger-apidae-sync/index.ts` : ajout du self-invoke fire-and-forget quand le time budget est dépassé
