@@ -358,27 +358,31 @@ serve(async (req) => {
     // Get all Google Docs from the root folder
     const allFiles = await listPdfFilesInFolder(accessToken, missionsFolderId);
     
-    // Extract person name from each Google Doc
-    console.log(`Processing ${allFiles.length} files to extract person names...`);
+    // Extract person name from each Google Doc — in parallel (concurrency limit: 10)
+    console.log(`Processing ${allFiles.length} files to extract person names (parallel)...`);
     
-    for (const file of allFiles) {
-      if (file.mimeType === 'application/vnd.google-apps.document') {
-        try {
-          const content = await getDocumentContent(accessToken, file.id);
-          const { personName, preview } = extractPersonNameAndPreview(content);
-          file.personName = personName;
-          file.contentPreview = preview;
-          console.log(`File "${file.name}" -> Person: "${file.personName}"`);
-        } catch (e) {
-          console.warn(`Could not extract name from ${file.name}:`, e);
+    const CONCURRENCY = 10;
+    for (let i = 0; i < allFiles.length; i += CONCURRENCY) {
+      const batch = allFiles.slice(i, i + CONCURRENCY);
+      await Promise.all(batch.map(async (file) => {
+        if (file.mimeType === 'application/vnd.google-apps.document') {
+          try {
+            const content = await getDocumentContent(accessToken, file.id);
+            const { personName, preview } = extractPersonNameAndPreview(content);
+            file.personName = personName;
+            file.contentPreview = preview;
+            console.log(`File "${file.name}" -> Person: "${file.personName}"`);
+          } catch (e) {
+            console.warn(`Could not extract name from ${file.name}:`, e);
+            file.personName = 'NON IDENTIFIÉ';
+            file.contentPreview = '';
+          }
+        } else {
+          // For PDFs, we can't extract content easily
           file.personName = 'NON IDENTIFIÉ';
           file.contentPreview = '';
         }
-      } else {
-        // For PDFs, we can't extract content easily
-        file.personName = 'NON IDENTIFIÉ';
-        file.contentPreview = '';
-      }
+      }));
     }
     
     // Group files by person name
