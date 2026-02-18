@@ -202,9 +202,16 @@ const tools = [
       name: "query_fiches_apidae",
       description: `Recherche dans les ~5000 fiches touristiques synchronisées depuis Apidae (table fiches_data). Permet de chercher par nom, type de fiche, commune, source, statut de publication.
 
+RÈGLE CRITIQUE - "QUE FAIRE / QUOI FAIRE" avec une date précise :
+Quand l'utilisateur demande "que faire", "quoi faire", "qu'est-ce qu'il y a", "quels événements" à une date précise :
+1. Tu DOIS faire 2 appels SÉPARÉS avec date_active :
+   - Appel 1 : fiche_type="FETE_ET_MANIFESTATION", date_active="YYYY-MM-DD", limit=50
+   - Appel 2 : fiche_type="ACTIVITE", date_active="YYYY-MM-DD", limit=50
+2. Tu NE DOIS PAS inclure RESTAURATION, HEBERGEMENT_LOCATIF, HEBERGEMENT_COLLECTIF, STRUCTURE dans ces résultats sauf si l'utilisateur le demande EXPLICITEMENT.
+3. Présente UNIQUEMENT les événements/activités trouvés via date_active.
+
 GESTION DES DATES :
-- Utilise le paramètre 'date_active' (format YYYY-MM-DD) pour filtrer directement en base les fiches actives à une date précise. C'est la méthode RECOMMANDÉE pour les questions du type "que faire le [date] à [lieu]".
-- Pour les FETE_ET_MANIFESTATION, utilise toujours date_active quand l'utilisateur précise une date.
+- Utilise le paramètre 'date_active' (format YYYY-MM-DD) pour filtrer directement en base les fiches actives à une date précise.
 - Sans date_active, toutes les fiches sont retournées quelle que soit leur période d'ouverture.`,
       parameters: {
         type: "object",
@@ -635,6 +642,11 @@ serve(async (req) => {
 **3. Respecter la période demandée par l'utilisateur :**
 - Si l'utilisateur précise une période ("cet été", "en août", "pour les vacances de Noël", "la semaine prochaine", etc.), interprète cette période en tenant compte de la date actuelle et filtre/présente les résultats en conséquence.
 - Si une fiche ne couvre pas la période demandée, ne la présente pas comme une option valide.
+
+**4. RÈGLE ABSOLUE pour "que faire / quoi faire" à une date précise :**
+- Présente UNIQUEMENT les événements (FETE_ET_MANIFESTATION) et activités (ACTIVITE) qui se déroulent exactement ce jour-là.
+- N'inclus JAMAIS des hébergements, restaurants ou structures dans une réponse "que faire" — sauf si l'utilisateur le demande explicitement.
+- Tu dois toujours faire 2 requêtes séparées : une pour FETE_ET_MANIFESTATION, une pour ACTIVITE, toutes deux avec date_active.
 
 **4. Pour les fiches FETE_ET_MANIFESTATION notamment :**
 - Ne jamais recommander un événement dont la date de fin est passée.
