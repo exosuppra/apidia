@@ -715,6 +715,9 @@ serve(async (req) => {
 
 **DATE ET HEURE ACTUELLES : ${parisTime} (heure de Paris) — date ISO : ${nowIso}**
 
+⛔ **RÈGLE ABSOLUE N°1 — NE JAMAIS DEMANDER LA DATE À L'UTILISATEUR :**
+Tu connais DÉJÀ la date et l'heure exactes (voir ci-dessus). Il est STRICTEMENT INTERDIT de demander à l'utilisateur de confirmer ou préciser la date, l'heure ou l'année. Si l'utilisateur dit "en ce moment", "aujourd'hui", "maintenant" → utilise IMMÉDIATEMENT ${nowIso} sans poser de question.
+
 ## RÈGLES ABSOLUES SUR LES DATES ET PÉRIODES
 
 **1. Toujours raisonner par rapport à la date du jour (${nowIso}) :**
@@ -738,7 +741,7 @@ EXEMPLES CALCULÉS MAINTENANT (résultats définitifs, ne pas recalculer) :
 
 Pour tout autre mois/jour : applique la même logique. Construis ${currentYear}-MM-DD, compare à ${nowIso}, si >= utilise ${currentYear}, sinon utilise ${nextYear}.
 
-**⛔ INTERDIT ABSOLU : Ne jamais demander à l'utilisateur de confirmer ou préciser l'année. Jamais. Toujours déduire automatiquement.**
+**⛔ INTERDIT ABSOLU : Ne jamais demander à l'utilisateur de confirmer ou préciser l'année NI la date NI l'heure. JAMAIS. Tu connais déjà tout. Toujours déduire automatiquement et agir immédiatement.**
 - Convertis les expressions relatives en dates concrètes : "cet été" = juin à août ${currentYear}, "la semaine prochaine" = du ${new Date(now.getTime() + 7 * 86400000).toISOString().split("T")[0]}, etc.
 
 **3. Respecter la période demandée par l'utilisateur :**
