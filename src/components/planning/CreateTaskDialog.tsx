@@ -266,11 +266,16 @@ export function CreateTaskDialog({
 
             {/* AI Prompt Section */}
             <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-3">
-              <FormLabel className="flex items-center gap-1.5 text-sm font-medium">
-                <Sparkles className="h-3.5 w-3.5 text-primary" />
-                Générer une description avec l'IA
-                <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 leading-none">bêta</span>
-              </FormLabel>
+              <div className="flex items-center justify-between gap-2">
+                <FormLabel className="flex items-center gap-1.5 text-sm font-medium">
+                  <Sparkles className="h-3.5 w-3.5 text-primary" />
+                  Générer une description avec l'IA
+                  <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 leading-none">bêta</span>
+                </FormLabel>
+                <span className="text-[11px] text-muted-foreground italic max-w-[55%] text-right leading-tight">
+                  Modèles disponibles : GPT-5-mini &amp; Gemini Flash. Claude (Anthropic) n'est pas encore accessible via la gateway Lovable.
+                </span>
+              </div>
               <Textarea
                 placeholder="Décrivez vos attentes pour la description (ex: ton professionnel, public cible, points clés à mentionner…)"
                 value={aiPrompt}
