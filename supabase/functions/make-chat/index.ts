@@ -418,6 +418,11 @@ async function executeTool(toolName: string, args: any, supabaseAdmin: any, thre
         let enriched = rpcData || [];
         // Fetch full data for enrichment (opening periods + previews)
         const PREVIEW_TYPES = ["FETE_ET_MANIFESTATION", "ACTIVITE", "PATRIMOINE_CULTUREL", "DEGUSTATION"];
+        // RESTAURATION shown only when date_active is provided (verified opening hours)
+        const isVerifiedRestaurantQuery = args.fiche_type === "RESTAURATION" && !!args.date_active;
+        const EFFECTIVE_PREVIEW_TYPES = isVerifiedRestaurantQuery 
+          ? [...PREVIEW_TYPES, "RESTAURATION"]
+          : PREVIEW_TYPES;
         
         if (ficheIds.length > 0) {
           const { data: rawData } = await supabaseAdmin
@@ -441,9 +446,9 @@ async function executeTool(toolName: string, args: any, supabaseAdmin: any, thre
 
         // Accumulate previews for relevant types
         const ficheType = args.fiche_type;
-        if (!ficheType || PREVIEW_TYPES.includes(ficheType)) {
+        if (!ficheType || EFFECTIVE_PREVIEW_TYPES.includes(ficheType)) {
           for (const f of enriched) {
-            if (!PREVIEW_TYPES.includes(f.fiche_type)) continue;
+            if (!EFFECTIVE_PREVIEW_TYPES.includes(f.fiche_type)) continue;
             const raw = f._rawData || {};
             const periode = raw.ouverture?.periodesOuvertures?.[0];
             
@@ -509,6 +514,7 @@ async function executeTool(toolName: string, args: any, supabaseAdmin: any, thre
               email,
               site_web: siteWeb,
               tarif,
+              verified_opening: isVerifiedRestaurantQuery || undefined,
             });
           }
         }

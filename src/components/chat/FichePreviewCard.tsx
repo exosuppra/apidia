@@ -20,6 +20,7 @@ export interface FichePreview {
   email?: string;
   site_web?: string;
   tarif?: string;
+  verified_opening?: boolean;
 }
 
 interface FichePreviewCardProps {
@@ -135,9 +136,14 @@ export default function FichePreviewCard({ fiche }: FichePreviewCardProps) {
 
         {/* Content */}
         <div className="p-2.5">
-          <p className="font-semibold text-xs leading-tight line-clamp-2 text-foreground mb-1.5">
-            {fiche.nom}
-          </p>
+          <div className="flex items-start justify-between gap-1 mb-1.5">
+            <p className="font-semibold text-xs leading-tight line-clamp-2 text-foreground flex-1">
+              {fiche.nom}
+            </p>
+            {fiche.verified_opening && (
+              <span className="text-[10px] shrink-0 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 px-1 py-0.5 rounded font-medium">✅</span>
+            )}
+          </div>
           <div className="flex items-center gap-1 text-xs text-muted-foreground mb-1">
             <MapPin className="h-3 w-3 shrink-0" />
             <span className="truncate">{fiche.commune}</span>
