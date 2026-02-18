@@ -1,5 +1,9 @@
+import { useState } from "react";
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
+import { MapPin, Calendar, Clock, Info } from "lucide-react";
 
 export interface FichePreview {
   fiche_id: string;
@@ -10,6 +14,7 @@ export interface FichePreview {
   date_debut?: string;
   heure_debut?: string;
   date_fin?: string;
+  image_url?: string;
 }
 
 interface FichePreviewCardProps {
@@ -44,16 +49,26 @@ const TYPE_LABELS: Record<string, string> = {
   DEGUSTATION: "Dégustation",
 };
 
+const TYPE_COLORS: Record<string, string> = {
+  FETE_ET_MANIFESTATION: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300",
+  ACTIVITE: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300",
+  PATRIMOINE_CULTUREL: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300",
+  RESTAURATION: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300",
+  HEBERGEMENT_LOCATIF: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",
+  HEBERGEMENT_COLLECTIF: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",
+  DEGUSTATION: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300",
+};
+
 function formatDateHeure(dateDebut?: string, heureDebut?: string, dateFin?: string): string | null {
   if (!dateDebut) return null;
 
   try {
     const debut = parseISO(dateDebut);
-    const debutStr = format(debut, "d MMMM", { locale: fr });
+    const debutStr = format(debut, "d MMMM yyyy", { locale: fr });
 
     if (dateFin && dateFin !== dateDebut) {
       const fin = parseISO(dateFin);
-      const finStr = format(fin, "d MMMM", { locale: fr });
+      const finStr = format(fin, "d MMMM yyyy", { locale: fr });
       const heureStr = heureDebut ? ` à ${heureDebut}` : "";
       return `Du ${debutStr}${heureStr} au ${finStr}`;
     }
@@ -65,30 +80,137 @@ function formatDateHeure(dateDebut?: string, heureDebut?: string, dateFin?: stri
   }
 }
 
+// Placeholder gradient backgrounds based on type
+const TYPE_GRADIENTS: Record<string, string> = {
+  FETE_ET_MANIFESTATION: "from-purple-400 to-pink-500",
+  ACTIVITE: "from-green-400 to-emerald-500",
+  PATRIMOINE_CULTUREL: "from-amber-400 to-orange-500",
+  RESTAURATION: "from-orange-400 to-red-500",
+  HEBERGEMENT_LOCATIF: "from-blue-400 to-cyan-500",
+  HEBERGEMENT_COLLECTIF: "from-blue-400 to-indigo-500",
+  STRUCTURE: "from-gray-400 to-slate-500",
+  COMMERCE_ET_SERVICE: "from-teal-400 to-green-500",
+  EQUIPEMENT: "from-slate-400 to-gray-500",
+  SEJOUR_PACKAGE: "from-indigo-400 to-purple-500",
+  DEGUSTATION: "from-red-400 to-rose-500",
+};
+
 export default function FichePreviewCard({ fiche }: FichePreviewCardProps) {
+  const [open, setOpen] = useState(false);
   const icon = TYPE_ICONS[fiche.type] || "📌";
   const label = TYPE_LABELS[fiche.type] || fiche.type;
   const dateStr = formatDateHeure(fiche.date_debut, fiche.heure_debut, fiche.date_fin);
+  const gradient = TYPE_GRADIENTS[fiche.type] || "from-primary to-primary/60";
+  const badgeColor = TYPE_COLORS[fiche.type] || "bg-muted text-muted-foreground";
 
   return (
-    <div className="flex-shrink-0 w-52 rounded-lg border bg-background hover:bg-muted/50 transition-colors cursor-pointer p-3 shadow-sm">
-      <div className="flex items-start gap-2 mb-1.5">
-        <span className="text-lg leading-none mt-0.5">{icon}</span>
-        <p className="font-semibold text-xs leading-tight line-clamp-2 text-foreground">
-          {fiche.nom}
-        </p>
+    <>
+      <div
+        className="flex-shrink-0 w-52 rounded-lg border bg-background hover:bg-muted/50 transition-all cursor-pointer shadow-sm hover:shadow-md overflow-hidden group"
+        onClick={() => setOpen(true)}
+      >
+        {/* Image / placeholder */}
+        {fiche.image_url ? (
+          <div className="h-28 w-full overflow-hidden">
+            <img
+              src={fiche.image_url}
+              alt={fiche.nom}
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            />
+          </div>
+        ) : (
+          <div className={`h-28 w-full bg-gradient-to-br ${gradient} flex items-center justify-center`}>
+            <span className="text-4xl drop-shadow">{icon}</span>
+          </div>
+        )}
+
+        {/* Content */}
+        <div className="p-2.5">
+          <p className="font-semibold text-xs leading-tight line-clamp-2 text-foreground mb-1.5">
+            {fiche.nom}
+          </p>
+          <div className="flex items-center gap-1 text-xs text-muted-foreground mb-1">
+            <MapPin className="h-3 w-3 shrink-0" />
+            <span className="truncate">{fiche.commune}</span>
+          </div>
+          {dateStr && (
+            <div className="flex items-center gap-1 text-xs text-primary font-medium">
+              <Calendar className="h-3 w-3 shrink-0" />
+              <span className="truncate">{dateStr}</span>
+            </div>
+          )}
+          <div className="mt-1.5">
+            <span className={`inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-full ${badgeColor}`}>
+              {label}
+            </span>
+          </div>
+        </div>
       </div>
-      <p className="text-xs text-muted-foreground mb-1">
-        {fiche.commune} · {label}
-      </p>
-      {dateStr && (
-        <p className="text-xs text-primary font-medium mb-1">{dateStr}</p>
-      )}
-      {fiche.description && (
-        <p className="text-xs text-muted-foreground line-clamp-2 leading-tight">
-          {fiche.description}
-        </p>
-      )}
-    </div>
+
+      {/* Detail Dialog */}
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 pr-6">
+              <span className="text-xl">{icon}</span>
+              <span className="leading-tight">{fiche.nom}</span>
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            {/* Image in dialog */}
+            {fiche.image_url ? (
+              <div className="rounded-lg overflow-hidden h-48">
+                <img
+                  src={fiche.image_url}
+                  alt={fiche.nom}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            ) : (
+              <div className={`rounded-lg h-32 bg-gradient-to-br ${gradient} flex items-center justify-center`}>
+                <span className="text-5xl drop-shadow">{icon}</span>
+              </div>
+            )}
+
+            {/* Type badge */}
+            <span className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-full ${badgeColor}`}>
+              {label}
+            </span>
+
+            {/* Info rows */}
+            <div className="space-y-2">
+              <div className="flex items-start gap-2 text-sm">
+                <MapPin className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+                <span><strong>Commune :</strong> {fiche.commune}</span>
+              </div>
+
+              {dateStr && (
+                <div className="flex items-start gap-2 text-sm">
+                  <Calendar className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+                  <span>{dateStr}</span>
+                </div>
+              )}
+
+              {fiche.heure_debut && !dateStr?.includes("à") && (
+                <div className="flex items-start gap-2 text-sm">
+                  <Clock className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+                  <span>{fiche.heure_debut}</span>
+                </div>
+              )}
+
+              {fiche.description && (
+                <div className="flex items-start gap-2 text-sm">
+                  <Info className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+                  <p className="text-muted-foreground leading-relaxed">{fiche.description}</p>
+                </div>
+              )}
+            </div>
+
+            {/* Fiche ID */}
+            <p className="text-xs text-muted-foreground/60">ID : {fiche.fiche_id}</p>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

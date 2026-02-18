@@ -539,7 +539,7 @@ export default function FloatingChat() {
                         }`}
                       >
                         <div
-                          className={`max-w-[85%] rounded-lg px-3 py-2 ${
+                          className={`max-w-[85%] rounded-lg px-3 py-2 break-words overflow-hidden ${
                             msg.role === "user"
                               ? "bg-primary text-primary-foreground"
                               : "bg-muted text-foreground"
