@@ -17,6 +17,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -27,7 +28,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, Send, Loader2 } from "lucide-react";
+import { CalendarIcon, Send, Loader2, Sparkles, CheckCheck } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
@@ -71,6 +72,9 @@ export function CreateTaskDialog({
   const [localTags, setLocalTags] = useState<Tag[]>(tags);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [uploadingFiles, setUploadingFiles] = useState(false);
+  const [aiPrompt, setAiPrompt] = useState("");
+  const [aiProposals, setAiProposals] = useState<{ a: string; b: string } | null>(null);
+  const [generatingAi, setGeneratingAi] = useState(false);
 
   const form = useForm<TaskFormValues>({
     resolver: zodResolver(taskSchema),
@@ -192,6 +196,8 @@ export function CreateTaskDialog({
 
       form.reset();
       setSelectedFiles([]);
+      setAiPrompt("");
+      setAiProposals(null);
       onOpenChange(false);
       onSuccess();
     } catch (error: any) {
@@ -257,6 +263,76 @@ export function CreateTaskDialog({
                 </FormItem>
               )}
             />
+
+            {/* AI Prompt Section */}
+            <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-3">
+              <FormLabel className="flex items-center gap-1.5 text-sm font-medium">
+                <Sparkles className="h-3.5 w-3.5 text-primary" />
+                Générer une description avec l'IA
+              </FormLabel>
+              <Textarea
+                placeholder="Décrivez vos attentes pour la description (ex: ton professionnel, public cible, points clés à mentionner…)"
+                value={aiPrompt}
+                onChange={(e) => setAiPrompt(e.target.value)}
+                rows={2}
+                className="resize-none text-sm"
+              />
+              <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                disabled={!aiPrompt.trim() || !form.watch("title") || generatingAi}
+                onClick={async () => {
+                  setGeneratingAi(true);
+                  setAiProposals(null);
+                  try {
+                    const { data, error } = await supabase.functions.invoke("generate-task-description", {
+                      body: { title: form.getValues("title"), prompt: aiPrompt },
+                    });
+                    if (error) throw error;
+                    if (data?.error) throw new Error(data.error);
+                    setAiProposals({ a: data.proposalA, b: data.proposalB });
+                  } catch (err: any) {
+                    toast({ variant: "destructive", title: "Erreur IA", description: err.message });
+                  } finally {
+                    setGeneratingAi(false);
+                  }
+                }}
+              >
+                {generatingAi ? (
+                  <><Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />Génération...</>
+                ) : (
+                  <><Sparkles className="h-3.5 w-3.5 mr-1.5" />Générer 2 propositions</>
+                )}
+              </Button>
+
+              {aiProposals && (
+                <div className="grid grid-cols-2 gap-2 mt-2">
+                  {[
+                    { label: "💬 GPT-5-mini", text: aiProposals.a },
+                    { label: "✦ Gemini Flash", text: aiProposals.b },
+                  ].map((proposal) => (
+                    <div key={proposal.label} className="rounded-md border border-border bg-background p-2.5 flex flex-col gap-2">
+                      <span className="text-xs font-semibold text-muted-foreground">{proposal.label}</span>
+                      <p className="text-xs text-foreground leading-relaxed line-clamp-6">{proposal.text}</p>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="w-full text-xs h-7"
+                        onClick={() => {
+                          form.setValue("description", proposal.text);
+                          setAiProposals(null);
+                        }}
+                      >
+                        <CheckCheck className="h-3 w-3 mr-1" />
+                        Utiliser
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
 
             <FormField
               control={form.control}
