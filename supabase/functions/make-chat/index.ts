@@ -615,6 +615,15 @@ serve(async (req) => {
     });
 
     const nowIso = now.toISOString().split("T")[0]; // YYYY-MM-DD
+    const currentYear = now.getFullYear();
+    const nextYear = currentYear + 1;
+
+    // Pre-compute a few reference examples so the model can't get confused
+    // Example: "13 mars" → 2026-03-13 >= 2026-02-18 → futur → use 2026
+    const marchExample = `${currentYear}-03-13`;
+    const marchIsFuture = marchExample >= nowIso;
+    const janExample = `${currentYear}-01-10`;
+    const janIsFuture = janExample >= nowIso;
 
     const systemPrompt = `Tu es un assistant IA intelligent pour le tableau de bord Apidia.
 
@@ -627,17 +636,24 @@ serve(async (req) => {
 - Si une fiche contient des dates d'ouverture, de fermeture, ou des périodes d'événements, vérifie qu'elles sont **≥ aujourd'hui (${nowIso})** avant de les présenter comme des informations pertinentes.
 - Si les données récupérées sont passées, indique-le clairement à l'utilisateur et précise qu'elles ne sont plus valides.
 
-**2. Interprétation intelligente des dates sans année :**
-- Si l'utilisateur mentionne une date sans préciser l'année (ex: "vendredi 13 mars", "le 15 août"), tu dois **automatiquement déduire l'année correcte** sans jamais demander confirmation.
-- Voici la méthode EXACTE à suivre, étape par étape :
-  1. Extrais le mois et le jour mentionnés (ex: "13 mars" → mois=03, jour=13)
-  2. Construis la date candidate avec l'année en cours : ${nowIso.slice(0, 4)}-03-13 (exemple pour "13 mars")
-  3. Compare cette date candidate à aujourd'hui ${nowIso} :
-     - Si date_candidate >= ${nowIso} → la date est dans le futur ou aujourd'hui → utilise l'année ${nowIso.slice(0, 4)}
-     - Si date_candidate < ${nowIso} → la date est déjà passée → utilise l'année ${parseInt(nowIso.slice(0, 4)) + 1}
-  4. Exemple concret : "13 mars" → candidate = ${nowIso.slice(0, 4)}-03-13. Est-ce que ${nowIso.slice(0, 4)}-03-13 >= ${nowIso} ? OUI → utilise ${nowIso.slice(0, 4)}-03-13.
-  5. **NE JAMAIS demander à l'utilisateur de confirmer l'année** — applique cette logique toi-même et réponds directement.
-- Convertis les expressions relatives en dates concrètes : "cet été" = juin à août ${new Date().getFullYear()}, "la semaine prochaine" = du ${new Date(now.getTime() + 7 * 86400000).toISOString().split("T")[0]}, etc.
+**2. Interprétation intelligente des dates sans année — RÈGLE ABSOLUE :**
+
+AUJOURD'HUI = ${nowIso}. ANNÉE EN COURS = ${currentYear}. ANNÉE SUIVANTE = ${nextYear}.
+
+Quand l'utilisateur mentionne une date SANS année (ex: "vendredi 13 mars", "le 15 août") :
+- ÉTAPE 1 : Construis la date ISO avec l'année en cours → ex: "13 mars" = ${currentYear}-03-13
+- ÉTAPE 2 : Compare cette date à ${nowIso} (aujourd'hui)
+  - Si ${currentYear}-03-13 >= ${nowIso} → FUTUR → utilise ${currentYear} → date = ${currentYear}-03-13 ✓
+  - Si ${currentYear}-03-13 < ${nowIso} → PASSÉ → utilise ${nextYear} → date = ${nextYear}-03-13 ✓
+
+EXEMPLES CALCULÉS MAINTENANT (résultats définitifs, ne pas recalculer) :
+- "13 mars" → ${currentYear}-03-13 ${marchIsFuture ? ">=" : "<"} ${nowIso} → ${marchIsFuture ? "FUTUR" : "PASSÉ"} → utilise **${marchIsFuture ? currentYear : nextYear}** → date = **${marchIsFuture ? currentYear : nextYear}-03-13**
+- "10 janvier" → ${currentYear}-01-10 ${janIsFuture ? ">=" : "<"} ${nowIso} → ${janIsFuture ? "FUTUR" : "PASSÉ"} → utilise **${janIsFuture ? currentYear : nextYear}** → date = **${janIsFuture ? currentYear : nextYear}-01-10**
+
+Pour tout autre mois/jour : applique la même logique. Construis ${currentYear}-MM-DD, compare à ${nowIso}, si >= utilise ${currentYear}, sinon utilise ${nextYear}.
+
+**⛔ INTERDIT ABSOLU : Ne jamais demander à l'utilisateur de confirmer ou préciser l'année. Jamais. Toujours déduire automatiquement.**
+- Convertis les expressions relatives en dates concrètes : "cet été" = juin à août ${currentYear}, "la semaine prochaine" = du ${new Date(now.getTime() + 7 * 86400000).toISOString().split("T")[0]}, etc.
 
 **3. Respecter la période demandée par l'utilisateur :**
 - Si l'utilisateur précise une période ("cet été", "en août", "pour les vacances de Noël", "la semaine prochaine", etc.), interprète cette période en tenant compte de la date actuelle et filtre/présente les résultats en conséquence.
