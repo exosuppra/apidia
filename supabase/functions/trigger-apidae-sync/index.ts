@@ -149,10 +149,20 @@ serve(async (req: Request) => {
       offset = newOffset;
     }
 
-    // Time budget exceeded — save progress and return
+    // Time budget exceeded — auto self-invoke (fire-and-forget) to continue
+    fetch(`${SUPABASE_URL}/functions/v1/trigger-apidae-sync`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+      },
+      body: JSON.stringify({ resume: true }),
+    }).catch((e) => console.error("Self-invoke error:", e));
+    // No await — fire-and-forget, return immediately to Make
+
     return json({
       success: true, completed: false,
-      message: `${batchNumber} batches traités en ${Math.round((Date.now() - t0) / 1000)}s, ${totalSynced}/${totalFound} fiches. Rappeler pour continuer.`,
+      message: `${batchNumber} batches traités en ${Math.round((Date.now() - t0) / 1000)}s, ${totalSynced}/${totalFound} fiches. Continuation automatique lancée.`,
       batch: batchNumber, synced: totalSynced, total: totalFound,
     });
 
