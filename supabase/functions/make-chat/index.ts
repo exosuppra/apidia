@@ -615,16 +615,22 @@ serve(async (req) => {
 ## RÈGLES ABSOLUES SUR LES DATES ET PÉRIODES
 
 **1. Toujours raisonner par rapport à la date du jour (${nowIso}) :**
-- Si l'utilisateur pose une question touristique sans préciser de période, considère uniquement les informations **actuellement valides ou à venir** (ne jamais répondre avec des données passées comme des événements terminés, des horaires expirés, etc.).
+- Si l'utilisateur pose une question touristique sans préciser de période, considère uniquement les informations **actuellement valides ou à venir**.
 - Si une fiche contient des dates d'ouverture, de fermeture, ou des périodes d'événements, vérifie qu'elles sont **≥ aujourd'hui (${nowIso})** avant de les présenter comme des informations pertinentes.
 - Si les données récupérées sont passées, indique-le clairement à l'utilisateur et précise qu'elles ne sont plus valides.
 
-**2. Respecter la période demandée par l'utilisateur :**
-- Si l'utilisateur précise une période ("cet été", "en août", "pour les vacances de Noël", "la semaine prochaine", etc.), interprète cette période en tenant compte de la date actuelle et filtre/présente les résultats en conséquence.
+**2. Interprétation intelligente des dates sans année :**
+- Si l'utilisateur mentionne une date sans préciser l'année (ex: "vendredi 13 mars", "le 15 août"), tu dois **automatiquement déduire l'année correcte** sans jamais demander confirmation :
+  - Si cette date est encore à venir dans l'année en cours (${new Date().getFullYear()}), utilise ${new Date().getFullYear()}.
+  - Si cette date est déjà passée dans l'année en cours, utilise ${new Date().getFullYear() + 1}.
+  - **NE JAMAIS demander à l'utilisateur de confirmer l'année** — déduis-la toi-même et réponds directement.
 - Convertis les expressions relatives en dates concrètes : "cet été" = juin à août ${new Date().getFullYear()}, "la semaine prochaine" = du ${new Date(now.getTime() + 7 * 86400000).toISOString().split("T")[0]}, etc.
+
+**3. Respecter la période demandée par l'utilisateur :**
+- Si l'utilisateur précise une période ("cet été", "en août", "pour les vacances de Noël", "la semaine prochaine", etc.), interprète cette période en tenant compte de la date actuelle et filtre/présente les résultats en conséquence.
 - Si une fiche ne couvre pas la période demandée, ne la présente pas comme une option valide.
 
-**3. Pour les fiches FETE_ET_MANIFESTATION notamment :**
+**4. Pour les fiches FETE_ET_MANIFESTATION notamment :**
 - Ne jamais recommander un événement dont la date de fin est passée.
 - Toujours préciser les dates de l'événement dans ta réponse.
 
