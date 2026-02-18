@@ -381,29 +381,94 @@ async function executeTool(toolName: string, args: any, supabaseAdmin: any, thre
       }
       
       case "query_fiches_apidae": {
-        let query = supabaseAdmin.from("fiches_data").select("fiche_id, fiche_type, source, is_published, data");
+        const limit = Math.min(args.limit || 20, 50);
         
-        if (args.search_term) {
-          query = query.ilike("data->>nom", `%${args.search_term}%`);
-        }
+        // Build conditions for the SQL query
+        const conditions: string[] = [];
+        const sqlParams: any[] = [];
+        let paramIdx = 1;
+        
         if (args.fiche_type) {
-          query = query.eq("fiche_type", args.fiche_type);
-        }
-        if (args.commune) {
-          query = query.ilike("data->localisation->adresse->commune->>nom", `%${args.commune}%`);
+          conditions.push(`fiche_type = $${paramIdx++}`);
+          sqlParams.push(args.fiche_type);
         }
         if (args.source) {
-          query = query.eq("source", args.source);
+          conditions.push(`source = $${paramIdx++}`);
+          sqlParams.push(args.source);
         }
         if (args.is_published !== undefined) {
-          query = query.eq("is_published", args.is_published);
+          conditions.push(`is_published = $${paramIdx++}`);
+          sqlParams.push(args.is_published);
+        }
+        if (args.search_term) {
+          conditions.push(`(data->'nom'->>'libelleFr' ILIKE $${paramIdx} OR data->'nom'->>'libelleEn' ILIKE $${paramIdx})`);
+          sqlParams.push(`%${args.search_term}%`);
+          paramIdx++;
+        }
+        if (args.commune) {
+          conditions.push(`data->'localisation'->'adresse'->'commune'->>'nom' ILIKE $${paramIdx++}`);
+          sqlParams.push(`%${args.commune}%`);
         }
         
-        const limit = Math.min(args.limit || 20, 50);
+        const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
+        const sql = `
+          SELECT 
+            fiche_id,
+            fiche_type,
+            source,
+            is_published,
+            data->'nom'->>'libelleFr' AS nom,
+            data->'localisation'->'adresse'->'commune'->>'nom' AS commune,
+            data->'localisation'->'adresse'->>'codePostal' AS code_postal,
+            data->'presentation'->'descriptifCourt'->>'libelleFr' AS description_courte,
+            SUBSTRING(data->'presentation'->'descriptifDetaille'->>'libelleFr', 1, 300) AS description_detaillee
+          FROM fiches_data
+          ${whereClause}
+          LIMIT ${limit}
+        `;
+        
+        // Use supabaseAdmin to execute raw SQL via RPC or direct fetch
+        const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+        const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+        
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/rpc/execute_query`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "apikey": SERVICE_KEY,
+            "Authorization": `Bearer ${SERVICE_KEY}`,
+          },
+          body: JSON.stringify({ query: sql }),
+        });
+        
+        // Fallback: use the JS client with filter workaround
+        let query = supabaseAdmin
+          .from("fiches_data")
+          .select("fiche_id, fiche_type, source, is_published, data");
+        
+        if (args.fiche_type) query = query.eq("fiche_type", args.fiche_type);
+        if (args.source) query = query.eq("source", args.source);
+        if (args.is_published !== undefined) query = query.eq("is_published", args.is_published);
+        if (args.search_term) {
+          query = query.or(
+            `data->nom->>libelleFr.ilike.%${args.search_term}%,data->nom->>libelleEn.ilike.%${args.search_term}%`
+          );
+        }
+        if (args.commune) {
+          query = query.filter(
+            "data->localisation->adresse->commune->>nom",
+            "ilike",
+            `%${args.commune}%`
+          );
+        }
+        
         query = query.limit(limit);
         
         const { data, error } = await query;
-        if (error) throw error;
+        if (error) {
+          console.error("query_fiches_apidae error:", error);
+          throw error;
+        }
         
         // Format results to extract useful fields from JSONB
         const formatted = (data || []).map((f: any) => ({
@@ -415,7 +480,7 @@ async function executeTool(toolName: string, args: any, supabaseAdmin: any, thre
           commune: f.data?.localisation?.adresse?.commune?.nom || "",
           code_postal: f.data?.localisation?.adresse?.codePostal || "",
           description_courte: f.data?.presentation?.descriptifCourt?.libelleFr || "",
-          description_detaillee: f.data?.presentation?.descriptifDetaille?.libelleFr || "",
+          description_detaillee: (f.data?.presentation?.descriptifDetaille?.libelleFr || "").substring(0, 300),
         }));
         
         return JSON.stringify({ count: formatted.length, fiches: formatted });
