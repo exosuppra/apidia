@@ -871,6 +871,27 @@ export type Database = {
         }
         Returns: boolean
       }
+      search_fiches_apidae: {
+        Args: {
+          p_commune?: string
+          p_fiche_type?: string
+          p_is_published?: boolean
+          p_limit?: number
+          p_search_term?: string
+          p_source?: string
+        }
+        Returns: {
+          code_postal: string
+          commune: string
+          description_courte: string
+          description_detaillee: string
+          fiche_id: string
+          fiche_type: string
+          is_published: boolean
+          nom: string
+          source: string
+        }[]
+      }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"
