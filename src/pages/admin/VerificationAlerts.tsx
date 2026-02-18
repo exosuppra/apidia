@@ -226,24 +226,34 @@ export default function VerificationAlerts() {
   const loadAlerts = async () => {
     setLoading(true);
     try {
+      // Charger les alertes avec pagination (limite 1000 par défaut de Supabase)
       const { data, error } = await supabase
         .from("verification_alerts")
         .select("*")
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false })
+        .limit(2000);
 
       if (error) throw error;
 
       const typedData = (data || []) as VerificationAlert[];
       setAlerts(typedData);
 
-      const newStats = {
-        total: typedData.length,
-        pending: typedData.filter((a) => a.status === "pending").length,
-        confirmed: typedData.filter((a) => a.status === "confirmed").length,
-        ignored: typedData.filter((a) => a.status === "ignored").length,
-        fixed: typedData.filter((a) => a.status === "fixed").length,
-      };
-      setStats(newStats);
+      // Compter les stats directement en base pour avoir les vrais totaux
+      const [totalRes, pendingRes, confirmedRes, ignoredRes, fixedRes] = await Promise.all([
+        supabase.from("verification_alerts").select("*", { count: "exact", head: true }),
+        supabase.from("verification_alerts").select("*", { count: "exact", head: true }).eq("status", "pending"),
+        supabase.from("verification_alerts").select("*", { count: "exact", head: true }).eq("status", "confirmed"),
+        supabase.from("verification_alerts").select("*", { count: "exact", head: true }).eq("status", "ignored"),
+        supabase.from("verification_alerts").select("*", { count: "exact", head: true }).eq("status", "fixed"),
+      ]);
+
+      setStats({
+        total: totalRes.count || 0,
+        pending: pendingRes.count || 0,
+        confirmed: confirmedRes.count || 0,
+        ignored: ignoredRes.count || 0,
+        fixed: fixedRes.count || 0,
+      });
     } catch (error) {
       console.error("Error loading alerts:", error);
       toast.error("Erreur lors du chargement des alertes");
