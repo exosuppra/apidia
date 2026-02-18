@@ -621,10 +621,15 @@ serve(async (req) => {
 - Si les données récupérées sont passées, indique-le clairement à l'utilisateur et précise qu'elles ne sont plus valides.
 
 **2. Interprétation intelligente des dates sans année :**
-- Si l'utilisateur mentionne une date sans préciser l'année (ex: "vendredi 13 mars", "le 15 août"), tu dois **automatiquement déduire l'année correcte** sans jamais demander confirmation :
-  - Si cette date est encore à venir dans l'année en cours (${new Date().getFullYear()}), utilise ${new Date().getFullYear()}.
-  - Si cette date est déjà passée dans l'année en cours, utilise ${new Date().getFullYear() + 1}.
-  - **NE JAMAIS demander à l'utilisateur de confirmer l'année** — déduis-la toi-même et réponds directement.
+- Si l'utilisateur mentionne une date sans préciser l'année (ex: "vendredi 13 mars", "le 15 août"), tu dois **automatiquement déduire l'année correcte** sans jamais demander confirmation.
+- Voici la méthode EXACTE à suivre, étape par étape :
+  1. Extrais le mois et le jour mentionnés (ex: "13 mars" → mois=03, jour=13)
+  2. Construis la date candidate avec l'année en cours : ${nowIso.slice(0, 4)}-03-13 (exemple pour "13 mars")
+  3. Compare cette date candidate à aujourd'hui ${nowIso} :
+     - Si date_candidate >= ${nowIso} → la date est dans le futur ou aujourd'hui → utilise l'année ${nowIso.slice(0, 4)}
+     - Si date_candidate < ${nowIso} → la date est déjà passée → utilise l'année ${parseInt(nowIso.slice(0, 4)) + 1}
+  4. Exemple concret : "13 mars" → candidate = ${nowIso.slice(0, 4)}-03-13. Est-ce que ${nowIso.slice(0, 4)}-03-13 >= ${nowIso} ? OUI → utilise ${nowIso.slice(0, 4)}-03-13.
+  5. **NE JAMAIS demander à l'utilisateur de confirmer l'année** — applique cette logique toi-même et réponds directement.
 - Convertis les expressions relatives en dates concrètes : "cet été" = juin à août ${new Date().getFullYear()}, "la semaine prochaine" = du ${new Date(now.getTime() + 7 * 86400000).toISOString().split("T")[0]}, etc.
 
 **3. Respecter la période demandée par l'utilisateur :**
