@@ -2,8 +2,7 @@ import { useState } from "react";
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Badge } from "@/components/ui/badge";
-import { MapPin, Calendar, Clock, Info } from "lucide-react";
+import { MapPin, Calendar, Clock, Info, Phone, Mail, Globe, Euro } from "lucide-react";
 
 export interface FichePreview {
   fiche_id: string;
@@ -15,6 +14,12 @@ export interface FichePreview {
   heure_debut?: string;
   date_fin?: string;
   image_url?: string;
+  adresse?: string;
+  code_postal?: string;
+  telephone?: string;
+  email?: string;
+  site_web?: string;
+  tarif?: string;
 }
 
 interface FichePreviewCardProps {
@@ -59,28 +64,6 @@ const TYPE_COLORS: Record<string, string> = {
   DEGUSTATION: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300",
 };
 
-function formatDateHeure(dateDebut?: string, heureDebut?: string, dateFin?: string): string | null {
-  if (!dateDebut) return null;
-
-  try {
-    const debut = parseISO(dateDebut);
-    const debutStr = format(debut, "d MMMM yyyy", { locale: fr });
-
-    if (dateFin && dateFin !== dateDebut) {
-      const fin = parseISO(dateFin);
-      const finStr = format(fin, "d MMMM yyyy", { locale: fr });
-      const heureStr = heureDebut ? ` à ${heureDebut}` : "";
-      return `Du ${debutStr}${heureStr} au ${finStr}`;
-    }
-
-    const heureStr = heureDebut ? ` à ${heureDebut}` : "";
-    return `${debutStr}${heureStr}`;
-  } catch {
-    return null;
-  }
-}
-
-// Placeholder gradient backgrounds based on type
 const TYPE_GRADIENTS: Record<string, string> = {
   FETE_ET_MANIFESTATION: "from-purple-400 to-pink-500",
   ACTIVITE: "from-green-400 to-emerald-500",
@@ -95,6 +78,31 @@ const TYPE_GRADIENTS: Record<string, string> = {
   DEGUSTATION: "from-red-400 to-rose-500",
 };
 
+function formatDateHeure(dateDebut?: string, heureDebut?: string, dateFin?: string): string | null {
+  if (!dateDebut) return null;
+  try {
+    const debut = parseISO(dateDebut);
+    const debutStr = format(debut, "d MMMM yyyy", { locale: fr });
+    if (dateFin && dateFin !== dateDebut) {
+      const fin = parseISO(dateFin);
+      const finStr = format(fin, "d MMMM yyyy", { locale: fr });
+      const heureStr = heureDebut ? ` à ${heureDebut}` : "";
+      return `Du ${debutStr}${heureStr} au ${finStr}`;
+    }
+    const heureStr = heureDebut ? ` à ${heureDebut}` : "";
+    return `${debutStr}${heureStr}`;
+  } catch {
+    return null;
+  }
+}
+
+function buildFullAddress(fiche: FichePreview): string | null {
+  const street = fiche.adresse;
+  const cityLine = [fiche.code_postal, fiche.commune].filter(Boolean).join(" ");
+  const parts = [street, cityLine].filter(Boolean);
+  return parts.length > 0 ? parts.join(", ") : null;
+}
+
 export default function FichePreviewCard({ fiche }: FichePreviewCardProps) {
   const [open, setOpen] = useState(false);
   const icon = TYPE_ICONS[fiche.type] || "📌";
@@ -102,6 +110,7 @@ export default function FichePreviewCard({ fiche }: FichePreviewCardProps) {
   const dateStr = formatDateHeure(fiche.date_debut, fiche.heure_debut, fiche.date_fin);
   const gradient = TYPE_GRADIENTS[fiche.type] || "from-primary to-primary/60";
   const badgeColor = TYPE_COLORS[fiche.type] || "bg-muted text-muted-foreground";
+  const fullAddress = buildFullAddress(fiche);
 
   return (
     <>
@@ -134,9 +143,21 @@ export default function FichePreviewCard({ fiche }: FichePreviewCardProps) {
             <span className="truncate">{fiche.commune}</span>
           </div>
           {dateStr && (
-            <div className="flex items-center gap-1 text-xs text-primary font-medium">
+            <div className="flex items-center gap-1 text-xs text-primary font-medium mb-1">
               <Calendar className="h-3 w-3 shrink-0" />
               <span className="truncate">{dateStr}</span>
+            </div>
+          )}
+          {fiche.tarif && (
+            <div className="flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400 font-medium mb-1">
+              <Euro className="h-3 w-3 shrink-0" />
+              <span className="truncate">{fiche.tarif}</span>
+            </div>
+          )}
+          {(fiche.telephone || fiche.email) && (
+            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+              {fiche.telephone && <Phone className="h-3 w-3 shrink-0" />}
+              {fiche.telephone && <span className="truncate">{fiche.telephone}</span>}
             </div>
           )}
           <div className="mt-1.5">
@@ -149,7 +170,7 @@ export default function FichePreviewCard({ fiche }: FichePreviewCardProps) {
 
       {/* Detail Dialog */}
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 pr-6">
               <span className="text-xl">{icon}</span>
@@ -157,14 +178,10 @@ export default function FichePreviewCard({ fiche }: FichePreviewCardProps) {
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            {/* Image in dialog */}
+            {/* Image */}
             {fiche.image_url ? (
               <div className="rounded-lg overflow-hidden h-48">
-                <img
-                  src={fiche.image_url}
-                  alt={fiche.nom}
-                  className="w-full h-full object-cover"
-                />
+                <img src={fiche.image_url} alt={fiche.nom} className="w-full h-full object-cover" />
               </div>
             ) : (
               <div className={`rounded-lg h-32 bg-gradient-to-br ${gradient} flex items-center justify-center`}>
@@ -178,19 +195,22 @@ export default function FichePreviewCard({ fiche }: FichePreviewCardProps) {
             </span>
 
             {/* Info rows */}
-            <div className="space-y-2">
-              <div className="flex items-start gap-2 text-sm">
-                <MapPin className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
-                <span><strong>Commune :</strong> {fiche.commune}</span>
-              </div>
+            <div className="space-y-2.5">
+              {/* Address */}
+              {(fullAddress || fiche.commune) && (
+                <div className="flex items-start gap-2 text-sm">
+                  <MapPin className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+                  <span>{fullAddress || fiche.commune}</span>
+                </div>
+              )}
 
+              {/* Date */}
               {dateStr && (
                 <div className="flex items-start gap-2 text-sm">
                   <Calendar className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
                   <span>{dateStr}</span>
                 </div>
               )}
-
               {fiche.heure_debut && !dateStr?.includes("à") && (
                 <div className="flex items-start gap-2 text-sm">
                   <Clock className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
@@ -198,6 +218,50 @@ export default function FichePreviewCard({ fiche }: FichePreviewCardProps) {
                 </div>
               )}
 
+              {/* Tarif */}
+              {fiche.tarif && (
+                <div className="flex items-start gap-2 text-sm">
+                  <Euro className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+                  <span className="text-emerald-700 dark:text-emerald-300 font-medium">{fiche.tarif}</span>
+                </div>
+              )}
+
+              {/* Téléphone */}
+              {fiche.telephone && (
+                <div className="flex items-start gap-2 text-sm">
+                  <Phone className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+                  <a href={`tel:${fiche.telephone}`} className="text-primary hover:underline">
+                    {fiche.telephone}
+                  </a>
+                </div>
+              )}
+
+              {/* Email */}
+              {fiche.email && (
+                <div className="flex items-start gap-2 text-sm">
+                  <Mail className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+                  <a href={`mailto:${fiche.email}`} className="text-primary hover:underline break-all">
+                    {fiche.email}
+                  </a>
+                </div>
+              )}
+
+              {/* Site web */}
+              {fiche.site_web && (
+                <div className="flex items-start gap-2 text-sm">
+                  <Globe className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+                  <a
+                    href={fiche.site_web}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary hover:underline break-all"
+                  >
+                    {fiche.site_web}
+                  </a>
+                </div>
+              )}
+
+              {/* Description */}
               {fiche.description && (
                 <div className="flex items-start gap-2 text-sm">
                   <Info className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
@@ -206,8 +270,7 @@ export default function FichePreviewCard({ fiche }: FichePreviewCardProps) {
               )}
             </div>
 
-            {/* Fiche ID */}
-            <p className="text-xs text-muted-foreground/60">ID : {fiche.fiche_id}</p>
+            <p className="text-xs text-muted-foreground/50">ID : {fiche.fiche_id}</p>
           </div>
         </DialogContent>
       </Dialog>
