@@ -79,6 +79,8 @@ interface VerificationConfig {
   days_between_verification: number;
   exclude_recently_modified: boolean;
   days_consider_recent: number;
+  exclude_recently_imported: boolean;
+  days_consider_recent_import: number;
   last_run_at: string | null;
   next_run_at: string | null;
 }
@@ -206,6 +208,8 @@ export default function VerificationAlerts() {
           days_between_verification: config.days_between_verification,
           exclude_recently_modified: config.exclude_recently_modified,
           days_consider_recent: config.days_consider_recent,
+          exclude_recently_imported: config.exclude_recently_imported,
+          days_consider_recent_import: config.days_consider_recent_import,
           next_run_at: nextRunAt,
         })
         .eq("id", config.id);
@@ -554,6 +558,37 @@ export default function VerificationAlerts() {
                             className="w-20"
                             value={config.days_consider_recent}
                             onChange={(e) => setConfig({ ...config, days_consider_recent: parseInt(e.target.value) || 7 })}
+                          />
+                          <span className="text-sm text-muted-foreground">jours</span>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Exclure les fiches récemment importées */}
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label>Exclure les fiches récemment importées</Label>
+                        <p className="text-xs text-muted-foreground">
+                          Ne pas vérifier les fiches importées (synchronisation Apidae) récemment
+                        </p>
+                      </div>
+                      <Switch
+                        checked={config.exclude_recently_imported}
+                        onCheckedChange={(checked) => setConfig({ ...config, exclude_recently_imported: checked })}
+                      />
+                    </div>
+
+                    {config.exclude_recently_imported && (
+                      <div className="space-y-2 ml-4 pl-4 border-l-2">
+                        <Label className="text-sm">Considérer comme "récente" si importée dans les derniers</Label>
+                        <div className="flex items-center gap-2">
+                          <Input
+                            type="number"
+                            min={1}
+                            max={90}
+                            className="w-20"
+                            value={config.days_consider_recent_import}
+                            onChange={(e) => setConfig({ ...config, days_consider_recent_import: parseInt(e.target.value) || 7 })}
                           />
                           <span className="text-sm text-muted-foreground">jours</span>
                         </div>
