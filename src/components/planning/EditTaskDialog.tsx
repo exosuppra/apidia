@@ -281,6 +281,7 @@ export function EditTaskDialog({
               <FormLabel className="flex items-center gap-1.5 text-sm font-medium">
                 <Sparkles className="h-3.5 w-3.5 text-primary" />
                 Générer une description avec l'IA
+                <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 leading-none">bêta</span>
               </FormLabel>
               <Textarea
                 placeholder="Décrivez vos attentes pour la description (ex: ton professionnel, public cible, points clés à mentionner…)"
