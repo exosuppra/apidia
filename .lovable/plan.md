@@ -1,60 +1,105 @@
 
-## Problème identifié
+## Ajout de bulles de prévisualisation des fiches Apidae dans le chat
 
-Le bug vient de la logique de déduction d'année dans le prompt système de l'edge function `supabase/functions/make-chat/index.ts`.
+### Objectif
 
-### Cause racine
+Après chaque réponse du chatbot listant des événements ou activités, afficher des cartes de prévisualisation cliquables présentant les informations clés de chaque fiche Apidae (nom, type, commune, horaires, description courte).
 
-La règle actuelle dans le prompt :
+### Approche
 
-> "Si cette date est encore à venir dans l'année en cours, utilise l'année en cours. Si cette date est déjà passée dans l'année en cours, utilise l'année suivante."
+L'edge function `make-chat` retournera, en plus du texte de réponse, une liste structurée des fiches trouvées. Le frontend affichera ces données sous forme de cartes compactes sous la bulle de réponse de l'assistant.
 
-Le modèle compare le **mois/jour** mentionné (13 mars) à la date du jour (18 février). Comme mars > février, le modèle interprète "13 mars" comme étant **après** la date du jour dans l'année en cours — mais il inverse la logique et pense que le 13 mars est "passé" par rapport au 18 février, puis conclut que la date 2026 est dans le passé.
+---
 
-En réalité, le 13 mars 2026 est bien **dans le futur** par rapport au 18 février 2026.
+### Modifications techniques
 
-### Correction
+#### 1. Edge Function `supabase/functions/make-chat/index.ts`
 
-Réécrire la règle de déduction d'année dans le prompt de façon très explicite, sans ambiguïté, en donnant un exemple concret avec la date actuelle réelle :
+**Objectif** : Retourner les données brutes des fiches trouvées en plus du texte de réponse.
 
-**Règle actuelle (ambiguë) :**
+- Stocker les résultats de `query_fiches_apidae` dans une variable partagée au niveau de la requête (`fichesPreviews`).
+- À chaque appel de `query_fiches_apidae`, accumuler les fiches retournées dans `fichesPreviews`.
+- Dans la réponse finale, retourner :
+  ```json
+  {
+    "response": "texte de l'assistant...",
+    "fiches_previews": [
+      {
+        "fiche_id": "12345",
+        "nom": "Club des lecteurs",
+        "type": "FETE_ET_MANIFESTATION",
+        "commune": "Gréoux-les-Bains",
+        "description": "Moment de partage autour des lectures...",
+        "date_debut": "2026-03-13",
+        "heure_debut": "17:00",
+        "date_fin": "2026-03-13"
+      },
+      ...
+    ]
+  }
+  ```
+- Les champs extraits du JSON Apidae (`data`) : `nom.libelleFr`, `localisation.adresse.commune.nom`, `presentation.descriptifCourt.libelleFr`, plus les horaires depuis `ouverture.periodesOuvertures[0]`.
+
+#### 2. `src/components/FloatingChat.tsx`
+
+**Objectif** : Lire `fiches_previews` dans la réponse et les associer au message assistant.
+
+- Modifier l'interface `Message` pour ajouter un champ optionnel :
+  ```typescript
+  interface FichePreview {
+    fiche_id: string;
+    nom: string;
+    type: string;
+    commune: string;
+    description?: string;
+    date_debut?: string;
+    heure_debut?: string;
+    date_fin?: string;
+  }
+
+  interface Message {
+    // ...existing fields
+    fichesPreview?: FichePreview[];
+  }
+  ```
+- Après réception de la réponse de l'edge function, extraire `data.fiches_previews` et les attacher au message assistant.
+- Lors de l'affichage des messages, si un message assistant a `fichesPreview`, afficher les cartes en dessous du texte.
+
+#### 3. Nouveau composant `src/components/chat/FichePreviewCard.tsx`
+
+**Objectif** : Afficher une carte de prévisualisation compacte pour chaque fiche.
+
+Structure visuelle d'une carte :
 ```
-Si cette date est encore à venir dans l'année en cours, utilise l'année en cours.
-Si cette date est déjà passée dans l'année en cours, utilise l'année suivante.
+┌─────────────────────────────────────┐
+│ 🎭 Club des lecteurs                │
+│ Gréoux-les-Bains • Manifestation    │
+│ Vendredi 13 mars à 17h00            │
+│ "Coups de cœur de la rentrée..."    │
+└─────────────────────────────────────┘
 ```
 
-**Nouvelle règle (explicite) :**
-```
-IMPORTANT : Pour déduire l'année d'une date sans année :
-1. Construis la date avec l'année en cours : ex. "13 mars" → 2026-03-13
-2. Compare cette date à aujourd'hui (${nowIso})
-3. Si 2026-03-13 >= 2026-02-18 (aujourd'hui) → la date est dans le futur → utilise 2026
-4. Si 2026-03-13 < 2026-02-18 → la date est déjà passée → utilise 2027
-5. NE JAMAIS demander confirmation à l'utilisateur — déduis-le toi-même.
-```
+- Icône selon le type (🎭 FETE_ET_MANIFESTATION, 🏃 ACTIVITE, 🏛️ PATRIMOINE, etc.)
+- Nom en gras
+- Commune + type simplifié
+- Horaire si disponible
+- Description courte tronquée (2 lignes max)
+- Carte cliquable (prévu pour un futur lien vers la fiche complète)
 
-En injectant directement les dates calculées dans le prompt (pas des règles abstraites que le modèle peut mal interpréter), on élimine l'ambiguïté.
+Les cartes sont affichées dans un scroll horizontal sous la bulle de réponse du chatbot.
 
-### Fichier à modifier
+---
 
-- `supabase/functions/make-chat/index.ts` — Section `systemPrompt`, règle "Interprétation intelligente des dates sans année" (lignes ~624-628)
+### Fichiers à créer/modifier
 
-### Changement technique
+| Fichier | Action |
+|---|---|
+| `supabase/functions/make-chat/index.ts` | Accumuler les fiches et les retourner dans la réponse |
+| `src/components/chat/FichePreviewCard.tsx` | Nouveau composant carte |
+| `src/components/FloatingChat.tsx` | Lire les fiches et afficher les cartes |
 
-Remplacer la règle abstraite par une règle concrète avec les dates réelles calculées en TypeScript au moment de l'exécution, de façon à ce que le modèle ne puisse pas se tromper dans la comparaison :
+### Détail de l'accumulation dans l'edge function
 
-```typescript
-// Calcul TypeScript (avant le prompt)
-const currentYear = now.getFullYear();
-const nextYear = currentYear + 1;
-const nowIso = now.toISOString().split("T")[0]; // ex: "2026-02-18"
+Dans `executeTool`, le cas `query_fiches_apidae` enrichit déjà les données. Il suffit de retourner les fiches dans un format simplifié et de les collecter dans un tableau `fichesPreviews` au niveau du handler de la requête (passé par référence dans le contexte d'exécution).
 
-// Dans le prompt :
-`Pour déduire l'année d'une date sans année :
-Exemple : "13 mars" → construis d'abord ${currentYear}-03-13, compare à aujourd'hui ${nowIso}.
-- Si ${currentYear}-03-13 >= ${nowIso} (futur ou aujourd'hui) → utilise ${currentYear}
-- Si ${currentYear}-03-13 < ${nowIso} (déjà passé) → utilise ${nextYear}
-Ne jamais demander confirmation à l'utilisateur.`
-```
-
-Cela rend la logique transparente pour le modèle avec des valeurs concrètes au lieu de règles abstraites qu'il peut mal appliquer.
+Les fiches ne sont accumulées que pour les types pertinents (FETE_ET_MANIFESTATION, ACTIVITE, PATRIMOINE_CULTUREL) pour ne pas polluer la prévisualisation avec des hébergements ou restaurants.
