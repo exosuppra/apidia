@@ -1,92 +1,70 @@
 
-## Ajout de bulles de prévisualisation des fiches Apidae dans le chat
+## Ajout d'un champ "Prompt IA" pour générer des propositions de description
 
 ### Objectif
 
-Après chaque réponse du chatbot listant des événements ou activités, afficher des cartes de prévisualisation cliquables présentant les informations clés de chaque fiche Apidae (nom, type, commune, horaires, description courte).
+Avant le champ "Description" dans `CreateTaskDialog` et `EditTaskDialog`, ajouter :
+1. Un champ texte **"Consignes / Prompt"** où l'utilisateur décrit ses attentes
+2. Un bouton **"Générer 2 propositions"** qui appelle l'IA
+3. Deux cartes de proposition côte à côte (GPT-5-mini vs Gemini Flash) que l'utilisateur peut sélectionner d'un clic pour l'injecter dans le champ description
 
-### Approche
+---
 
-L'edge function `make-chat` retournera, en plus du texte de réponse, une liste structurée des fiches trouvées. Le frontend affichera ces données sous forme de cartes compactes sous la bulle de réponse de l'assistant.
+### Architecture
+
+```text
+[Champ Prompt (textarea)]
+[Bouton "✨ Générer 2 propositions"]
+        ↓
+  Edge Function: generate-task-description
+        ↓ appels parallèles
+  ┌──────────────────┐  ┌──────────────────┐
+  │  openai/gpt-5-mini│  │gemini-2.5-flash  │
+  └──────────────────┘  └──────────────────┘
+        ↓
+[Carte A] [Carte B]
+  "Proposition GPT"   "Proposition Gemini"
+  [Utiliser cette description]
+```
 
 ---
 
 ### Modifications techniques
 
-#### 1. Edge Function `supabase/functions/make-chat/index.ts`
+#### 1. Nouvelle Edge Function `supabase/functions/generate-task-description/index.ts`
 
-**Objectif** : Retourner les données brutes des fiches trouvées en plus du texte de réponse.
+- Reçoit `{ title, prompt }` depuis le frontend
+- Effectue **2 appels parallèles** à `https://ai.gateway.lovable.dev/v1/chat/completions` :
+  - Modèle A : `openai/gpt-5-mini`
+  - Modèle B : `google/gemini-2.5-flash`
+- System prompt : *"Tu es un assistant qui rédige des descriptions de tâches professionnelles. Rédige une description concise et claire en français, en suivant les consignes de l'utilisateur."*
+- User prompt : `"Titre de la tâche : {title}\n\nConsignes : {prompt}\n\nRédige une description."`
+- Retourne `{ proposalA: string, proposalB: string }`
+- Ajouter `verify_jwt = false` dans `supabase/config.toml`
 
-- Stocker les résultats de `query_fiches_apidae` dans une variable partagée au niveau de la requête (`fichesPreviews`).
-- À chaque appel de `query_fiches_apidae`, accumuler les fiches retournées dans `fichesPreviews`.
-- Dans la réponse finale, retourner :
-  ```json
-  {
-    "response": "texte de l'assistant...",
-    "fiches_previews": [
-      {
-        "fiche_id": "12345",
-        "nom": "Club des lecteurs",
-        "type": "FETE_ET_MANIFESTATION",
-        "commune": "Gréoux-les-Bains",
-        "description": "Moment de partage autour des lectures...",
-        "date_debut": "2026-03-13",
-        "heure_debut": "17:00",
-        "date_fin": "2026-03-13"
-      },
-      ...
-    ]
-  }
+#### 2. `src/components/planning/CreateTaskDialog.tsx`
+
+Ajouter **avant** le `FormField` de description :
+
+- Un `useState` pour `aiPrompt` (string), `aiProposals` (`{ a: string, b: string } | null`), `generatingAi` (boolean)
+- Un `<Textarea>` pour saisir le prompt IA (hors formulaire react-hook-form, simple state)
+- Un bouton **"✨ Générer 2 propositions"** :
+  - Désactivé si `aiPrompt` vide ou si titre vide
+  - Appelle `supabase.functions.invoke('generate-task-description', { body: { title, prompt: aiPrompt } })`
+  - Met à jour `aiProposals`
+- Si `aiProposals` est défini, affiche 2 cartes côte à côte :
   ```
-- Les champs extraits du JSON Apidae (`data`) : `nom.libelleFr`, `localisation.adresse.commune.nom`, `presentation.descriptifCourt.libelleFr`, plus les horaires depuis `ouverture.periodesOuvertures[0]`.
-
-#### 2. `src/components/FloatingChat.tsx`
-
-**Objectif** : Lire `fiches_previews` dans la réponse et les associer au message assistant.
-
-- Modifier l'interface `Message` pour ajouter un champ optionnel :
-  ```typescript
-  interface FichePreview {
-    fiche_id: string;
-    nom: string;
-    type: string;
-    commune: string;
-    description?: string;
-    date_debut?: string;
-    heure_debut?: string;
-    date_fin?: string;
-  }
-
-  interface Message {
-    // ...existing fields
-    fichesPreview?: FichePreview[];
-  }
+  ┌─────────────────────┐  ┌─────────────────────┐
+  │ 💬 GPT              │  │ ✦ Gemini            │
+  │ "Texte proposé..."  │  │ "Texte proposé..."  │
+  │ [Utiliser]          │  │ [Utiliser]          │
+  └─────────────────────┘  └─────────────────────┘
   ```
-- Après réception de la réponse de l'edge function, extraire `data.fiches_previews` et les attacher au message assistant.
-- Lors de l'affichage des messages, si un message assistant a `fichesPreview`, afficher les cartes en dessous du texte.
+  - Clic "Utiliser" : `form.setValue('description', proposalText)` + ferme les cartes
 
-#### 3. Nouveau composant `src/components/chat/FichePreviewCard.tsx`
+#### 3. `src/components/planning/EditTaskDialog.tsx`
 
-**Objectif** : Afficher une carte de prévisualisation compacte pour chaque fiche.
-
-Structure visuelle d'une carte :
-```
-┌─────────────────────────────────────┐
-│ 🎭 Club des lecteurs                │
-│ Gréoux-les-Bains • Manifestation    │
-│ Vendredi 13 mars à 17h00            │
-│ "Coups de cœur de la rentrée..."    │
-└─────────────────────────────────────┘
-```
-
-- Icône selon le type (🎭 FETE_ET_MANIFESTATION, 🏃 ACTIVITE, 🏛️ PATRIMOINE, etc.)
-- Nom en gras
-- Commune + type simplifié
-- Horaire si disponible
-- Description courte tronquée (2 lignes max)
-- Carte cliquable (prévu pour un futur lien vers la fiche complète)
-
-Les cartes sont affichées dans un scroll horizontal sous la bulle de réponse du chatbot.
+Même logique que pour `CreateTaskDialog` — ajouter le champ prompt IA et les 2 cartes de proposition avant le champ description.
 
 ---
 
@@ -94,12 +72,16 @@ Les cartes sont affichées dans un scroll horizontal sous la bulle de réponse d
 
 | Fichier | Action |
 |---|---|
-| `supabase/functions/make-chat/index.ts` | Accumuler les fiches et les retourner dans la réponse |
-| `src/components/chat/FichePreviewCard.tsx` | Nouveau composant carte |
-| `src/components/FloatingChat.tsx` | Lire les fiches et afficher les cartes |
+| `supabase/functions/generate-task-description/index.ts` | Nouvelle edge function |
+| `supabase/config.toml` | Ajouter `[functions.generate-task-description]` |
+| `src/components/planning/CreateTaskDialog.tsx` | Ajout champ prompt + cartes IA |
+| `src/components/planning/EditTaskDialog.tsx` | Ajout champ prompt + cartes IA |
 
-### Détail de l'accumulation dans l'edge function
+---
 
-Dans `executeTool`, le cas `query_fiches_apidae` enrichit déjà les données. Il suffit de retourner les fiches dans un format simplifié et de les collecter dans un tableau `fichesPreviews` au niveau du handler de la requête (passé par référence dans le contexte d'exécution).
+### UX
 
-Les fiches ne sont accumulées que pour les types pertinents (FETE_ET_MANIFESTATION, ACTIVITE, PATRIMOINE_CULTUREL) pour ne pas polluer la prévisualisation avec des hébergements ou restaurants.
+- Le champ "Consignes" est facultatif — si l'utilisateur n'interagit pas avec lui, le formulaire fonctionne exactement comme avant
+- Les deux propositions sont affichées côte à côte avec le nom du modèle en en-tête
+- Un clic sur "Utiliser cette description" remplace le contenu du RichTextEditor et masque les cartes
+- Si une génération échoue (rate limit, erreur réseau), un toast d'erreur est affiché
