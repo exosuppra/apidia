@@ -200,7 +200,13 @@ const tools = [
     type: "function",
     function: {
       name: "query_fiches_apidae",
-      description: "Recherche dans les ~5000 fiches touristiques synchronisées depuis Apidae (table fiches_data). Permet de chercher par nom, type de fiche, commune, source, statut de publication. Retourne les informations essentielles : nom, type, commune, code postal, description courte.",
+      description: `Recherche dans les ~5000 fiches touristiques synchronisées depuis Apidae (table fiches_data). Permet de chercher par nom, type de fiche, commune, source, statut de publication. Retourne les informations essentielles : nom, type, commune, code postal, description courte et description détaillée.
+
+IMPORTANT - GESTION DES DATES :
+- Les fiches retournées contiennent des données JSON avec des périodes d'ouverture (ouverture.periodeEnClair, ouverture.periodesOuvertures) et pour les événements des dates de début/fin.
+- Après avoir récupéré les fiches, TU DOIS examiner les champs de dates dans la description détaillée pour déterminer si la fiche est actuellement valide ou applicable à la période demandée par l'utilisateur.
+- Pour les FETE_ET_MANIFESTATION, vérifie les dates d'événement et n'en recommande que des futures ou en cours.
+- Pour les hébergements et activités, indique si les informations d'ouverture correspondent à la période demandée.`,
       parameters: {
         type: "object",
         properties: {
@@ -384,7 +390,7 @@ async function executeTool(toolName: string, args: any, supabaseAdmin: any, thre
         const limit = Math.min(args.limit || 20, 50);
         
         // Use the dedicated SQL function for JSONB filtering (avoids PostgREST limitations)
-        const { data, error } = await supabaseAdmin.rpc("search_fiches_apidae", {
+        const { data: rpcData, error: rpcError } = await supabaseAdmin.rpc("search_fiches_apidae", {
           p_search_term: args.search_term || null,
           p_fiche_type: args.fiche_type || null,
           p_commune: args.commune || null,
@@ -393,12 +399,32 @@ async function executeTool(toolName: string, args: any, supabaseAdmin: any, thre
           p_limit: limit,
         });
         
-        if (error) {
-          console.error("query_fiches_apidae error:", error);
-          throw error;
+        if (rpcError) {
+          console.error("query_fiches_apidae error:", rpcError);
+          throw rpcError;
+        }
+
+        // Also fetch raw data fields useful for date filtering (ouverture, periodesOuvertures)
+        // We enrich results with opening period info from the raw JSON
+        const ficheIds = (rpcData || []).map((f: any) => f.fiche_id);
+        let enriched = rpcData || [];
+        if (ficheIds.length > 0) {
+          const { data: rawData } = await supabaseAdmin
+            .from("fiches_data")
+            .select("fiche_id, data->ouverture, data->gpisDuPatrimoineNaturel")
+            .in("fiche_id", ficheIds);
+          
+          if (rawData) {
+            const rawMap: Record<string, any> = {};
+            rawData.forEach((r: any) => { rawMap[r.fiche_id] = r; });
+            enriched = enriched.map((f: any) => ({
+              ...f,
+              ouverture: rawMap[f.fiche_id]?.ouverture || null,
+            }));
+          }
         }
         
-        return JSON.stringify({ count: (data || []).length, fiches: data || [] });
+        return JSON.stringify({ count: enriched.length, fiches: enriched });
       }
 
       case "query_fiches_sheets": {
@@ -580,9 +606,27 @@ serve(async (req) => {
       minute: "2-digit"
     });
 
+    const nowIso = now.toISOString().split("T")[0]; // YYYY-MM-DD
+
     const systemPrompt = `Tu es un assistant IA intelligent pour le tableau de bord Apidia.
 
-**DATE ET HEURE ACTUELLES : ${parisTime} (heure de Paris)**
+**DATE ET HEURE ACTUELLES : ${parisTime} (heure de Paris) — date ISO : ${nowIso}**
+
+## RÈGLES ABSOLUES SUR LES DATES ET PÉRIODES
+
+**1. Toujours raisonner par rapport à la date du jour (${nowIso}) :**
+- Si l'utilisateur pose une question touristique sans préciser de période, considère uniquement les informations **actuellement valides ou à venir** (ne jamais répondre avec des données passées comme des événements terminés, des horaires expirés, etc.).
+- Si une fiche contient des dates d'ouverture, de fermeture, ou des périodes d'événements, vérifie qu'elles sont **≥ aujourd'hui (${nowIso})** avant de les présenter comme des informations pertinentes.
+- Si les données récupérées sont passées, indique-le clairement à l'utilisateur et précise qu'elles ne sont plus valides.
+
+**2. Respecter la période demandée par l'utilisateur :**
+- Si l'utilisateur précise une période ("cet été", "en août", "pour les vacances de Noël", "la semaine prochaine", etc.), interprète cette période en tenant compte de la date actuelle et filtre/présente les résultats en conséquence.
+- Convertis les expressions relatives en dates concrètes : "cet été" = juin à août ${new Date().getFullYear()}, "la semaine prochaine" = du ${new Date(now.getTime() + 7 * 86400000).toISOString().split("T")[0]}, etc.
+- Si une fiche ne couvre pas la période demandée, ne la présente pas comme une option valide.
+
+**3. Pour les fiches FETE_ET_MANIFESTATION notamment :**
+- Ne jamais recommander un événement dont la date de fin est passée.
+- Toujours préciser les dates de l'événement dans ta réponse.
 
 Tu as trois types de capacités :
 
