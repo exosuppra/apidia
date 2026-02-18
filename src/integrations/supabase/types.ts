@@ -796,6 +796,8 @@ export type Database = {
           current_run_verified: number | null
           days_between_verification: number
           days_consider_recent: number
+          days_consider_recent_import: number
+          exclude_recently_imported: boolean
           exclude_recently_modified: boolean
           fiches_per_run: number
           id: string
@@ -820,6 +822,8 @@ export type Database = {
           current_run_verified?: number | null
           days_between_verification?: number
           days_consider_recent?: number
+          days_consider_recent_import?: number
+          exclude_recently_imported?: boolean
           exclude_recently_modified?: boolean
           fiches_per_run?: number
           id?: string
@@ -844,6 +848,8 @@ export type Database = {
           current_run_verified?: number | null
           days_between_verification?: number
           days_consider_recent?: number
+          days_consider_recent_import?: number
+          exclude_recently_imported?: boolean
           exclude_recently_modified?: boolean
           fiches_per_run?: number
           id?: string
