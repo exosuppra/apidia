@@ -458,6 +458,41 @@ async function executeTool(toolName: string, args: any, supabaseAdmin: any, thre
               }
             }
             
+            // Extract contact info
+            const informations = raw.informations || {};
+            const moyensCom = informations.moyensCommunication || 
+                              raw.localisation?.adresse?.moyensCommunication || [];
+            let telephone: string | undefined;
+            let email: string | undefined;
+            let siteWeb: string | undefined;
+            for (const mc of moyensCom) {
+              const type = mc?.type?.libelleFr?.toLowerCase() || mc?.type?.id?.toLowerCase() || "";
+              const coord = mc?.coordonnees?.fr || mc?.coordonnees?.[""] || mc?.coordonnees || "";
+              if (!telephone && (type.includes("téléphone") || type === "telephone" || type === "201")) telephone = coord;
+              if (!email && (type.includes("mail") || type === "email" || type === "204")) email = coord;
+              if (!siteWeb && (type.includes("site") || type === "site_web" || type === "205")) siteWeb = coord;
+            }
+
+            // Extract address
+            const adresse = raw.localisation?.adresse || {};
+            const adresseStr = [
+              adresse.adresse1,
+              adresse.adresse2,
+              adresse.adresse3,
+            ].filter(Boolean).join(", ") || undefined;
+            const codePostal = adresse.codePostal || undefined;
+            const commune = f.commune || adresse.commune?.nom || undefined;
+
+            // Extract tarif
+            let tarif: string | undefined;
+            const descTarif = raw.descriptionTarif?.fr?.[0] || raw.descriptionTarif?.[""]?.[0];
+            if (descTarif) {
+              tarif = descTarif;
+            } else {
+              const periodesTarif = raw.periodes?.[0]?.tarifMin || raw.tarifsEnClair?.fr?.[0];
+              if (periodesTarif) tarif = typeof periodesTarif === "number" ? `À partir de ${periodesTarif} €` : periodesTarif;
+            }
+
             fichesPreviews.push({
               fiche_id: f.fiche_id,
               nom: f.nom,
@@ -468,6 +503,12 @@ async function executeTool(toolName: string, args: any, supabaseAdmin: any, thre
               heure_debut: periode?.horaireOuverture || undefined,
               date_fin: periode?.dateFin || undefined,
               image_url: imageUrl,
+              adresse: adresseStr,
+              code_postal: codePostal,
+              telephone,
+              email,
+              site_web: siteWeb,
+              tarif,
             });
           }
         }
