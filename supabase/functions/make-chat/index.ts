@@ -234,7 +234,7 @@ GESTION DES DATES :
 ];
 
 // Execute tool calls
-async function executeTool(toolName: string, args: any, supabaseAdmin: any, threadId: string): Promise<string> {
+async function executeTool(toolName: string, args: any, supabaseAdmin: any, threadId: string, fichesPreviews: any[]): Promise<string> {
   console.log(`Executing tool: ${toolName} with args:`, args);
   
   try {
@@ -416,23 +416,52 @@ async function executeTool(toolName: string, args: any, supabaseAdmin: any, thre
         // Enrich results with opening period description for the AI
         const ficheIds = (rpcData || []).map((f: any) => f.fiche_id);
         let enriched = rpcData || [];
+        // Fetch full data for enrichment (opening periods + previews)
+        const PREVIEW_TYPES = ["FETE_ET_MANIFESTATION", "ACTIVITE", "PATRIMOINE_CULTUREL", "DEGUSTATION"];
+        
         if (ficheIds.length > 0) {
           const { data: rawData } = await supabaseAdmin
             .from("fiches_data")
-            .select("fiche_id, data->ouverture")
+            .select("fiche_id, data")
             .in("fiche_id", ficheIds);
           
           if (rawData) {
             const rawMap: Record<string, any> = {};
             rawData.forEach((r: any) => { rawMap[r.fiche_id] = r; });
-            enriched = enriched.map((f: any) => ({
-              ...f,
-              ouverture: rawMap[f.fiche_id]?.ouverture || null,
-            }));
+            enriched = enriched.map((f: any) => {
+              const raw = rawMap[f.fiche_id]?.data || {};
+              return {
+                ...f,
+                ouverture: raw.ouverture || null,
+                _rawData: raw,
+              };
+            });
           }
         }
-        
-        return JSON.stringify({ count: enriched.length, fiches: enriched });
+
+        // Accumulate previews for relevant types
+        const ficheType = args.fiche_type;
+        if (!ficheType || PREVIEW_TYPES.includes(ficheType)) {
+          for (const f of enriched) {
+            if (!PREVIEW_TYPES.includes(f.fiche_type)) continue;
+            const raw = f._rawData || {};
+            const periode = raw.ouverture?.periodesOuvertures?.[0];
+            fichesPreviews.push({
+              fiche_id: f.fiche_id,
+              nom: f.nom,
+              type: f.fiche_type,
+              commune: f.commune,
+              description: f.description_courte || undefined,
+              date_debut: periode?.dateDebut || undefined,
+              heure_debut: periode?.horaireOuverture || undefined,
+              date_fin: periode?.dateFin || undefined,
+            });
+          }
+        }
+
+        // Strip _rawData before returning to AI (saves tokens)
+        const forAI = enriched.map(({ _rawData, ...rest }: any) => rest);
+        return JSON.stringify({ count: forAI.length, fiches: forAI });
       }
 
       case "query_fiches_sheets": {
@@ -601,6 +630,9 @@ serve(async (req) => {
 
     // Create admin Supabase client for database queries
     const supabaseAdmin = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!);
+
+    // Accumulator for fiche previews across all tool calls
+    const fichesPreviews: any[] = [];
 
     // Get current date/time in Paris timezone
     const now = new Date();
@@ -777,7 +809,7 @@ Quand tu reçois une réponse de call_make_webhook, transmets le contenu de 'mak
       const toolResults = await Promise.all(
         assistantMessage.tool_calls.map(async (toolCall: any) => {
           const args = JSON.parse(toolCall.function.arguments || "{}");
-          const result = await executeTool(toolCall.function.name, args, supabaseAdmin, threadId || "");
+          const result = await executeTool(toolCall.function.name, args, supabaseAdmin, threadId || "", fichesPreviews);
           return {
             role: "tool",
             tool_call_id: toolCall.id,
@@ -817,9 +849,18 @@ Quand tu reçois une réponse de call_make_webhook, transmets le contenu de 'mak
 
     const finalContent = assistantMessage?.content || "Je n'ai pas pu traiter votre demande.";
     console.log("Final response length:", finalContent.length);
+    console.log("Fiches previews count:", fichesPreviews.length);
+
+    // Deduplicate previews by fiche_id (in case of multiple tool calls)
+    const seenIds = new Set<string>();
+    const uniquePreviews = fichesPreviews.filter((f) => {
+      if (seenIds.has(f.fiche_id)) return false;
+      seenIds.add(f.fiche_id);
+      return true;
+    });
 
     return new Response(
-      JSON.stringify({ response: finalContent }),
+      JSON.stringify({ response: finalContent, fiches_previews: uniquePreviews }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {

@@ -1,11 +1,13 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { FichePreview } from "@/components/chat/FichePreviewCard";
 
 interface Message {
   id: string;
   role: "user" | "assistant";
   content: string;
   timestamp: Date;
+  fichesPreview?: FichePreview[];
 }
 
 interface Conversation {

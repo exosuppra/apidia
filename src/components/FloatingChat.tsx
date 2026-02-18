@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import MessageContent from "@/components/chat/MessageContent";
+import FichePreviewCard, { FichePreview } from "@/components/chat/FichePreviewCard";
 import { useChatContext } from "@/context/ChatContext";
 
 // Web Speech API types
@@ -43,6 +44,7 @@ interface Message {
   role: "user" | "assistant";
   content: string;
   timestamp: Date;
+  fichesPreview?: FichePreview[];
 }
 
 interface Conversation {
@@ -289,6 +291,7 @@ export default function FloatingChat() {
         role: "assistant",
         content: data?.response || "Réponse reçue de Make.",
         timestamp: new Date(),
+        fichesPreview: data?.fiches_previews?.length > 0 ? data.fiches_previews : undefined,
       };
 
       // Save assistant message to database
@@ -531,8 +534,8 @@ export default function FloatingChat() {
                     {currentConversation.messages.map((msg) => (
                       <div
                         key={msg.id}
-                        className={`flex ${
-                          msg.role === "user" ? "justify-end" : "justify-start"
+                        className={`flex flex-col ${
+                          msg.role === "user" ? "items-end" : "items-start"
                         }`}
                       >
                         <div
@@ -544,6 +547,15 @@ export default function FloatingChat() {
                         >
                           <MessageContent content={msg.content} isUser={msg.role === "user"} />
                         </div>
+                        {msg.fichesPreview && msg.fichesPreview.length > 0 && (
+                          <div className="mt-2 w-full overflow-x-auto pb-1">
+                            <div className="flex gap-2" style={{ width: "max-content" }}>
+                              {msg.fichesPreview.map((fiche) => (
+                                <FichePreviewCard key={fiche.fiche_id} fiche={fiche} />
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     ))}
                     {isLoading && (
