@@ -28,8 +28,25 @@ serve(async (req: Request) => {
       .from("apidae_sync_config").select("*").single();
     if (configError) throw new Error(`Failed to load sync config: ${configError.message}`);
 
+    // Parse body to detect if this is a self-invoked resume or an external trigger
+    let isResume = false;
+    try {
+      const body = await req.clone().json();
+      isResume = body?.resume === true;
+    } catch { /* ignore */ }
+
+    // If interrupted and this is an external trigger (e.g. Make.com), reset and start fresh
+    // If interrupted and this is a self-resume, stop immediately
     if (config.current_sync_status === "interrupted") {
-      return json({ success: false, interrupted: true, message: "Sync interrompue" });
+      if (isResume) {
+        return json({ success: false, interrupted: true, message: "Sync interrompue" });
+      }
+      // External trigger: reset interrupted status to allow a fresh sync
+      console.log("Status was 'interrupted', resetting for external trigger...");
+      await supabase.from("apidae_sync_config").update({
+        current_sync_status: "idle",
+      }).eq("id", config.id);
+      config.current_sync_status = "idle";
     }
 
     const selectionIds = config.selection_ids || [];
