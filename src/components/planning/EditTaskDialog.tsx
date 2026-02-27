@@ -217,7 +217,7 @@ export function EditTaskDialog({
     }
   };
 
-  const requestValidation = async () => {
+  const requestValidation = async (target?: "laura" | "marie") => {
     setRequestingValidation(true);
     try {
       const values = form.getValues();
@@ -228,6 +228,7 @@ export function EditTaskDialog({
           title: values.title, 
           description: values.description || "",
           dueDate: values.due_date?.toISOString() || null,
+          target,
         },
       });
 
@@ -250,6 +251,17 @@ export function EditTaskDialog({
     } finally {
       setRequestingValidation(false);
     }
+  };
+
+  // Detect if task has "Article Web" tag
+  const selectedTagIds = form.watch("selectedTags") || [];
+  const isArticleWeb = selectedTagIds.some(
+    (tagId) => localTags.find((t) => t.id === tagId)?.name === "Article Web"
+  );
+
+  const getValidationTargetLabel = () => {
+    if (!task.validation_target) return "";
+    return task.validation_target === "laura" ? " par Laura" : " par Marie";
   };
 
   return (
@@ -557,23 +569,52 @@ export function EditTaskDialog({
                 {task.validation_status === "pending" ? (
                   <div className="flex items-center gap-2 px-3 py-2 bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300 rounded-md text-sm">
                     <Clock className="h-4 w-4" />
-                    <span>Validation en attente</span>
+                    <span>Validation en attente{getValidationTargetLabel()}</span>
                   </div>
                 ) : task.validation_status === "validated" ? (
                   <div className="flex items-center gap-2 px-3 py-2 bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 rounded-md text-sm" title={task.validation_comment || undefined}>
                     <CheckCircle2 className="h-4 w-4" />
-                    <span>Validé</span>
+                    <span>Validé{getValidationTargetLabel()}</span>
                   </div>
                 ) : task.validation_status === "rejected" ? (
                   <div className="flex items-center gap-2 px-3 py-2 bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300 rounded-md text-sm" title={task.validation_comment || undefined}>
                     <XCircle className="h-4 w-4" />
-                    <span>Rejeté</span>
+                    <span>Rejeté{getValidationTargetLabel()}</span>
                   </div>
+                ) : isArticleWeb ? (
+                  <>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      className="bg-blue-600 hover:bg-blue-700 text-white"
+                      onClick={() => requestValidation("laura")}
+                      disabled={loading || deleting || requestingValidation}
+                    >
+                      {requestingValidation ? (
+                        <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Envoi...</>
+                      ) : (
+                        <><Send className="h-4 w-4 mr-2" />Validation Laura</>
+                      )}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      className="bg-purple-600 hover:bg-purple-700 text-white"
+                      onClick={() => requestValidation("marie")}
+                      disabled={loading || deleting || requestingValidation}
+                    >
+                      {requestingValidation ? (
+                        <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Envoi...</>
+                      ) : (
+                        <><Send className="h-4 w-4 mr-2" />Validation Marie</>
+                      )}
+                    </Button>
+                  </>
                 ) : (
                   <Button
                     type="button"
                     variant="secondary"
-                    onClick={requestValidation}
+                    onClick={() => requestValidation()}
                     disabled={loading || deleting || requestingValidation}
                   >
                     {requestingValidation ? (

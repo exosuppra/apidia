@@ -141,7 +141,7 @@ export function CreateTaskDialog({
     }
   };
 
-  const onSubmit = async (values: TaskFormValues, requestValidation: boolean = false) => {
+  const onSubmit = async (values: TaskFormValues, requestValidation: boolean = false, validationTarget?: "laura" | "marie") => {
     setLoading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -184,7 +184,7 @@ export function CreateTaskDialog({
 
       // Request validation if requested
       if (requestValidation && task?.id) {
-        await requestTaskValidation(task.id, values.title, values.description || "", values.due_date?.toISOString() || null);
+        await requestTaskValidation(task.id, values.title, values.description || "", values.due_date?.toISOString() || null, validationTarget);
       }
 
       toast({
@@ -211,11 +211,11 @@ export function CreateTaskDialog({
     }
   };
 
-  const requestTaskValidation = async (taskId: string, title: string, description: string, dueDate: string | null) => {
+  const requestTaskValidation = async (taskId: string, title: string, description: string, dueDate: string | null, target?: "laura" | "marie") => {
     setRequestingValidation(true);
     try {
       const { data, error } = await supabase.functions.invoke("request-task-validation", {
-        body: { taskId, title, description, dueDate },
+        body: { taskId, title, description, dueDate, target },
       });
 
       if (error) throw error;
@@ -232,13 +232,19 @@ export function CreateTaskDialog({
     }
   };
 
-  const handleCreateAndValidate = async () => {
+  const handleCreateAndValidate = async (target?: "laura" | "marie") => {
     const isValid = await form.trigger();
     if (isValid) {
       const values = form.getValues();
-      await onSubmit(values, true);
+      await onSubmit(values, true, target);
     }
   };
+
+  // Detect if "Article Web" tag is selected
+  const selectedTagIds = form.watch("selectedTags") || [];
+  const isArticleWeb = selectedTagIds.some(
+    (tagId) => localTags.find((t) => t.id === tagId)?.name === "Article Web"
+  );
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -528,24 +534,55 @@ export function CreateTaskDialog({
               >
                 Annuler
               </Button>
-              <Button 
-                type="button" 
-                variant="secondary"
-                onClick={handleCreateAndValidate}
-                disabled={loading || uploadingFiles || requestingValidation}
-              >
-                {requestingValidation ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Envoi...
-                  </>
-                ) : (
-                  <>
-                    <Send className="h-4 w-4 mr-2" />
-                    Créer et demander validation
-                  </>
-                )}
-              </Button>
+              {isArticleWeb ? (
+                <>
+                  <Button 
+                    type="button" 
+                    variant="secondary"
+                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                    onClick={() => handleCreateAndValidate("laura")}
+                    disabled={loading || uploadingFiles || requestingValidation}
+                  >
+                    {requestingValidation ? (
+                      <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Envoi...</>
+                    ) : (
+                      <><Send className="h-4 w-4 mr-2" />Validation Laura</>
+                    )}
+                  </Button>
+                  <Button 
+                    type="button" 
+                    variant="secondary"
+                    className="bg-purple-600 hover:bg-purple-700 text-white"
+                    onClick={() => handleCreateAndValidate("marie")}
+                    disabled={loading || uploadingFiles || requestingValidation}
+                  >
+                    {requestingValidation ? (
+                      <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Envoi...</>
+                    ) : (
+                      <><Send className="h-4 w-4 mr-2" />Validation Marie</>
+                    )}
+                  </Button>
+                </>
+              ) : (
+                <Button 
+                  type="button" 
+                  variant="secondary"
+                  onClick={() => handleCreateAndValidate()}
+                  disabled={loading || uploadingFiles || requestingValidation}
+                >
+                  {requestingValidation ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Envoi...
+                    </>
+                  ) : (
+                    <>
+                      <Send className="h-4 w-4 mr-2" />
+                      Créer et demander validation
+                    </>
+                  )}
+                </Button>
+              )}
               <Button type="submit" disabled={loading || uploadingFiles || requestingValidation}>
                 {loading || uploadingFiles 
                   ? uploadingFiles 

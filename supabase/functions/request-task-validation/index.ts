@@ -13,7 +13,7 @@ serve(async (req) => {
   }
 
   try {
-    const { taskId, title, description, dueDate } = await req.json();
+    const { taskId, title, description, dueDate, target } = await req.json();
 
     // Validate input
     if (!taskId || !title) {
@@ -24,14 +24,23 @@ serve(async (req) => {
       );
     }
 
-    console.log("Requesting validation for task:", taskId, "Title:", title);
+    console.log("Requesting validation for task:", taskId, "Title:", title, "Target:", target || "generic");
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const webhookUrl = Deno.env.get("MAKE_TASK_VALIDATION_WEBHOOK_URL");
+
+    // Select webhook based on target
+    let webhookUrl: string | undefined;
+    if (target === "laura") {
+      webhookUrl = Deno.env.get("MAKE_VALIDATION_LAURA_WEBHOOK_URL");
+    } else if (target === "marie") {
+      webhookUrl = Deno.env.get("MAKE_VALIDATION_MARIE_WEBHOOK_URL");
+    } else {
+      webhookUrl = Deno.env.get("MAKE_TASK_VALIDATION_WEBHOOK_URL");
+    }
 
     if (!webhookUrl) {
-      console.error("MAKE_TASK_VALIDATION_WEBHOOK_URL is not configured");
+      console.error("Webhook URL not configured for target:", target || "generic");
       return new Response(
         JSON.stringify({ error: "Le webhook de validation n'est pas configuré" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -95,6 +104,7 @@ serve(async (req) => {
         validation_requested_at: new Date().toISOString(),
         validation_comment: null,
         validation_responded_at: null,
+        validation_target: target || null,
       })
       .eq("id", taskId);
 
