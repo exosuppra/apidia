@@ -1,87 +1,47 @@
 
-## Ajout d'un champ "Prompt IA" pour générer des propositions de description
 
-### Objectif
+## Plan : Validation Laura / Marie pour les tâches "Article Web"
 
-Avant le champ "Description" dans `CreateTaskDialog` et `EditTaskDialog`, ajouter :
-1. Un champ texte **"Consignes / Prompt"** où l'utilisateur décrit ses attentes
-2. Un bouton **"Générer 2 propositions"** qui appelle l'IA
-3. Deux cartes de proposition côte à côte (GPT-5-mini vs Gemini Flash) que l'utilisateur peut sélectionner d'un clic pour l'injecter dans le champ description
+### Principe
+Quand une tâche a le tag **"Article Web"**, le bouton "Créer et demander validation" (CreateTaskDialog) et "Demander validation" (EditTaskDialog) sont remplacés par deux boutons : **"Demander Validation Laura"** et **"Demander Validation Marie"**. Chacun appelle un webhook Make.com distinct. Le retour (validé/rejeté) affiche qui a validé.
 
----
+### Modifications
 
-### Architecture
+#### 1. Ajouter 2 nouveaux secrets
+- `MAKE_VALIDATION_LAURA_WEBHOOK_URL`
+- `MAKE_VALIDATION_MARIE_WEBHOOK_URL`
 
-```text
-[Champ Prompt (textarea)]
-[Bouton "✨ Générer 2 propositions"]
-        ↓
-  Edge Function: generate-task-description
-        ↓ appels parallèles
-  ┌──────────────────┐  ┌──────────────────┐
-  │  openai/gpt-5-mini│  │gemini-2.5-flash  │
-  └──────────────────┘  └──────────────────┘
-        ↓
-[Carte A] [Carte B]
-  "Proposition GPT"   "Proposition Gemini"
-  [Utiliser cette description]
-```
+Vous serez invité a les renseigner via l'interface.
 
----
+#### 2. Modifier la base de données
+Ajouter une colonne `validation_target` (text, nullable) a la table `tasks` pour stocker "laura" ou "marie".
 
-### Modifications techniques
+#### 3. Modifier l'Edge Function `request-task-validation`
+- Accepter un nouveau parametre `target` ("laura" | "marie" | null).
+- Si `target` est "laura", utiliser le secret `MAKE_VALIDATION_LAURA_WEBHOOK_URL`.
+- Si `target` est "marie", utiliser `MAKE_VALIDATION_MARIE_WEBHOOK_URL`.
+- Sinon, utiliser le webhook generique existant `MAKE_TASK_VALIDATION_WEBHOOK_URL`.
+- Sauvegarder `validation_target` dans la tache.
 
-#### 1. Nouvelle Edge Function `supabase/functions/generate-task-description/index.ts`
+#### 4. Modifier `CreateTaskDialog.tsx`
+- Detecter si le tag "Article Web" est selectionne parmi les `selectedTags` (comparer le nom du tag).
+- Si oui : remplacer le bouton "Créer et demander validation" par deux boutons :
+  - "Demander Validation Laura" (appelle `onSubmit` avec `target: "laura"`)
+  - "Demander Validation Marie" (appelle `onSubmit` avec `target: "marie"`)
+- Transmettre le `target` a `requestTaskValidation`.
 
-- Reçoit `{ title, prompt }` depuis le frontend
-- Effectue **2 appels parallèles** à `https://ai.gateway.lovable.dev/v1/chat/completions` :
-  - Modèle A : `openai/gpt-5-mini`
-  - Modèle B : `google/gemini-2.5-flash`
-- System prompt : *"Tu es un assistant qui rédige des descriptions de tâches professionnelles. Rédige une description concise et claire en français, en suivant les consignes de l'utilisateur."*
-- User prompt : `"Titre de la tâche : {title}\n\nConsignes : {prompt}\n\nRédige une description."`
-- Retourne `{ proposalA: string, proposalB: string }`
-- Ajouter `verify_jwt = false` dans `supabase/config.toml`
+#### 5. Modifier `EditTaskDialog.tsx`
+- Meme logique : detecter si la tache a le tag "Article Web".
+- Si oui : remplacer le bouton "Demander validation" par les deux boutons Laura/Marie.
+- Transmettre le `target` a la fonction `requestValidation`.
 
-#### 2. `src/components/planning/CreateTaskDialog.tsx`
+#### 6. Afficher qui a valide
+- Dans les deux dialogs, quand `validation_status` est "validated" ou "rejected", afficher "Validé par Laura" / "Rejeté par Marie" en se basant sur `validation_target`.
 
-Ajouter **avant** le `FormField` de description :
+#### 7. Mettre a jour le type `Task`
+Ajouter `validation_target?: "laura" | "marie" | null` dans `src/types/planning.ts`.
 
-- Un `useState` pour `aiPrompt` (string), `aiProposals` (`{ a: string, b: string } | null`), `generatingAi` (boolean)
-- Un `<Textarea>` pour saisir le prompt IA (hors formulaire react-hook-form, simple state)
-- Un bouton **"✨ Générer 2 propositions"** :
-  - Désactivé si `aiPrompt` vide ou si titre vide
-  - Appelle `supabase.functions.invoke('generate-task-description', { body: { title, prompt: aiPrompt } })`
-  - Met à jour `aiProposals`
-- Si `aiProposals` est défini, affiche 2 cartes côte à côte :
-  ```
-  ┌─────────────────────┐  ┌─────────────────────┐
-  │ 💬 GPT              │  │ ✦ Gemini            │
-  │ "Texte proposé..."  │  │ "Texte proposé..."  │
-  │ [Utiliser]          │  │ [Utiliser]          │
-  └─────────────────────┘  └─────────────────────┘
-  ```
-  - Clic "Utiliser" : `form.setValue('description', proposalText)` + ferme les cartes
+### Détails techniques
+- La detection du tag "Article Web" se fait en croisant `selectedTags` (array d'IDs) avec la liste `tags`/`allTags` pour trouver le nom correspondant.
+- Les deux nouveaux boutons utilisent des couleurs distinctes (ex: bleu pour Laura, violet pour Marie) pour les differencier visuellement.
 
-#### 3. `src/components/planning/EditTaskDialog.tsx`
-
-Même logique que pour `CreateTaskDialog` — ajouter le champ prompt IA et les 2 cartes de proposition avant le champ description.
-
----
-
-### Fichiers à créer/modifier
-
-| Fichier | Action |
-|---|---|
-| `supabase/functions/generate-task-description/index.ts` | Nouvelle edge function |
-| `supabase/config.toml` | Ajouter `[functions.generate-task-description]` |
-| `src/components/planning/CreateTaskDialog.tsx` | Ajout champ prompt + cartes IA |
-| `src/components/planning/EditTaskDialog.tsx` | Ajout champ prompt + cartes IA |
-
----
-
-### UX
-
-- Le champ "Consignes" est facultatif — si l'utilisateur n'interagit pas avec lui, le formulaire fonctionne exactement comme avant
-- Les deux propositions sont affichées côte à côte avec le nom du modèle en en-tête
-- Un clic sur "Utiliser cette description" remplace le contenu du RichTextEditor et masque les cartes
-- Si une génération échoue (rate limit, erreur réseau), un toast d'erreur est affiché
