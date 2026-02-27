@@ -1,0 +1,1 @@
+ALTER TABLE public.tasks ADD COLUMN validation_target text;

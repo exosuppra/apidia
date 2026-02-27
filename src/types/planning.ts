@@ -42,4 +42,5 @@ export interface Task {
   validation_comment?: string | null;
   validation_requested_at?: string | null;
   validation_responded_at?: string | null;
+  validation_target?: "laura" | "marie" | null;
 }

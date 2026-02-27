@@ -585,6 +585,7 @@ export type Database = {
           validation_requested_at: string | null
           validation_responded_at: string | null
           validation_status: string | null
+          validation_target: string | null
         }
         Insert: {
           assigned_to?: string | null
@@ -602,6 +603,7 @@ export type Database = {
           validation_requested_at?: string | null
           validation_responded_at?: string | null
           validation_status?: string | null
+          validation_target?: string | null
         }
         Update: {
           assigned_to?: string | null
@@ -619,6 +621,7 @@ export type Database = {
           validation_requested_at?: string | null
           validation_responded_at?: string | null
           validation_status?: string | null
+          validation_target?: string | null
         }
         Relationships: [
           {
