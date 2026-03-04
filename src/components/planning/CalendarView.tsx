@@ -60,7 +60,7 @@ function DraggableTask({ task, onTaskClick, onMarkDone, onDelete }: DraggableTas
           style={style}
           {...listeners}
           {...attributes}
-          className={`text-xs p-1.5 rounded truncate cursor-grab hover:opacity-90 transition-all duration-200 hover:shadow-sm ${
+          className={`text-xs p-0.5 rounded truncate cursor-grab hover:opacity-90 transition-all duration-200 hover:shadow-sm ${
             isDragging ? "opacity-50 shadow-lg" : ""
           }`}
           onClick={(e) => {
@@ -69,7 +69,7 @@ function DraggableTask({ task, onTaskClick, onMarkDone, onDelete }: DraggableTas
           }}
         >
           <div
-            className={`rounded px-1.5 py-1 relative overflow-hidden ${isDone ? "line-through" : ""}`}
+            className={`rounded px-1 py-0.5 relative overflow-hidden text-[11px] leading-tight ${isDone ? "line-through" : ""}`}
             style={{
               backgroundColor: task.tags?.[0]?.color || "#3b82f6",
               color: "white",
@@ -126,17 +126,17 @@ function DroppableDay({ day, isCurrentMonth, isToday, tasks, onDateDoubleClick, 
   return (
     <Card
       ref={setNodeRef}
-      className={`min-h-[140px] p-2 cursor-pointer transition-all duration-300 hover:bg-accent/50 hover:shadow-md ${
+      className={`min-h-[90px] p-1.5 cursor-pointer transition-all duration-300 hover:bg-accent/50 hover:shadow-md ${
         !isCurrentMonth ? "bg-muted/30 text-muted-foreground" : ""
       } ${isToday ? "border-primary border-2 ring-2 ring-primary/20" : ""} ${
         isOver ? "bg-primary/10 border-primary" : ""
       }`}
       onDoubleClick={() => onDateDoubleClick?.(day)}
     >
-      <div className={`text-sm font-semibold mb-2 ${isToday ? "text-primary" : ""}`}>
+      <div className={`text-xs font-semibold mb-1 ${isToday ? "text-primary" : ""}`}>
         {format(day, "d")}
       </div>
-      <div className="space-y-1 overflow-y-auto max-h-[100px]">
+      <div className="space-y-0.5">
         {tasks.map((task) => (
           <DraggableTask
             key={task.id}
