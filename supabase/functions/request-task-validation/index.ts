@@ -92,14 +92,20 @@ serve(async (req) => {
       console.warn("Could not fetch attachments:", e);
     }
 
-    // Send to Make webhook
-    const webhookPayload = {
+    // Send to Make webhook - flat fields for easy Make.com mapping
+    const webhookPayload: Record<string, unknown> = {
       taskId,
       title,
       description: description || "",
       dueDate: dueDate || null,
-      attachments: attachmentUrls,
+      attachments_count: attachmentUrls.length,
     };
+
+    // Add each attachment as separate fields: attachment1_name, attachment1_url, etc.
+    for (let i = 0; i < attachmentUrls.length; i++) {
+      webhookPayload[`attachment${i + 1}_name`] = attachmentUrls[i].name;
+      webhookPayload[`attachment${i + 1}_url`] = attachmentUrls[i].url;
+    }
 
     console.log("Sending to Make webhook:", webhookPayload);
 
