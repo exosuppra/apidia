@@ -64,12 +64,9 @@ serve(async (req) => {
       );
     }
 
-    // Check if validation is already pending
+    // Allow re-requesting validation even if pending
     if (task.validation_status === "pending") {
-      return new Response(
-        JSON.stringify({ error: "Une validation est déjà en cours pour cette tâche" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      console.log("Re-requesting validation for task:", taskId);
     }
 
     // Fetch attachments for this task
