@@ -72,12 +72,36 @@ serve(async (req) => {
       );
     }
 
+    // Fetch attachments for this task
+    let attachmentUrls: { name: string; url: string }[] = [];
+    try {
+      const { data: attachments } = await supabase
+        .from("task_attachments")
+        .select("file_name, file_path")
+        .eq("task_id", taskId);
+
+      if (attachments && attachments.length > 0) {
+        for (const att of attachments) {
+          const { data: signedData, error: signError } = await supabase.storage
+            .from("task-attachments")
+            .createSignedUrl(att.file_path, 60 * 60 * 24 * 7); // 7 days
+
+          if (!signError && signedData?.signedUrl) {
+            attachmentUrls.push({ name: att.file_name, url: signedData.signedUrl });
+          }
+        }
+      }
+    } catch (e) {
+      console.warn("Could not fetch attachments:", e);
+    }
+
     // Send to Make webhook
     const webhookPayload = {
       taskId,
       title,
       description: description || "",
       dueDate: dueDate || null,
+      attachments: attachmentUrls,
     };
 
     console.log("Sending to Make webhook:", webhookPayload);
