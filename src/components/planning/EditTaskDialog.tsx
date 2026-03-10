@@ -567,9 +567,24 @@ export function EditTaskDialog({
                 
                 {/* Validation section - show status or request button */}
                 {task.validation_status === "pending" ? (
-                  <div className="flex items-center gap-2 px-3 py-2 bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300 rounded-md text-sm">
-                    <Clock className="h-4 w-4" />
-                    <span>Validation en attente{getValidationTargetLabel()}</span>
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 px-3 py-2 bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300 rounded-md text-sm">
+                      <Clock className="h-4 w-4" />
+                      <span>En attente{getValidationTargetLabel()}</span>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => requestValidation(task.validation_target || undefined)}
+                      disabled={loading || deleting || requestingValidation}
+                    >
+                      {requestingValidation ? (
+                        <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Envoi...</>
+                      ) : (
+                        <><Send className="h-4 w-4 mr-2" />Relancer</>
+                      )}
+                    </Button>
                   </div>
                 ) : task.validation_status === "validated" ? (
                   <div className="flex items-center gap-2 px-3 py-2 bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 rounded-md text-sm" title={task.validation_comment || undefined}>
