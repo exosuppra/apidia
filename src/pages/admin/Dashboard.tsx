@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import Seo from "@/components/Seo";
-import { Shield, LogOut, Users, FileText, Eye, Calendar, CalendarClock, Clock, Globe, BarChart3, History, Star, Briefcase } from "lucide-react";
+import { Shield, LogOut, Users, FileText, Eye, Calendar, CalendarClock, Clock, Globe, BarChart3, History, Star, Briefcase, TreePine } from "lucide-react";
 import { useAuth } from "@/context/AuthProvider";
 import {
   Dialog,
@@ -101,7 +101,7 @@ export default function AdminDashboard() {
           </div>
 
           {/* RH & Administration */}
-{(hasPermission('users') || hasPermission('rh') || hasPermission('missions')) && (
+{(hasPermission('users') || hasPermission('rh') || hasPermission('missions') || hasPermission('planning-santons')) && (
             <section className="mb-10">
               <h2 className="text-lg font-semibold mb-4 text-primary">RH & Administration</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -169,6 +169,28 @@ export default function AdminDashboard() {
                         onClick={() => navigate("/admin/missions")}
                       >
                         Accéder aux missions
+                      </Button>
+                    </CardContent>
+                  </Card>
+                )}
+                {hasPermission('planning-santons') && (
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium">
+                        Planning Foire aux Santons
+                      </CardTitle>
+                      <TreePine className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                      <CardDescription>
+                        Gestion des bénévoles et planning de la Foire aux Santons
+                      </CardDescription>
+                      <Button 
+                        className="w-full mt-4" 
+                        variant="outline"
+                        onClick={() => navigate("/admin/planning-santons")}
+                      >
+                        Accéder au planning
                       </Button>
                     </CardContent>
                   </Card>

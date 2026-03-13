@@ -1,0 +1,213 @@
+import { useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { Wand2, Trash2, Download, Loader2 } from "lucide-react";
+import { format } from "date-fns";
+import { fr } from "date-fns/locale";
+import type { Benevole, Santonnier, PlanningAssignment } from "@/pages/admin/PlanningSantons";
+
+interface PlanningTabProps {
+  benevoles: Benevole[];
+  santonniers: Santonnier[];
+  assignments: PlanningAssignment[];
+  days: string[];
+  editionId: string;
+  onRefresh: () => void;
+}
+
+export default function PlanningTab({ benevoles, santonniers, assignments, days, editionId, onRefresh }: PlanningTabProps) {
+  const { toast } = useToast();
+  const [generating, setGenerating] = useState(false);
+
+  const getAssignment = (day: string, santId: string): Benevole | null => {
+    const a = assignments.find((a) => a.jour === day && a.santonnier_id === santId);
+    if (!a) return null;
+    return benevoles.find((b) => b.id === a.benevole_id) || null;
+  };
+
+  const getAssignmentId = (day: string, santId: string): string | null => {
+    return assignments.find((a) => a.jour === day && a.santonnier_id === santId)?.id || null;
+  };
+
+  const handleAssign = async (day: string, santId: string, benId: string) => {
+    // Remove existing assignment for this cell
+    const existing = assignments.find((a) => a.jour === day && a.santonnier_id === santId);
+    if (existing) {
+      await supabase.from("santons_planning").delete().eq("id", existing.id);
+    }
+    if (benId) {
+      await supabase.from("santons_planning").insert({
+        edition_id: editionId,
+        jour: day,
+        santonnier_id: santId,
+        benevole_id: benId,
+      });
+    }
+    onRefresh();
+  };
+
+  const handleRemove = async (day: string, santId: string) => {
+    const id = getAssignmentId(day, santId);
+    if (id) {
+      await supabase.from("santons_planning").delete().eq("id", id);
+      onRefresh();
+    }
+  };
+
+  const handleGenerate = async () => {
+    if (benevoles.length === 0 || santonniers.length === 0) {
+      toast({ title: "Données manquantes", description: "Ajoutez des bénévoles et santonniers d'abord.", variant: "destructive" });
+      return;
+    }
+    setGenerating(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-santons-planning", {
+        body: { edition_id: editionId },
+      });
+      if (error) throw error;
+      toast({ title: "Planning généré", description: `${data?.assignments_count || 0} affectations créées.` });
+      onRefresh();
+    } catch (e: any) {
+      toast({ title: "Erreur de génération", description: e.message, variant: "destructive" });
+    }
+    setGenerating(false);
+  };
+
+  const handleClearPlanning = async () => {
+    if (!confirm("Supprimer toutes les affectations du planning ?")) return;
+    await supabase.from("santons_planning").delete().eq("edition_id", editionId);
+    onRefresh();
+    toast({ title: "Planning vidé" });
+  };
+
+  const isConstraintViolation = (day: string, santId: string, benId: string): string | null => {
+    const ben = benevoles.find((b) => b.id === benId);
+    const sant = santonniers.find((s) => s.id === santId);
+    if (!ben || !sant) return null;
+
+    if (!ben.disponibilites[day]) return "Bénévole non disponible ce jour";
+    if (sant.benevole_non_souhaite && ben.nom.toLowerCase().includes(sant.benevole_non_souhaite.toLowerCase())) {
+      return `Non souhaité par ${sant.nom_stand}`;
+    }
+    return null;
+  };
+
+  const formatDay = (d: string) => {
+    try {
+      return format(new Date(d), "EEE dd/MM", { locale: fr });
+    } catch {
+      return d;
+    }
+  };
+
+  // Count assignments per benevole
+  const benevoleCounts: Record<string, number> = {};
+  assignments.forEach((a) => {
+    benevoleCounts[a.benevole_id] = (benevoleCounts[a.benevole_id] || 0) + 1;
+  });
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <CardTitle className="text-lg">Planning des affectations</CardTitle>
+        <div className="flex gap-2">
+          <Button size="sm" variant="outline" onClick={handleClearPlanning}>
+            <Trash2 className="w-4 h-4 mr-1" /> Vider
+          </Button>
+          <Button size="sm" onClick={handleGenerate} disabled={generating}>
+            {generating ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Wand2 className="w-4 h-4 mr-1" />}
+            Générer avec l'IA
+          </Button>
+        </div>
+      </CardHeader>
+      <CardContent>
+        {/* Stats rapides */}
+        <div className="mb-4 flex gap-4 text-sm text-muted-foreground">
+          <span>{assignments.length} affectations</span>
+          <span>•</span>
+          <span>{Object.keys(benevoleCounts).length} bénévoles affectés</span>
+        </div>
+
+        <ScrollArea className="w-full">
+          <div className="min-w-[800px]">
+            <table className="w-full text-sm border-collapse">
+              <thead>
+                <tr>
+                  <th className="text-left p-2 border-b font-medium sticky left-0 bg-background z-10">Stand</th>
+                  {days.map((d) => (
+                    <th key={d} className="text-center p-2 border-b text-xs min-w-[120px]">
+                      {formatDay(d)}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {santonniers.map((sant) => (
+                  <tr key={sant.id} className="border-b hover:bg-muted/30">
+                    <td className="p-2 font-medium whitespace-nowrap sticky left-0 bg-background z-10">
+                      {sant.nom_stand}
+                    </td>
+                    {days.map((d) => {
+                      const assigned = getAssignment(d, sant.id);
+                      const violation = assigned ? isConstraintViolation(d, sant.id, assigned.id) : null;
+                      return (
+                        <td key={d} className="p-1 text-center">
+                          <div className="relative">
+                            <Select
+                              value={assigned?.id || ""}
+                              onValueChange={(val) => handleAssign(d, sant.id, val)}
+                            >
+                              <SelectTrigger className={`h-8 text-xs ${violation ? "border-red-500 bg-red-50" : assigned ? "border-green-300 bg-green-50" : ""}`}>
+                                <SelectValue placeholder="—">
+                                  {assigned ? `${assigned.prenom || ""} ${assigned.nom}`.trim() : "—"}
+                                </SelectValue>
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="">— Aucun —</SelectItem>
+                                {benevoles
+                                  .filter((b) => b.disponibilites[d])
+                                  .map((b) => (
+                                    <SelectItem key={b.id} value={b.id}>
+                                      {b.prenom || ""} {b.nom} ({benevoleCounts[b.id] || 0}j)
+                                    </SelectItem>
+                                  ))}
+                              </SelectContent>
+                            </Select>
+                            {violation && (
+                              <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full" title={violation} />
+                            )}
+                          </div>
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </ScrollArea>
+
+        {/* Résumé par bénévole */}
+        {assignments.length > 0 && (
+          <div className="mt-6">
+            <h3 className="text-sm font-semibold mb-2">Résumé par bénévole</h3>
+            <div className="flex flex-wrap gap-2">
+              {benevoles
+                .filter((b) => benevoleCounts[b.id])
+                .sort((a, b) => (benevoleCounts[b.id] || 0) - (benevoleCounts[a.id] || 0))
+                .map((b) => (
+                  <span key={b.id} className="inline-flex items-center gap-1 px-2 py-1 bg-muted rounded text-xs">
+                    {b.prenom || ""} {b.nom}: <strong>{benevoleCounts[b.id]}j</strong>
+                  </span>
+                ))}
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}

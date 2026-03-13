@@ -69,3 +69,6 @@ verify_jwt = false
 [functions.generate-task-description]
 verify_jwt = false
 
+[functions.generate-santons-planning]
+verify_jwt = false
+

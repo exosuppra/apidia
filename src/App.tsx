@@ -46,6 +46,7 @@ import GoogleCallback from "./pages/GoogleCallback";
 import GestionAvis from "./pages/GestionAvis";
 import GenerationSiteWeb from "./pages/GenerationSiteWeb";
 import PublicPlanning from "./pages/PublicPlanning";
+import PlanningSantons from "./pages/admin/PlanningSantons";
 
 const queryClient = new QueryClient();
 
@@ -213,6 +214,18 @@ const App = () => (
                   <RequirePermission pageKey="fiches">
                     <AdminLayout>
                       <FichesVerified />
+                    </AdminLayout>
+                  </RequirePermission>
+                </RequirePasswordChange>
+              </RequireAdminAuth>
+            } />
+            
+            <Route path="/admin/planning-santons" element={
+              <RequireAdminAuth>
+                <RequirePasswordChange>
+                  <RequirePermission pageKey="planning-santons">
+                    <AdminLayout>
+                      <PlanningSantons />
                     </AdminLayout>
                   </RequirePermission>
                 </RequirePasswordChange>
