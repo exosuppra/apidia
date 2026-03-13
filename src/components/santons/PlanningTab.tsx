@@ -158,16 +158,16 @@ export default function PlanningTab({ benevoles, santonniers, assignments, days,
                         <td key={d} className="p-1 text-center">
                           <div className="relative">
                             <Select
-                              value={assigned?.id || ""}
-                              onValueChange={(val) => handleAssign(d, sant.id, val)}
+                              value={assigned?.id || "none"}
+                              onValueChange={(val) => handleAssign(d, sant.id, val === "none" ? "" : val)}
                             >
-                              <SelectTrigger className={`h-8 text-xs ${violation ? "border-red-500 bg-red-50" : assigned ? "border-green-300 bg-green-50" : ""}`}>
+                              <SelectTrigger className={`h-8 text-xs ${violation ? "border-destructive bg-destructive/10" : assigned ? "border-primary/30 bg-primary/5" : ""}`}>
                                 <SelectValue placeholder="—">
                                   {assigned ? `${assigned.prenom || ""} ${assigned.nom}`.trim() : "—"}
                                 </SelectValue>
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="">— Aucun —</SelectItem>
+                                <SelectItem value="none">— Aucun —</SelectItem>
                                 {benevoles
                                   .filter((b) => b.disponibilites[d])
                                   .map((b) => (
