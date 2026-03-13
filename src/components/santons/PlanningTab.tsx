@@ -69,15 +69,7 @@ export default function PlanningTab({ benevoles, santonniers, assignments, days,
       // Clear existing
       await supabase.from("santons_planning").delete().eq("edition_id", editionId);
 
-      // Build assignment counts for equitable distribution
-      const benCounts: Record<string, number> = {};
-      benevoles.forEach((b) => (benCounts[b.id] = 0));
-
-      // Track which benevole is assigned on which day
-      const benAssignedDay: Record<string, Set<string>> = {};
-      benevoles.forEach((b) => (benAssignedDay[b.id] = new Set()));
-
-      const newAssignments: { edition_id: string; jour: string; santonnier_id: string; benevole_id: string }[] = [];
+      const SLOTS_PER_STAND = 2;
 
       // Helper: check if benevole name matches a text (partial, case-insensitive)
       const nameMatches = (ben: Benevole, text: string | null): boolean => {
@@ -89,79 +81,127 @@ export default function PlanningTab({ benevoles, santonniers, assignments, days,
         });
       };
 
-      // For each day, assign benevoles to santonniers
-      for (const day of days) {
-        // Get available benevoles for this day
-        const availableBens = benevoles.filter(
-          (b) => b.disponibilites[day] === true && !benAssignedDay[b.id].has(day)
-        );
+      // Step 1: Pre-assign volunteers to a "home stand" for consistency
+      // Score each (volunteer, stand) pair globally
+      const standScores: { benId: string; santId: string; score: number }[] = [];
 
-        // Score each (santonnier, benevole) pair
+      for (const ben of benevoles) {
         for (const sant of santonniers) {
-          // Skip if no available benevoles
-          if (availableBens.length === 0) break;
+          // Skip if excluded
+          if (nameMatches(ben, sant.benevole_non_souhaite)) continue;
 
-          // Filter out non-souhaité
-          const eligible = availableBens.filter(
-            (b) => !nameMatches(b, sant.benevole_non_souhaite) && !benAssignedDay[b.id].has(day)
-          );
+          let score = 0;
+          // Preferred by santonnier
+          if (nameMatches(ben, sant.benevole_souhaite)) score += 100;
+          // Benevole wants this stand
+          if (ben.stand_souhaite && sant.nom_stand.toLowerCase().includes(ben.stand_souhaite.toLowerCase())) score += 50;
+          // Count available days for this stand (more availability = better fit)
+          const availDays = days.filter((d) => ben.disponibilites[d] === true).length;
+          score += availDays;
 
-          if (eligible.length === 0) continue;
-
-          // Score benevoles: higher = better fit
-          const scored = eligible.map((b) => {
-            let score = 0;
-            // Preferred by santonnier
-            if (nameMatches(b, sant.benevole_souhaite)) score += 100;
-            // Benevole wants this stand
-            if (b.stand_souhaite && sant.nom_stand.toLowerCase().includes(b.stand_souhaite.toLowerCase())) score += 50;
-            // Equitable: fewer days assigned = higher priority
-            score -= benCounts[b.id] * 10;
-            // Check if companion is already assigned to this stand this day
-            if (b.souhaite_etre_avec) {
-              const companionAssigned = newAssignments.some(
-                (a) => a.jour === day && a.santonnier_id === sant.id &&
-                  benevoles.some((cb) => cb.id === a.benevole_id && nameMatches(cb, b.souhaite_etre_avec))
-              );
-              if (companionAssigned) score += 30;
-            }
-            return { ben: b, score };
-          });
-
-          // Pick best
-          scored.sort((a, b) => b.score - a.score);
-          const best = scored[0].ben;
-
-          newAssignments.push({
-            edition_id: editionId,
-            jour: day,
-            santonnier_id: sant.id,
-            benevole_id: best.id,
-          });
-          benCounts[best.id]++;
-          benAssignedDay[best.id].add(day);
+          standScores.push({ benId: ben.id, santId: sant.id, score });
         }
       }
 
-      // Second pass: try to place companions together
-      // For benevoles with souhaite_etre_avec, swap if possible to be on the same stand
-      for (const a of newAssignments) {
-        const ben = benevoles.find((b) => b.id === a.benevole_id);
-        if (!ben?.souhaite_etre_avec) continue;
+      // Sort by score descending
+      standScores.sort((a, b) => b.score - a.score);
 
-        // Find if companion is assigned this day to a different stand
-        const companionAssignment = newAssignments.find(
-          (ca) => ca.jour === a.jour && ca.santonnier_id !== a.santonnier_id &&
-            benevoles.some((cb) => cb.id === ca.benevole_id && nameMatches(cb, ben.souhaite_etre_avec))
-        );
+      // Assign each volunteer a home stand (max SLOTS_PER_STAND volunteers per stand)
+      const homeStand: Record<string, string> = {}; // benId -> santId
+      const standVolunteers: Record<string, string[]> = {}; // santId -> benId[]
+      santonniers.forEach((s) => (standVolunteers[s.id] = []));
 
-        if (companionAssignment) {
-          // Check if we can swap companion to this stand (no exclusion)
-          const companion = benevoles.find((b) => b.id === companionAssignment.benevole_id);
-          const targetSant = santonniers.find((s) => s.id === a.santonnier_id);
-          if (companion && targetSant && !nameMatches(companion, targetSant.benevole_non_souhaite)) {
-            // Find who is on this stand and swap
-            companionAssignment.santonnier_id = a.santonnier_id;
+      // Also try to place companions together
+      const companionPairs: { ben1: string; ben2: string }[] = [];
+      for (const ben of benevoles) {
+        if (ben.souhaite_etre_avec) {
+          const companion = benevoles.find((b) => nameMatches(b, ben.souhaite_etre_avec));
+          if (companion && !companionPairs.some((p) =>
+            (p.ben1 === ben.id && p.ben2 === companion.id) ||
+            (p.ben1 === companion.id && p.ben2 === ben.id)
+          )) {
+            companionPairs.push({ ben1: ben.id, ben2: companion.id });
+          }
+        }
+      }
+
+      for (const entry of standScores) {
+        if (homeStand[entry.benId]) continue; // already assigned
+        if (standVolunteers[entry.santId].length >= SLOTS_PER_STAND) continue; // stand full
+
+        homeStand[entry.benId] = entry.santId;
+        standVolunteers[entry.santId].push(entry.benId);
+
+        // If this volunteer has a companion, try to place them on the same stand
+        const pair = companionPairs.find((p) => p.ben1 === entry.benId || p.ben2 === entry.benId);
+        if (pair) {
+          const companionId = pair.ben1 === entry.benId ? pair.ben2 : pair.ben1;
+          if (!homeStand[companionId] && standVolunteers[entry.santId].length < SLOTS_PER_STAND) {
+            // Check not excluded
+            const sant = santonniers.find((s) => s.id === entry.santId);
+            const comp = benevoles.find((b) => b.id === companionId);
+            if (sant && comp && !nameMatches(comp, sant.benevole_non_souhaite)) {
+              homeStand[companionId] = entry.santId;
+              standVolunteers[entry.santId].push(companionId);
+            }
+          }
+        }
+      }
+
+      // Step 2: Generate daily assignments based on home stands + availability
+      const newAssignments: { edition_id: string; jour: string; santonnier_id: string; benevole_id: string }[] = [];
+
+      // Track daily assignment counts per volunteer for equity
+      const benDayCounts: Record<string, number> = {};
+      benevoles.forEach((b) => (benDayCounts[b.id] = 0));
+
+      for (const day of days) {
+        // For each stand, try to fill SLOTS_PER_STAND slots
+        for (const sant of santonniers) {
+          const assigned: string[] = [];
+
+          // First: assign home-stand volunteers who are available this day
+          const homeVols = standVolunteers[sant.id] || [];
+          for (const benId of homeVols) {
+            const ben = benevoles.find((b) => b.id === benId);
+            if (ben && ben.disponibilites[day] === true && assigned.length < SLOTS_PER_STAND) {
+              assigned.push(benId);
+            }
+          }
+
+          // If still need more, pick available volunteers without a home stand or whose home stand is already covered
+          if (assigned.length < SLOTS_PER_STAND) {
+            const candidates = benevoles
+              .filter((b) =>
+                b.disponibilites[day] === true &&
+                !assigned.includes(b.id) &&
+                !nameMatches(b, sant.benevole_non_souhaite) &&
+                // Not already assigned to another stand this day
+                !newAssignments.some((a) => a.jour === day && a.benevole_id === b.id)
+              )
+              .sort((a, b) => {
+                // Prefer volunteers without home stand, then fewest days
+                const aHome = homeStand[a.id] === sant.id ? -10 : 0;
+                const bHome = homeStand[b.id] === sant.id ? -10 : 0;
+                const aNoHome = !homeStand[a.id] ? -5 : 0;
+                const bNoHome = !homeStand[b.id] ? -5 : 0;
+                return (benDayCounts[a.id] + aHome + aNoHome) - (benDayCounts[b.id] + bHome + bNoHome);
+              });
+
+            for (const c of candidates) {
+              if (assigned.length >= SLOTS_PER_STAND) break;
+              assigned.push(c.id);
+            }
+          }
+
+          for (const benId of assigned) {
+            newAssignments.push({
+              edition_id: editionId,
+              jour: day,
+              santonnier_id: sant.id,
+              benevole_id: benId,
+            });
+            benDayCounts[benId]++;
           }
         }
       }
@@ -173,7 +213,7 @@ export default function PlanningTab({ benevoles, santonniers, assignments, days,
         }
       }
 
-      toast({ title: "Planning généré", description: `${newAssignments.length} affectations créées automatiquement.` });
+      toast({ title: "Planning généré", description: `${newAssignments.length} affectations créées (2 bénévoles/stand/jour).` });
       onRefresh();
     } catch (e: any) {
       toast({ title: "Erreur", description: e.message, variant: "destructive" });
