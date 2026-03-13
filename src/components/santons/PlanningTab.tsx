@@ -64,15 +64,119 @@ export default function PlanningTab({ benevoles, santonniers, assignments, days,
       return;
     }
     setGenerating(true);
+
     try {
-      const { data, error } = await supabase.functions.invoke("generate-santons-planning", {
-        body: { edition_id: editionId },
-      });
-      if (error) throw error;
-      toast({ title: "Planning généré", description: `${data?.assignments_count || 0} affectations créées.` });
+      // Clear existing
+      await supabase.from("santons_planning").delete().eq("edition_id", editionId);
+
+      // Build assignment counts for equitable distribution
+      const benCounts: Record<string, number> = {};
+      benevoles.forEach((b) => (benCounts[b.id] = 0));
+
+      // Track which benevole is assigned on which day
+      const benAssignedDay: Record<string, Set<string>> = {};
+      benevoles.forEach((b) => (benAssignedDay[b.id] = new Set()));
+
+      const newAssignments: { edition_id: string; jour: string; santonnier_id: string; benevole_id: string }[] = [];
+
+      // Helper: check if benevole name matches a text (partial, case-insensitive)
+      const nameMatches = (ben: Benevole, text: string | null): boolean => {
+        if (!text) return false;
+        const fullName = `${ben.prenom || ""} ${ben.nom}`.toLowerCase();
+        return text.toLowerCase().split(/[;,]/).some((part) => {
+          const t = part.trim();
+          return t && fullName.includes(t);
+        });
+      };
+
+      // For each day, assign benevoles to santonniers
+      for (const day of days) {
+        // Get available benevoles for this day
+        const availableBens = benevoles.filter(
+          (b) => b.disponibilites[day] === true && !benAssignedDay[b.id].has(day)
+        );
+
+        // Score each (santonnier, benevole) pair
+        for (const sant of santonniers) {
+          // Skip if no available benevoles
+          if (availableBens.length === 0) break;
+
+          // Filter out non-souhaité
+          const eligible = availableBens.filter(
+            (b) => !nameMatches(b, sant.benevole_non_souhaite) && !benAssignedDay[b.id].has(day)
+          );
+
+          if (eligible.length === 0) continue;
+
+          // Score benevoles: higher = better fit
+          const scored = eligible.map((b) => {
+            let score = 0;
+            // Preferred by santonnier
+            if (nameMatches(b, sant.benevole_souhaite)) score += 100;
+            // Benevole wants this stand
+            if (b.stand_souhaite && sant.nom_stand.toLowerCase().includes(b.stand_souhaite.toLowerCase())) score += 50;
+            // Equitable: fewer days assigned = higher priority
+            score -= benCounts[b.id] * 10;
+            // Check if companion is already assigned to this stand this day
+            if (b.souhaite_etre_avec) {
+              const companionAssigned = newAssignments.some(
+                (a) => a.jour === day && a.santonnier_id === sant.id &&
+                  benevoles.some((cb) => cb.id === a.benevole_id && nameMatches(cb, b.souhaite_etre_avec))
+              );
+              if (companionAssigned) score += 30;
+            }
+            return { ben: b, score };
+          });
+
+          // Pick best
+          scored.sort((a, b) => b.score - a.score);
+          const best = scored[0].ben;
+
+          newAssignments.push({
+            edition_id: editionId,
+            jour: day,
+            santonnier_id: sant.id,
+            benevole_id: best.id,
+          });
+          benCounts[best.id]++;
+          benAssignedDay[best.id].add(day);
+        }
+      }
+
+      // Second pass: try to place companions together
+      // For benevoles with souhaite_etre_avec, swap if possible to be on the same stand
+      for (const a of newAssignments) {
+        const ben = benevoles.find((b) => b.id === a.benevole_id);
+        if (!ben?.souhaite_etre_avec) continue;
+
+        // Find if companion is assigned this day to a different stand
+        const companionAssignment = newAssignments.find(
+          (ca) => ca.jour === a.jour && ca.santonnier_id !== a.santonnier_id &&
+            benevoles.some((cb) => cb.id === ca.benevole_id && nameMatches(cb, ben.souhaite_etre_avec))
+        );
+
+        if (companionAssignment) {
+          // Check if we can swap companion to this stand (no exclusion)
+          const companion = benevoles.find((b) => b.id === companionAssignment.benevole_id);
+          const targetSant = santonniers.find((s) => s.id === a.santonnier_id);
+          if (companion && targetSant && !nameMatches(companion, targetSant.benevole_non_souhaite)) {
+            // Find who is on this stand and swap
+            companionAssignment.santonnier_id = a.santonnier_id;
+          }
+        }
+      }
+
+      // Insert in batches
+      if (newAssignments.length > 0) {
+        for (let i = 0; i < newAssignments.length; i += 50) {
+          await supabase.from("santons_planning").insert(newAssignments.slice(i, i + 50));
+        }
+      }
+
+      toast({ title: "Planning généré", description: `${newAssignments.length} affectations créées automatiquement.` });
       onRefresh();
     } catch (e: any) {
-      toast({ title: "Erreur de génération", description: e.message, variant: "destructive" });
+      toast({ title: "Erreur", description: e.message, variant: "destructive" });
     }
     setGenerating(false);
   };
@@ -120,7 +224,7 @@ export default function PlanningTab({ benevoles, santonniers, assignments, days,
           </Button>
           <Button size="sm" onClick={handleGenerate} disabled={generating}>
             {generating ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Wand2 className="w-4 h-4 mr-1" />}
-            Générer avec l'IA
+            Générer automatiquement
           </Button>
         </div>
       </CardHeader>
