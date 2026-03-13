@@ -101,7 +101,7 @@ export default function AdminDashboard() {
           </div>
 
           {/* RH & Administration */}
-{(hasPermission('users') || hasPermission('rh') || hasPermission('missions')) && (
+{(hasPermission('users') || hasPermission('rh') || hasPermission('missions') || hasPermission('planning-santons')) && (
             <section className="mb-10">
               <h2 className="text-lg font-semibold mb-4 text-primary">RH & Administration</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
