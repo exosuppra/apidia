@@ -173,6 +173,28 @@ export default function AdminDashboard() {
                     </CardContent>
                   </Card>
                 )}
+                {hasPermission('planning-santons') && (
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium">
+                        Planning Foire aux Santons
+                      </CardTitle>
+                      <TreePine className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                      <CardDescription>
+                        Gestion des bénévoles et planning de la Foire aux Santons
+                      </CardDescription>
+                      <Button 
+                        className="w-full mt-4" 
+                        variant="outline"
+                        onClick={() => navigate("/admin/planning-santons")}
+                      >
+                        Accéder au planning
+                      </Button>
+                    </CardContent>
+                  </Card>
+                )}
               </div>
             </section>
           )}

@@ -220,6 +220,18 @@ const App = () => (
               </RequireAdminAuth>
             } />
             
+            <Route path="/admin/planning-santons" element={
+              <RequireAdminAuth>
+                <RequirePasswordChange>
+                  <RequirePermission pageKey="planning-santons">
+                    <AdminLayout>
+                      <PlanningSantons />
+                    </AdminLayout>
+                  </RequirePermission>
+                </RequirePasswordChange>
+              </RequireAdminAuth>
+            } />
+            
             {/* Main business dashboard */}
             <Route path="/avis" element={
               <RequireAuth>
