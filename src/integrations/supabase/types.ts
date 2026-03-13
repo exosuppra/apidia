@@ -435,6 +435,246 @@ export type Database = {
         }
         Relationships: []
       }
+      santons_benevoles: {
+        Row: {
+          civilite: string | null
+          created_at: string
+          edition_id: string
+          email: string | null
+          id: string
+          nom: string
+          prenom: string | null
+          souhaite_etre_avec: string | null
+          stand_souhaite: string | null
+          telephone: string | null
+          ville: string | null
+        }
+        Insert: {
+          civilite?: string | null
+          created_at?: string
+          edition_id: string
+          email?: string | null
+          id?: string
+          nom: string
+          prenom?: string | null
+          souhaite_etre_avec?: string | null
+          stand_souhaite?: string | null
+          telephone?: string | null
+          ville?: string | null
+        }
+        Update: {
+          civilite?: string | null
+          created_at?: string
+          edition_id?: string
+          email?: string | null
+          id?: string
+          nom?: string
+          prenom?: string | null
+          souhaite_etre_avec?: string | null
+          stand_souhaite?: string | null
+          telephone?: string | null
+          ville?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "santons_benevoles_edition_id_fkey"
+            columns: ["edition_id"]
+            isOneToOne: false
+            referencedRelation: "santons_editions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      santons_disponibilites: {
+        Row: {
+          benevole_id: string
+          created_at: string
+          disponible: boolean
+          id: string
+          jour: string
+        }
+        Insert: {
+          benevole_id: string
+          created_at?: string
+          disponible?: boolean
+          id?: string
+          jour: string
+        }
+        Update: {
+          benevole_id?: string
+          created_at?: string
+          disponible?: boolean
+          id?: string
+          jour?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "santons_disponibilites_benevole_id_fkey"
+            columns: ["benevole_id"]
+            isOneToOne: false
+            referencedRelation: "santons_benevoles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      santons_editions: {
+        Row: {
+          created_at: string
+          end_date: string
+          id: string
+          start_date: string
+          title: string
+          year: number
+        }
+        Insert: {
+          created_at?: string
+          end_date: string
+          id?: string
+          start_date: string
+          title: string
+          year: number
+        }
+        Update: {
+          created_at?: string
+          end_date?: string
+          id?: string
+          start_date?: string
+          title?: string
+          year?: number
+        }
+        Relationships: []
+      }
+      santons_planning: {
+        Row: {
+          benevole_id: string
+          created_at: string
+          edition_id: string
+          id: string
+          jour: string
+          santonnier_id: string
+        }
+        Insert: {
+          benevole_id: string
+          created_at?: string
+          edition_id: string
+          id?: string
+          jour: string
+          santonnier_id: string
+        }
+        Update: {
+          benevole_id?: string
+          created_at?: string
+          edition_id?: string
+          id?: string
+          jour?: string
+          santonnier_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "santons_planning_benevole_id_fkey"
+            columns: ["benevole_id"]
+            isOneToOne: false
+            referencedRelation: "santons_benevoles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "santons_planning_edition_id_fkey"
+            columns: ["edition_id"]
+            isOneToOne: false
+            referencedRelation: "santons_editions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "santons_planning_santonnier_id_fkey"
+            columns: ["santonnier_id"]
+            isOneToOne: false
+            referencedRelation: "santons_santonniers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      santons_preferences: {
+        Row: {
+          benevole_non_souhaite: string | null
+          benevole_souhaite: string | null
+          created_at: string
+          id: string
+          santonnier_id: string
+        }
+        Insert: {
+          benevole_non_souhaite?: string | null
+          benevole_souhaite?: string | null
+          created_at?: string
+          id?: string
+          santonnier_id: string
+        }
+        Update: {
+          benevole_non_souhaite?: string | null
+          benevole_souhaite?: string | null
+          created_at?: string
+          id?: string
+          santonnier_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "santons_preferences_santonnier_id_fkey"
+            columns: ["santonnier_id"]
+            isOneToOne: false
+            referencedRelation: "santons_santonniers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      santons_santonniers: {
+        Row: {
+          created_at: string
+          edition_id: string
+          email: string | null
+          id: string
+          nom: string | null
+          nom_stand: string
+          prenom: string | null
+          presence_info: string | null
+          site_web: string | null
+          telephone: string | null
+          ville: string | null
+        }
+        Insert: {
+          created_at?: string
+          edition_id: string
+          email?: string | null
+          id?: string
+          nom?: string | null
+          nom_stand: string
+          prenom?: string | null
+          presence_info?: string | null
+          site_web?: string | null
+          telephone?: string | null
+          ville?: string | null
+        }
+        Update: {
+          created_at?: string
+          edition_id?: string
+          email?: string | null
+          id?: string
+          nom?: string | null
+          nom_stand?: string
+          prenom?: string | null
+          presence_info?: string | null
+          site_web?: string | null
+          telephone?: string | null
+          ville?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "santons_santonniers_edition_id_fkey"
+            columns: ["edition_id"]
+            isOneToOne: false
+            referencedRelation: "santons_editions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tags: {
         Row: {
           color: string
