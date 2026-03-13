@@ -224,7 +224,7 @@ export default function PlanningTab({ benevoles, santonniers, assignments, days,
           </Button>
           <Button size="sm" onClick={handleGenerate} disabled={generating}>
             {generating ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Wand2 className="w-4 h-4 mr-1" />}
-            Générer avec l'IA
+            Générer automatiquement
           </Button>
         </div>
       </CardHeader>
