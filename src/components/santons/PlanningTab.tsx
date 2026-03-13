@@ -55,12 +55,12 @@ export default function PlanningTab({ benevoles, santonniers, assignments, days,
     onRefresh();
   };
 
-  const handleRemove = async (day: string, santId: string) => {
-    const id = getAssignmentId(day, santId);
-    if (id) {
-      await supabase.from("santons_planning").delete().eq("id", id);
-      onRefresh();
+  const handleClearCell = async (day: string, santId: string) => {
+    const existing = getAssignments(day, santId);
+    for (const a of existing) {
+      await supabase.from("santons_planning").delete().eq("id", a.id);
     }
+    onRefresh();
   };
 
   const handleGenerate = async () => {
