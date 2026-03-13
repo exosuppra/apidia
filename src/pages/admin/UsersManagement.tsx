@@ -31,6 +31,7 @@ const AVAILABLE_PAGES = [
   { key: "intense-verdon", label: "Intense Verdon Edito", icon: Globe },
   { key: "stats-web", label: "Statistiques Web", icon: BarChart3 },
   { key: "stats-ereputation", label: "E-réputation Google", icon: Star },
+  { key: "planning-santons", label: "Planning Foire aux Santons", icon: TreePine },
 ];
 
 export default function UsersManagement() {
