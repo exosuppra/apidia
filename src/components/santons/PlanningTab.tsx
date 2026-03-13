@@ -23,21 +23,21 @@ export default function PlanningTab({ benevoles, santonniers, assignments, days,
   const { toast } = useToast();
   const [generating, setGenerating] = useState(false);
 
-  const getAssignment = (day: string, santId: string): Benevole | null => {
-    const a = assignments.find((a) => a.jour === day && a.santonnier_id === santId);
-    if (!a) return null;
+  const SLOTS_PER_STAND = 2;
+
+  const getAssignments = (day: string, santId: string): PlanningAssignment[] => {
+    return assignments.filter((a) => a.jour === day && a.santonnier_id === santId);
+  };
+
+  const getBenevoleForAssignment = (a: PlanningAssignment): Benevole | null => {
     return benevoles.find((b) => b.id === a.benevole_id) || null;
   };
 
-  const getAssignmentId = (day: string, santId: string): string | null => {
-    return assignments.find((a) => a.jour === day && a.santonnier_id === santId)?.id || null;
-  };
-
-  const handleAssign = async (day: string, santId: string, benId: string) => {
-    // Remove existing assignment for this cell
-    const existing = assignments.find((a) => a.jour === day && a.santonnier_id === santId);
-    if (existing) {
-      await supabase.from("santons_planning").delete().eq("id", existing.id);
+  const handleAssign = async (day: string, santId: string, slotIndex: number, benId: string) => {
+    const existing = getAssignments(day, santId);
+    // Remove the assignment at this slot index if it exists
+    if (existing[slotIndex]) {
+      await supabase.from("santons_planning").delete().eq("id", existing[slotIndex].id);
     }
     if (benId) {
       await supabase.from("santons_planning").insert({
@@ -50,12 +50,17 @@ export default function PlanningTab({ benevoles, santonniers, assignments, days,
     onRefresh();
   };
 
-  const handleRemove = async (day: string, santId: string) => {
-    const id = getAssignmentId(day, santId);
-    if (id) {
-      await supabase.from("santons_planning").delete().eq("id", id);
-      onRefresh();
+  const handleRemoveSlot = async (assignmentId: string) => {
+    await supabase.from("santons_planning").delete().eq("id", assignmentId);
+    onRefresh();
+  };
+
+  const handleClearCell = async (day: string, santId: string) => {
+    const existing = getAssignments(day, santId);
+    for (const a of existing) {
+      await supabase.from("santons_planning").delete().eq("id", a.id);
     }
+    onRefresh();
   };
 
   const handleGenerate = async () => {
@@ -296,34 +301,44 @@ export default function PlanningTab({ benevoles, santonniers, assignments, days,
                       {sant.nom_stand}
                     </td>
                     {days.map((d) => {
-                      const assigned = getAssignment(d, sant.id);
-                      const violation = assigned ? isConstraintViolation(d, sant.id, assigned.id) : null;
+                      const cellAssignments = getAssignments(d, sant.id);
+                      const slots = Array.from({ length: SLOTS_PER_STAND }, (_, i) => {
+                        const assignment = cellAssignments[i];
+                        const assigned = assignment ? getBenevoleForAssignment(assignment) : null;
+                        const violation = assigned ? isConstraintViolation(d, sant.id, assigned.id) : null;
+                        return { assignment, assigned, violation, slotIndex: i };
+                      });
+
                       return (
                         <td key={d} className="p-1 text-center">
-                          <div className="relative">
-                            <Select
-                              value={assigned?.id || "none"}
-                              onValueChange={(val) => handleAssign(d, sant.id, val === "none" ? "" : val)}
-                            >
-                              <SelectTrigger className={`h-8 text-xs ${violation ? "border-destructive bg-destructive/10" : assigned ? "border-primary/30 bg-primary/5" : ""}`}>
-                                <SelectValue placeholder="—">
-                                  {assigned ? `${assigned.prenom || ""} ${assigned.nom}`.trim() : "—"}
-                                </SelectValue>
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="none">— Aucun —</SelectItem>
-                                {benevoles
-                                  .filter((b) => b.disponibilites[d])
-                                  .map((b) => (
-                                    <SelectItem key={b.id} value={b.id}>
-                                      {b.prenom || ""} {b.nom} ({benevoleCounts[b.id] || 0}j)
-                                    </SelectItem>
-                                  ))}
-                              </SelectContent>
-                            </Select>
-                            {violation && (
-                              <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full" title={violation} />
-                            )}
+                          <div className="flex flex-col gap-1">
+                            {slots.map(({ assignment, assigned, violation, slotIndex }) => (
+                              <div key={slotIndex} className="relative">
+                                <Select
+                                  value={assigned?.id || "none"}
+                                  onValueChange={(val) => handleAssign(d, sant.id, slotIndex, val === "none" ? "" : val)}
+                                >
+                                  <SelectTrigger className={`h-7 text-xs ${violation ? "border-destructive bg-destructive/10" : assigned ? "border-primary/30 bg-primary/5" : ""}`}>
+                                    <SelectValue placeholder="—">
+                                      {assigned ? `${assigned.prenom || ""} ${assigned.nom}`.trim() : "—"}
+                                    </SelectValue>
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="none">— Aucun —</SelectItem>
+                                    {benevoles
+                                      .filter((b) => b.disponibilites[d] && !cellAssignments.some((ca, ci) => ci !== slotIndex && ca.benevole_id === b.id))
+                                      .map((b) => (
+                                        <SelectItem key={b.id} value={b.id}>
+                                          {b.prenom || ""} {b.nom} ({benevoleCounts[b.id] || 0}j)
+                                        </SelectItem>
+                                      ))}
+                                  </SelectContent>
+                                </Select>
+                                {violation && (
+                                  <span className="absolute -top-1 -right-1 w-3 h-3 bg-destructive rounded-full" title={violation} />
+                                )}
+                              </div>
+                            ))}
                           </div>
                         </td>
                       );
