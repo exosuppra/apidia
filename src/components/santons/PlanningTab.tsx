@@ -33,11 +33,11 @@ export default function PlanningTab({ benevoles, santonniers, assignments, days,
     return benevoles.find((b) => b.id === a.benevole_id) || null;
   };
 
-  const handleAssign = async (day: string, santId: string, benId: string) => {
-    // Remove existing assignment for this cell
-    const existing = assignments.find((a) => a.jour === day && a.santonnier_id === santId);
-    if (existing) {
-      await supabase.from("santons_planning").delete().eq("id", existing.id);
+  const handleAssign = async (day: string, santId: string, slotIndex: number, benId: string) => {
+    const existing = getAssignments(day, santId);
+    // Remove the assignment at this slot index if it exists
+    if (existing[slotIndex]) {
+      await supabase.from("santons_planning").delete().eq("id", existing[slotIndex].id);
     }
     if (benId) {
       await supabase.from("santons_planning").insert({
@@ -47,6 +47,11 @@ export default function PlanningTab({ benevoles, santonniers, assignments, days,
         benevole_id: benId,
       });
     }
+    onRefresh();
+  };
+
+  const handleRemoveSlot = async (assignmentId: string) => {
+    await supabase.from("santons_planning").delete().eq("id", assignmentId);
     onRefresh();
   };
 
