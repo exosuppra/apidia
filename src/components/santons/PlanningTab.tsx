@@ -301,34 +301,44 @@ export default function PlanningTab({ benevoles, santonniers, assignments, days,
                       {sant.nom_stand}
                     </td>
                     {days.map((d) => {
-                      const assigned = getAssignment(d, sant.id);
-                      const violation = assigned ? isConstraintViolation(d, sant.id, assigned.id) : null;
+                      const cellAssignments = getAssignments(d, sant.id);
+                      const slots = Array.from({ length: SLOTS_PER_STAND }, (_, i) => {
+                        const assignment = cellAssignments[i];
+                        const assigned = assignment ? getBenevoleForAssignment(assignment) : null;
+                        const violation = assigned ? isConstraintViolation(d, sant.id, assigned.id) : null;
+                        return { assignment, assigned, violation, slotIndex: i };
+                      });
+
                       return (
                         <td key={d} className="p-1 text-center">
-                          <div className="relative">
-                            <Select
-                              value={assigned?.id || "none"}
-                              onValueChange={(val) => handleAssign(d, sant.id, val === "none" ? "" : val)}
-                            >
-                              <SelectTrigger className={`h-8 text-xs ${violation ? "border-destructive bg-destructive/10" : assigned ? "border-primary/30 bg-primary/5" : ""}`}>
-                                <SelectValue placeholder="—">
-                                  {assigned ? `${assigned.prenom || ""} ${assigned.nom}`.trim() : "—"}
-                                </SelectValue>
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="none">— Aucun —</SelectItem>
-                                {benevoles
-                                  .filter((b) => b.disponibilites[d])
-                                  .map((b) => (
-                                    <SelectItem key={b.id} value={b.id}>
-                                      {b.prenom || ""} {b.nom} ({benevoleCounts[b.id] || 0}j)
-                                    </SelectItem>
-                                  ))}
-                              </SelectContent>
-                            </Select>
-                            {violation && (
-                              <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full" title={violation} />
-                            )}
+                          <div className="flex flex-col gap-1">
+                            {slots.map(({ assignment, assigned, violation, slotIndex }) => (
+                              <div key={slotIndex} className="relative">
+                                <Select
+                                  value={assigned?.id || "none"}
+                                  onValueChange={(val) => handleAssign(d, sant.id, slotIndex, val === "none" ? "" : val)}
+                                >
+                                  <SelectTrigger className={`h-7 text-xs ${violation ? "border-destructive bg-destructive/10" : assigned ? "border-primary/30 bg-primary/5" : ""}`}>
+                                    <SelectValue placeholder="—">
+                                      {assigned ? `${assigned.prenom || ""} ${assigned.nom}`.trim() : "—"}
+                                    </SelectValue>
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="none">— Aucun —</SelectItem>
+                                    {benevoles
+                                      .filter((b) => b.disponibilites[d] && !cellAssignments.some((ca, ci) => ci !== slotIndex && ca.benevole_id === b.id))
+                                      .map((b) => (
+                                        <SelectItem key={b.id} value={b.id}>
+                                          {b.prenom || ""} {b.nom} ({benevoleCounts[b.id] || 0}j)
+                                        </SelectItem>
+                                      ))}
+                                  </SelectContent>
+                                </Select>
+                                {violation && (
+                                  <span className="absolute -top-1 -right-1 w-3 h-3 bg-destructive rounded-full" title={violation} />
+                                )}
+                              </div>
+                            ))}
                           </div>
                         </td>
                       );
