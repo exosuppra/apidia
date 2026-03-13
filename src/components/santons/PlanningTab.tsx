@@ -23,14 +23,14 @@ export default function PlanningTab({ benevoles, santonniers, assignments, days,
   const { toast } = useToast();
   const [generating, setGenerating] = useState(false);
 
-  const getAssignment = (day: string, santId: string): Benevole | null => {
-    const a = assignments.find((a) => a.jour === day && a.santonnier_id === santId);
-    if (!a) return null;
-    return benevoles.find((b) => b.id === a.benevole_id) || null;
+  const SLOTS_PER_STAND = 2;
+
+  const getAssignments = (day: string, santId: string): PlanningAssignment[] => {
+    return assignments.filter((a) => a.jour === day && a.santonnier_id === santId);
   };
 
-  const getAssignmentId = (day: string, santId: string): string | null => {
-    return assignments.find((a) => a.jour === day && a.santonnier_id === santId)?.id || null;
+  const getBenevoleForAssignment = (a: PlanningAssignment): Benevole | null => {
+    return benevoles.find((b) => b.id === a.benevole_id) || null;
   };
 
   const handleAssign = async (day: string, santId: string, benId: string) => {
