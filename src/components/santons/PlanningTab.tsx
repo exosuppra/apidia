@@ -326,7 +326,17 @@ export default function PlanningTab({ benevoles, santonniers, assignments, days,
                                   <SelectContent>
                                     <SelectItem value="none">— Aucun —</SelectItem>
                                     {benevoles
-                                      .filter((b) => b.disponibilites[d] && !cellAssignments.some((ca, ci) => ci !== slotIndex && ca.benevole_id === b.id))
+                                      .filter((b) => {
+                                        // Must be available this day
+                                        if (!b.disponibilites[d]) return false;
+                                        // Allow if already in this exact slot (current selection)
+                                        if (assigned?.id === b.id) return true;
+                                        // Exclude if already in the other slot of this cell
+                                        if (cellAssignments.some((ca, ci) => ci !== slotIndex && ca.benevole_id === b.id)) return false;
+                                        // Exclude if already assigned to another stand this day
+                                        if (assignments.some((a) => a.jour === d && a.santonnier_id !== sant.id && a.benevole_id === b.id)) return false;
+                                        return true;
+                                      })
                                       .map((b) => (
                                         <SelectItem key={b.id} value={b.id}>
                                           {b.prenom || ""} {b.nom} ({benevoleCounts[b.id] || 0}j)
