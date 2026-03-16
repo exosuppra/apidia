@@ -164,9 +164,15 @@ export default function SantonniersTab({ santonniers, editionId, onRefresh }: Sa
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Nom du stand</TableHead>
-              <TableHead>Contact</TableHead>
-              <TableHead>Ville</TableHead>
+              <TableHead className="cursor-pointer select-none" onClick={() => toggleSort("nom_stand")}>
+                <span className="inline-flex items-center">Nom du stand <SortIcon col="nom_stand" /></span>
+              </TableHead>
+              <TableHead className="cursor-pointer select-none" onClick={() => toggleSort("contact")}>
+                <span className="inline-flex items-center">Contact <SortIcon col="contact" /></span>
+              </TableHead>
+              <TableHead className="cursor-pointer select-none" onClick={() => toggleSort("ville")}>
+                <span className="inline-flex items-center">Ville <SortIcon col="ville" /></span>
+              </TableHead>
               <TableHead>Présence</TableHead>
               <TableHead>Bénévole souhaité</TableHead>
               <TableHead>Bénévole non souhaité</TableHead>
@@ -174,7 +180,7 @@ export default function SantonniersTab({ santonniers, editionId, onRefresh }: Sa
             </TableRow>
           </TableHeader>
           <TableBody>
-            {santonniers.map((s) => (
+            {sortedSantonniers.map((s) => (
               <TableRow key={s.id}>
                 <TableCell className="font-medium">{s.nom_stand}</TableCell>
                 <TableCell className="text-xs">
