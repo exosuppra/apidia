@@ -140,10 +140,10 @@ export default function EditionSelector({ editions, selected, onSelect, onRefres
         }
 
         // Create disponibilités à false for all days of the new edition
-        if (insertedIds.length > 0 && startDate && endDate) {
+        if (insertedIds.length > 0 && newStartDate && newEndDate) {
           const days: string[] = [];
-          const s = new Date(startDate);
-          const e = new Date(endDate);
+          const s = new Date(newStartDate);
+          const e = new Date(newEndDate);
           for (let d = new Date(s); d <= e; d.setDate(d.getDate() + 1)) {
             days.push(d.toISOString().split("T")[0]);
           }
