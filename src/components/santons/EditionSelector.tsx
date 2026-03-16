@@ -49,7 +49,7 @@ export default function EditionSelector({ editions, selected, onSelect, onRefres
 
       // Import from previous edition if selected
       if (importFrom && newEdition) {
-        await importFromEdition(importFrom, newEdition.id);
+        await importFromEdition(importFrom, newEdition.id, startDate, endDate);
       }
 
       toast({ title: "Édition créée", description: importFrom ? "Données importées depuis l'édition précédente." : undefined });
