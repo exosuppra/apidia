@@ -173,7 +173,7 @@ export default function PlanningTab({ benevoles, santonniers, assignments, days,
           const homeVols = standVolunteers[sant.id] || [];
           for (const benId of homeVols) {
             const ben = benevoles.find((b) => b.id === benId);
-            if (ben && ben.disponibilites[day] === true && assigned.length < SLOTS_PER_STAND) {
+            if (ben && ben.disponibilites[day] === true && assigned.length < SLOTS_PER_STAND && !newAssignments.some((a) => a.jour === day && a.benevole_id === benId)) {
               assigned.push(benId);
             }
           }
