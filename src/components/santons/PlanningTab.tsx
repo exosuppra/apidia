@@ -158,6 +158,7 @@ export default function PlanningTab({ benevoles, santonniers, assignments, days,
       }
 
       // Step 2: Generate daily assignments based on home stands + availability
+      // TWO-PASS approach: first assign all home-stand volunteers, then fill gaps with fallbacks
       const newAssignments: { edition_id: string; jour: string; santonnier_id: string; benevole_id: string }[] = [];
 
       // Track daily assignment counts per volunteer for equity
@@ -165,45 +166,52 @@ export default function PlanningTab({ benevoles, santonniers, assignments, days,
       benevoles.forEach((b) => (benDayCounts[b.id] = 0));
 
       for (const day of days) {
-        // For each stand, try to fill SLOTS_PER_STAND slots
-        for (const sant of santonniers) {
-          const assigned: string[] = [];
+        // Track who is assigned this day (per stand)
+        const dayStandAssigned: Record<string, string[]> = {};
+        santonniers.forEach((s) => (dayStandAssigned[s.id] = []));
+        const assignedThisDay = new Set<string>();
 
-          // First: assign home-stand volunteers who are available this day
+        // PASS 1: Assign home-stand volunteers to their home stand FIRST (priority)
+        for (const sant of santonniers) {
           const homeVols = standVolunteers[sant.id] || [];
           for (const benId of homeVols) {
+            if (dayStandAssigned[sant.id].length >= SLOTS_PER_STAND) break;
+            if (assignedThisDay.has(benId)) continue;
             const ben = benevoles.find((b) => b.id === benId);
-            if (ben && ben.disponibilites[day] === true && assigned.length < SLOTS_PER_STAND && !newAssignments.some((a) => a.jour === day && a.benevole_id === benId)) {
-              assigned.push(benId);
+            if (ben && ben.disponibilites[day] === true) {
+              dayStandAssigned[sant.id].push(benId);
+              assignedThisDay.add(benId);
             }
           }
+        }
 
-          // If still need more, pick available volunteers without a home stand or whose home stand is already covered
-          if (assigned.length < SLOTS_PER_STAND) {
-            const candidates = benevoles
-              .filter((b) =>
-                b.disponibilites[day] === true &&
-                !assigned.includes(b.id) &&
-                !nameMatches(b, sant.benevole_non_souhaite) &&
-                // Not already assigned to another stand this day
-                !newAssignments.some((a) => a.jour === day && a.benevole_id === b.id)
-              )
-              .sort((a, b) => {
-                // Prefer volunteers without home stand, then fewest days
-                const aHome = homeStand[a.id] === sant.id ? -10 : 0;
-                const bHome = homeStand[b.id] === sant.id ? -10 : 0;
-                const aNoHome = !homeStand[a.id] ? -5 : 0;
-                const bNoHome = !homeStand[b.id] ? -5 : 0;
-                return (benDayCounts[a.id] + aHome + aNoHome) - (benDayCounts[b.id] + bHome + bNoHome);
-              });
+        // PASS 2: Fill remaining empty slots with fallback volunteers
+        for (const sant of santonniers) {
+          if (dayStandAssigned[sant.id].length >= SLOTS_PER_STAND) continue;
 
-            for (const c of candidates) {
-              if (assigned.length >= SLOTS_PER_STAND) break;
-              assigned.push(c.id);
-            }
+          const candidates = benevoles
+            .filter((b) =>
+              b.disponibilites[day] === true &&
+              !assignedThisDay.has(b.id) &&
+              !nameMatches(b, sant.benevole_non_souhaite)
+            )
+            .sort((a, b) => {
+              // Prefer volunteers without home stand, then fewest days
+              const aNoHome = !homeStand[a.id] ? -5 : 0;
+              const bNoHome = !homeStand[b.id] ? -5 : 0;
+              return (benDayCounts[a.id] + aNoHome) - (benDayCounts[b.id] + bNoHome);
+            });
+
+          for (const c of candidates) {
+            if (dayStandAssigned[sant.id].length >= SLOTS_PER_STAND) break;
+            dayStandAssigned[sant.id].push(c.id);
+            assignedThisDay.add(c.id);
           }
+        }
 
-          for (const benId of assigned) {
+        // Record all assignments for this day
+        for (const sant of santonniers) {
+          for (const benId of dayStandAssigned[sant.id]) {
             newAssignments.push({
               edition_id: editionId,
               jour: day,
