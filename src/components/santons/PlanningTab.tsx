@@ -5,10 +5,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Wand2, Trash2, Download, Loader2 } from "lucide-react";
+import { Wand2, Trash2, Loader2, FileSpreadsheet, FileText } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import type { Benevole, Santonnier, PlanningAssignment } from "@/pages/admin/PlanningSantons";
+import { exportPlanningExcel } from "./ExportPlanningExcel";
+import { exportPlanningPDF } from "./ExportPlanningPDF";
 
 interface PlanningTabProps {
   benevoles: Benevole[];
