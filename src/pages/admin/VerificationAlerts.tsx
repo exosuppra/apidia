@@ -197,7 +197,17 @@ export default function VerificationAlerts() {
 
     setSavingConfig(true);
     try {
-      const nextRunAt = config.is_enabled ? calculateNextRunAt(config.schedule_type) : null;
+      // Ne recalculer next_run_at que si :
+      // - on active/désactive la vérification
+      // - on change le schedule_type
+      // - il n'y a pas de next_run_at existant
+      // Sinon, conserver la valeur existante pour ne pas décaler les exécutions
+      let nextRunAt = config.next_run_at;
+      if (!config.is_enabled) {
+        nextRunAt = null;
+      } else if (!nextRunAt) {
+        nextRunAt = calculateNextRunAt(config.schedule_type);
+      }
       
       const { error } = await supabase
         .from("verification_config")
@@ -216,7 +226,6 @@ export default function VerificationAlerts() {
 
       if (error) throw error;
 
-      // Mettre à jour le state local
       setConfig({ ...config, next_run_at: nextRunAt });
       toast.success("Configuration sauvegardée");
     } catch (error) {
