@@ -250,7 +250,7 @@ export default function BenevolesTab({ benevoles, days, editionId, onRefresh }: 
                 ))}
                 {benevoles.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={6 + days.length} className="text-center text-muted-foreground py-8">
+                    <TableCell colSpan={7 + days.length} className="text-center text-muted-foreground py-8">
                       Aucun bénévole. Ajoutez-en ou importez un fichier Excel.
                     </TableCell>
                   </TableRow>
