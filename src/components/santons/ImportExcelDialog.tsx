@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Upload, Loader2 } from "lucide-react";
-import * as XLSX from "xlsx";
+import XLSX from "xlsx-js-style";
 import type { SantonsEdition } from "@/pages/admin/PlanningSantons";
 
 interface ImportExcelDialogProps {
