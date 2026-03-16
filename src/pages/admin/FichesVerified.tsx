@@ -49,15 +49,32 @@ export default function FichesVerified() {
   const loadFiches = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('fiches_verified')
-        .select('*')
-        .order('verified_at', { ascending: false });
+      // Pagination par lots de 1000 pour contourner la limite Supabase
+      let allData: FicheVerified[] = [];
+      let from = 0;
+      const batchSize = 1000;
+      let hasMore = true;
 
-      if (error) throw error;
-      
-      setFiches(data || []);
-      setFilteredFiches(data || []);
+      while (hasMore) {
+        const { data, error } = await supabase
+          .from('fiches_verified')
+          .select('*')
+          .order('verified_at', { ascending: false })
+          .range(from, from + batchSize - 1);
+
+        if (error) throw error;
+
+        if (data && data.length > 0) {
+          allData = [...allData, ...data];
+          from += batchSize;
+          hasMore = data.length === batchSize;
+        } else {
+          hasMore = false;
+        }
+      }
+
+      setFiches(allData);
+      setFilteredFiches(allData);
     } catch (error: unknown) {
       console.error('Erreur lors du chargement des fiches:', error);
       toast({
