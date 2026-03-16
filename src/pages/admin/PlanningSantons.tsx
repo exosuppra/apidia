@@ -189,7 +189,7 @@ export default function PlanningSantons() {
         </div>
 
         {selectedEdition ? (
-          <Tabs defaultValue="benevoles" className="w-full">
+          <Tabs defaultValue="planning" className="w-full">
             <TabsList>
               <TabsTrigger value="benevoles">Bénévoles ({benevoles.length})</TabsTrigger>
               <TabsTrigger value="santonniers">Santonniers ({santonniers.length})</TabsTrigger>
