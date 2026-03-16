@@ -39,6 +39,43 @@ export default function SantonniersTab({ santonniers, editionId, onRefresh }: Sa
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
+  const [sortKey, setSortKey] = useState<SortKey>("nom_stand");
+  const [sortDir, setSortDir] = useState<SortDir>("asc");
+
+  const toggleSort = (key: SortKey) => {
+    if (sortKey === key) {
+      setSortDir(sortDir === "asc" ? "desc" : "asc");
+    } else {
+      setSortKey(key);
+      setSortDir("asc");
+    }
+  };
+
+  const SortIcon = ({ col }: { col: SortKey }) => {
+    if (sortKey !== col) return <ArrowUpDown className="w-3 h-3 ml-1 opacity-40" />;
+    return sortDir === "asc" ? <ArrowUp className="w-3 h-3 ml-1" /> : <ArrowDown className="w-3 h-3 ml-1" />;
+  };
+
+  const sortedSantonniers = useMemo(() => {
+    const arr = [...santonniers];
+    const dir = sortDir === "asc" ? 1 : -1;
+    arr.sort((a, b) => {
+      switch (sortKey) {
+        case "nom_stand":
+          return a.nom_stand.localeCompare(b.nom_stand) * dir;
+        case "contact": {
+          const aName = `${a.nom || ""} ${a.prenom || ""}`.toLowerCase();
+          const bName = `${b.nom || ""} ${b.prenom || ""}`.toLowerCase();
+          return aName.localeCompare(bName) * dir;
+        }
+        case "ville":
+          return (a.ville || "").localeCompare(b.ville || "") * dir;
+        default:
+          return 0;
+      }
+    });
+    return arr;
+  }, [santonniers, sortKey, sortDir]);
 
   const openNew = () => {
     setEditingId(null);
