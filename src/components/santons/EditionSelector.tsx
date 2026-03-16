@@ -49,7 +49,7 @@ export default function EditionSelector({ editions, selected, onSelect, onRefres
 
       // Import from previous edition if selected
       if (importFrom && newEdition) {
-        await importFromEdition(importFrom, newEdition.id);
+        await importFromEdition(importFrom, newEdition.id, startDate, endDate);
       }
 
       toast({ title: "Édition créée", description: importFrom ? "Données importées depuis l'édition précédente." : undefined });
@@ -62,7 +62,7 @@ export default function EditionSelector({ editions, selected, onSelect, onRefres
     setSaving(false);
   };
 
-  const importFromEdition = async (sourceEditionId: string, targetEditionId: string) => {
+  const importFromEdition = async (sourceEditionId: string, targetEditionId: string, newStartDate: string, newEndDate: string) => {
     // Import santonniers
     if (importSantonniers) {
       const { data: srcSantonniers } = await supabase
@@ -132,9 +132,29 @@ export default function EditionSelector({ editions, selected, onSelect, onRefres
           souhaite_etre_avec: b.souhaite_etre_avec,
         }));
 
-        // Insert in batches
+        // Insert in batches and collect new IDs
+        const insertedIds: string[] = [];
         for (let i = 0; i < newBenevoles.length; i += 50) {
-          await supabase.from("santons_benevoles").insert(newBenevoles.slice(i, i + 50));
+          const { data: inserted } = await supabase.from("santons_benevoles").insert(newBenevoles.slice(i, i + 50)).select("id");
+          if (inserted) insertedIds.push(...inserted.map(r => r.id));
+        }
+
+        // Create disponibilités à false for all days of the new edition
+        if (insertedIds.length > 0 && newStartDate && newEndDate) {
+          const days: string[] = [];
+          const s = new Date(newStartDate);
+          const e = new Date(newEndDate);
+          for (let d = new Date(s); d <= e; d.setDate(d.getDate() + 1)) {
+            days.push(d.toISOString().split("T")[0]);
+          }
+
+          const dispoRecords = insertedIds.flatMap(benId =>
+            days.map(jour => ({ benevole_id: benId, jour, disponible: false }))
+          );
+
+          for (let i = 0; i < dispoRecords.length; i += 50) {
+            await supabase.from("santons_disponibilites").insert(dispoRecords.slice(i, i + 50));
+          }
         }
       }
     }
