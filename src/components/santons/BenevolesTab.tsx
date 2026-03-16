@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -8,11 +8,14 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Plus, Pencil, Trash2, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import type { Benevole } from "@/pages/admin/PlanningSantons";
 import { ScrollArea } from "@/components/ui/scroll-area";
+
+type SortKey = "nom" | "ville" | "stand_souhaite" | "dispos";
+type SortDir = "asc" | "desc";
 
 interface BenevolesTabProps {
   benevoles: Benevole[];
@@ -39,6 +42,50 @@ export default function BenevolesTab({ benevoles, days, editionId, onRefresh }: 
   const [form, setForm] = useState(emptyForm);
   const [dispos, setDispos] = useState<Record<string, boolean>>({});
   const [saving, setSaving] = useState(false);
+  const [sortKey, setSortKey] = useState<SortKey>("nom");
+  const [sortDir, setSortDir] = useState<SortDir>("asc");
+
+  const toggleSort = (key: SortKey) => {
+    if (sortKey === key) {
+      setSortDir(sortDir === "asc" ? "desc" : "asc");
+    } else {
+      setSortKey(key);
+      setSortDir("asc");
+    }
+  };
+
+  const SortIcon = ({ col }: { col: SortKey }) => {
+    if (sortKey !== col) return <ArrowUpDown className="w-3 h-3 ml-1 opacity-40" />;
+    return sortDir === "asc" ? <ArrowUp className="w-3 h-3 ml-1" /> : <ArrowDown className="w-3 h-3 ml-1" />;
+  };
+
+  const sortedBenevoles = useMemo(() => {
+    const arr = [...benevoles];
+    const dir = sortDir === "asc" ? 1 : -1;
+    arr.sort((a, b) => {
+      switch (sortKey) {
+        case "nom": {
+          const aName = `${a.nom} ${a.prenom || ""}`.toLowerCase();
+          const bName = `${b.nom} ${b.prenom || ""}`.toLowerCase();
+          return aName.localeCompare(bName) * dir;
+        }
+        case "ville": {
+          return (a.ville || "").localeCompare(b.ville || "") * dir;
+        }
+        case "stand_souhaite": {
+          return (a.stand_souhaite || "").localeCompare(b.stand_souhaite || "") * dir;
+        }
+        case "dispos": {
+          const aCount = Object.values(a.disponibilites).filter(Boolean).length;
+          const bCount = Object.values(b.disponibilites).filter(Boolean).length;
+          return (aCount - bCount) * dir;
+        }
+        default:
+          return 0;
+      }
+    });
+    return arr;
+  }, [benevoles, sortKey, sortDir]);
 
   const openNew = () => {
     setEditingId(null);
@@ -149,11 +196,20 @@ export default function BenevolesTab({ benevoles, days, editionId, onRefresh }: 
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Nom</TableHead>
-                  <TableHead>Ville</TableHead>
+                  <TableHead className="cursor-pointer select-none" onClick={() => toggleSort("nom")}>
+                    <span className="inline-flex items-center">Nom <SortIcon col="nom" /></span>
+                  </TableHead>
+                  <TableHead className="cursor-pointer select-none" onClick={() => toggleSort("ville")}>
+                    <span className="inline-flex items-center">Ville <SortIcon col="ville" /></span>
+                  </TableHead>
                   <TableHead>Tél</TableHead>
-                  <TableHead>Stand souhaité</TableHead>
+                  <TableHead className="cursor-pointer select-none" onClick={() => toggleSort("stand_souhaite")}>
+                    <span className="inline-flex items-center">Stand souhaité <SortIcon col="stand_souhaite" /></span>
+                  </TableHead>
                   <TableHead>Avec</TableHead>
+                  <TableHead className="cursor-pointer select-none" onClick={() => toggleSort("dispos")}>
+                    <span className="inline-flex items-center">Dispos <SortIcon col="dispos" /></span>
+                  </TableHead>
                   {days.map((d) => (
                     <TableHead key={d} className="text-center text-xs px-1 min-w-[60px]">
                       {formatDay(d)}
@@ -163,7 +219,7 @@ export default function BenevolesTab({ benevoles, days, editionId, onRefresh }: 
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {benevoles.map((b) => (
+                {sortedBenevoles.map((b) => (
                   <TableRow key={b.id}>
                     <TableCell className="font-medium whitespace-nowrap">
                       {b.civilite} {b.prenom} {b.nom}
@@ -172,6 +228,9 @@ export default function BenevolesTab({ benevoles, days, editionId, onRefresh }: 
                     <TableCell className="text-xs">{b.telephone}</TableCell>
                     <TableCell className="text-xs">{b.stand_souhaite}</TableCell>
                     <TableCell className="text-xs">{b.souhaite_etre_avec}</TableCell>
+                    <TableCell className="text-center text-xs font-medium">
+                      {Object.values(b.disponibilites).filter(Boolean).length}/{days.length}
+                    </TableCell>
                     {days.map((d) => (
                       <TableCell key={d} className="text-center px-1">
                         <span className={`inline-block w-4 h-4 rounded-full ${b.disponibilites[d] ? "bg-green-500" : "bg-red-300"}`} />
@@ -191,7 +250,7 @@ export default function BenevolesTab({ benevoles, days, editionId, onRefresh }: 
                 ))}
                 {benevoles.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={6 + days.length} className="text-center text-muted-foreground py-8">
+                    <TableCell colSpan={7 + days.length} className="text-center text-muted-foreground py-8">
                       Aucun bénévole. Ajoutez-en ou importez un fichier Excel.
                     </TableCell>
                   </TableRow>
