@@ -62,7 +62,7 @@ export default function EditionSelector({ editions, selected, onSelect, onRefres
     setSaving(false);
   };
 
-  const importFromEdition = async (sourceEditionId: string, targetEditionId: string) => {
+  const importFromEdition = async (sourceEditionId: string, targetEditionId: string, newStartDate: string, newEndDate: string) => {
     // Import santonniers
     if (importSantonniers) {
       const { data: srcSantonniers } = await supabase
