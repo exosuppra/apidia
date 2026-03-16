@@ -14,6 +14,30 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_dashboard_order: {
+        Row: {
+          created_at: string
+          id: string
+          section_order: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          section_order?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          section_order?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       admin_permissions: {
         Row: {
           created_at: string
