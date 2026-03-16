@@ -132,9 +132,29 @@ export default function EditionSelector({ editions, selected, onSelect, onRefres
           souhaite_etre_avec: b.souhaite_etre_avec,
         }));
 
-        // Insert in batches
+        // Insert in batches and collect new IDs
+        const insertedIds: string[] = [];
         for (let i = 0; i < newBenevoles.length; i += 50) {
-          await supabase.from("santons_benevoles").insert(newBenevoles.slice(i, i + 50));
+          const { data: inserted } = await supabase.from("santons_benevoles").insert(newBenevoles.slice(i, i + 50)).select("id");
+          if (inserted) insertedIds.push(...inserted.map(r => r.id));
+        }
+
+        // Create disponibilités à false for all days of the new edition
+        if (insertedIds.length > 0 && startDate && endDate) {
+          const days: string[] = [];
+          const s = new Date(startDate);
+          const e = new Date(endDate);
+          for (let d = new Date(s); d <= e; d.setDate(d.getDate() + 1)) {
+            days.push(d.toISOString().split("T")[0]);
+          }
+
+          const dispoRecords = insertedIds.flatMap(benId =>
+            days.map(jour => ({ benevole_id: benId, jour, disponible: false }))
+          );
+
+          for (let i = 0; i < dispoRecords.length; i += 50) {
+            await supabase.from("santons_disponibilites").insert(dispoRecords.slice(i, i + 50));
+          }
         }
       }
     }
