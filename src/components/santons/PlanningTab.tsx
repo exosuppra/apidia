@@ -18,10 +18,12 @@ interface PlanningTabProps {
   assignments: PlanningAssignment[];
   days: string[];
   editionId: string;
+  editionTitle: string;
+  year: number;
   onRefresh: () => void;
 }
 
-export default function PlanningTab({ benevoles, santonniers, assignments, days, editionId, onRefresh }: PlanningTabProps) {
+export default function PlanningTab({ benevoles, santonniers, assignments, days, editionId, editionTitle, year, onRefresh }: PlanningTabProps) {
   const { toast } = useToast();
   const [generating, setGenerating] = useState(false);
 
