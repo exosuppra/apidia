@@ -268,6 +268,16 @@ export default function PlanningTab({ benevoles, santonniers, assignments, days,
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="text-lg">Planning des affectations</CardTitle>
         <div className="flex gap-2">
+          {assignments.length > 0 && (
+            <>
+              <Button size="sm" variant="outline" onClick={() => exportPlanningExcel(benevoles, santonniers, assignments, days, year)}>
+                <FileSpreadsheet className="w-4 h-4 mr-1" /> Export Excel
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => exportPlanningPDF(benevoles, santonniers, assignments, days, editionTitle, year)}>
+                <FileText className="w-4 h-4 mr-1" /> Export PDF
+              </Button>
+            </>
+          )}
           <Button size="sm" variant="outline" onClick={handleClearPlanning}>
             <Trash2 className="w-4 h-4 mr-1" /> Vider
           </Button>
