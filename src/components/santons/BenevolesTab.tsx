@@ -228,6 +228,9 @@ export default function BenevolesTab({ benevoles, days, editionId, onRefresh }: 
                     <TableCell className="text-xs">{b.telephone}</TableCell>
                     <TableCell className="text-xs">{b.stand_souhaite}</TableCell>
                     <TableCell className="text-xs">{b.souhaite_etre_avec}</TableCell>
+                    <TableCell className="text-center text-xs font-medium">
+                      {Object.values(b.disponibilites).filter(Boolean).length}/{days.length}
+                    </TableCell>
                     {days.map((d) => (
                       <TableCell key={d} className="text-center px-1">
                         <span className={`inline-block w-4 h-4 rounded-full ${b.disponibilites[d] ? "bg-green-500" : "bg-red-300"}`} />
