@@ -5,10 +5,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Wand2, Trash2, Download, Loader2 } from "lucide-react";
+import { Wand2, Trash2, Loader2, FileSpreadsheet, FileText } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import type { Benevole, Santonnier, PlanningAssignment } from "@/pages/admin/PlanningSantons";
+import { exportPlanningExcel } from "./ExportPlanningExcel";
+import { exportPlanningPDF } from "./ExportPlanningPDF";
 
 interface PlanningTabProps {
   benevoles: Benevole[];
@@ -16,10 +18,12 @@ interface PlanningTabProps {
   assignments: PlanningAssignment[];
   days: string[];
   editionId: string;
+  editionTitle: string;
+  year: number;
   onRefresh: () => void;
 }
 
-export default function PlanningTab({ benevoles, santonniers, assignments, days, editionId, onRefresh }: PlanningTabProps) {
+export default function PlanningTab({ benevoles, santonniers, assignments, days, editionId, editionTitle, year, onRefresh }: PlanningTabProps) {
   const { toast } = useToast();
   const [generating, setGenerating] = useState(false);
 
@@ -264,6 +268,16 @@ export default function PlanningTab({ benevoles, santonniers, assignments, days,
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="text-lg">Planning des affectations</CardTitle>
         <div className="flex gap-2">
+          {assignments.length > 0 && (
+            <>
+              <Button size="sm" variant="outline" onClick={() => exportPlanningExcel(benevoles, santonniers, assignments, days, year)}>
+                <FileSpreadsheet className="w-4 h-4 mr-1" /> Export Excel
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => exportPlanningPDF(benevoles, santonniers, assignments, days, editionTitle, year)}>
+                <FileText className="w-4 h-4 mr-1" /> Export PDF
+              </Button>
+            </>
+          )}
           <Button size="sm" variant="outline" onClick={handleClearPlanning}>
             <Trash2 className="w-4 h-4 mr-1" /> Vider
           </Button>

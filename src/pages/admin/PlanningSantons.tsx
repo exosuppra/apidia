@@ -217,6 +217,8 @@ export default function PlanningSantons() {
                 assignments={assignments}
                 days={getEditionDays()}
                 editionId={selectedEdition.id}
+                editionTitle={selectedEdition.title}
+                year={selectedEdition.year}
                 onRefresh={() => fetchData(selectedEdition.id)}
               />
             </TabsContent>
