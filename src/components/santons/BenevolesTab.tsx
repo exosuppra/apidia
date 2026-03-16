@@ -196,11 +196,20 @@ export default function BenevolesTab({ benevoles, days, editionId, onRefresh }: 
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Nom</TableHead>
-                  <TableHead>Ville</TableHead>
+                  <TableHead className="cursor-pointer select-none" onClick={() => toggleSort("nom")}>
+                    <span className="inline-flex items-center">Nom <SortIcon col="nom" /></span>
+                  </TableHead>
+                  <TableHead className="cursor-pointer select-none" onClick={() => toggleSort("ville")}>
+                    <span className="inline-flex items-center">Ville <SortIcon col="ville" /></span>
+                  </TableHead>
                   <TableHead>Tél</TableHead>
-                  <TableHead>Stand souhaité</TableHead>
+                  <TableHead className="cursor-pointer select-none" onClick={() => toggleSort("stand_souhaite")}>
+                    <span className="inline-flex items-center">Stand souhaité <SortIcon col="stand_souhaite" /></span>
+                  </TableHead>
                   <TableHead>Avec</TableHead>
+                  <TableHead className="cursor-pointer select-none" onClick={() => toggleSort("dispos")}>
+                    <span className="inline-flex items-center">Dispos <SortIcon col="dispos" /></span>
+                  </TableHead>
                   {days.map((d) => (
                     <TableHead key={d} className="text-center text-xs px-1 min-w-[60px]">
                       {formatDay(d)}
@@ -210,7 +219,7 @@ export default function BenevolesTab({ benevoles, days, editionId, onRefresh }: 
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {benevoles.map((b) => (
+                {sortedBenevoles.map((b) => (
                   <TableRow key={b.id}>
                     <TableCell className="font-medium whitespace-nowrap">
                       {b.civilite} {b.prenom} {b.nom}
