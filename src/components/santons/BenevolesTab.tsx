@@ -42,6 +42,50 @@ export default function BenevolesTab({ benevoles, days, editionId, onRefresh }: 
   const [form, setForm] = useState(emptyForm);
   const [dispos, setDispos] = useState<Record<string, boolean>>({});
   const [saving, setSaving] = useState(false);
+  const [sortKey, setSortKey] = useState<SortKey>("nom");
+  const [sortDir, setSortDir] = useState<SortDir>("asc");
+
+  const toggleSort = (key: SortKey) => {
+    if (sortKey === key) {
+      setSortDir(sortDir === "asc" ? "desc" : "asc");
+    } else {
+      setSortKey(key);
+      setSortDir("asc");
+    }
+  };
+
+  const SortIcon = ({ col }: { col: SortKey }) => {
+    if (sortKey !== col) return <ArrowUpDown className="w-3 h-3 ml-1 opacity-40" />;
+    return sortDir === "asc" ? <ArrowUp className="w-3 h-3 ml-1" /> : <ArrowDown className="w-3 h-3 ml-1" />;
+  };
+
+  const sortedBenevoles = useMemo(() => {
+    const arr = [...benevoles];
+    const dir = sortDir === "asc" ? 1 : -1;
+    arr.sort((a, b) => {
+      switch (sortKey) {
+        case "nom": {
+          const aName = `${a.nom} ${a.prenom || ""}`.toLowerCase();
+          const bName = `${b.nom} ${b.prenom || ""}`.toLowerCase();
+          return aName.localeCompare(bName) * dir;
+        }
+        case "ville": {
+          return (a.ville || "").localeCompare(b.ville || "") * dir;
+        }
+        case "stand_souhaite": {
+          return (a.stand_souhaite || "").localeCompare(b.stand_souhaite || "") * dir;
+        }
+        case "dispos": {
+          const aCount = Object.values(a.disponibilites).filter(Boolean).length;
+          const bCount = Object.values(b.disponibilites).filter(Boolean).length;
+          return (aCount - bCount) * dir;
+        }
+        default:
+          return 0;
+      }
+    });
+    return arr;
+  }, [benevoles, sortKey, sortDir]);
 
   const openNew = () => {
     setEditingId(null);
