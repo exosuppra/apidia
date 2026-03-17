@@ -182,7 +182,19 @@ export function TaskCard({ task, onRefresh, allTags }: TaskCardProps) {
           <Card className={`hover:shadow-lg transition-all duration-300 hover:scale-[1.02] cursor-pointer animate-fade-in relative ${
             isDone ? "opacity-60 bg-muted/50" : ""
           }`}>
-            {task.has_unseen_update && (
+            {task.validation_status === "validated" && (
+              <span className="absolute -top-1 -right-1 flex h-3 w-3 z-10">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-500 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
+              </span>
+            )}
+            {task.validation_status === "rejected" && (
+              <span className="absolute -top-1 -right-1 flex h-3 w-3 z-10">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+              </span>
+            )}
+            {!task.validation_status && task.has_unseen_update && (
               <span className="absolute -top-1 -right-1 flex h-3 w-3 z-10">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-500 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>

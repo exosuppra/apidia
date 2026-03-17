@@ -68,7 +68,19 @@ function DraggableTask({ task, onTaskClick, onMarkDone, onDelete }: DraggableTas
             onTaskClick?.(task);
           }}
         >
-          {task.has_unseen_update && (
+          {task.validation_status === "validated" && (
+            <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5 z-10">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-500 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500"></span>
+            </span>
+          )}
+          {task.validation_status === "rejected" && (
+            <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5 z-10">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500"></span>
+            </span>
+          )}
+          {!task.validation_status && task.has_unseen_update && (
             <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5 z-10">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-500 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500"></span>
