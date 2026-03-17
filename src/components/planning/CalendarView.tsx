@@ -60,7 +60,7 @@ function DraggableTask({ task, onTaskClick, onMarkDone, onDelete }: DraggableTas
           style={style}
           {...listeners}
           {...attributes}
-          className={`text-xs p-0.5 rounded truncate cursor-grab hover:opacity-90 transition-all duration-200 hover:shadow-sm ${
+          className={`text-xs p-0.5 rounded truncate cursor-grab hover:opacity-90 transition-all duration-200 hover:shadow-sm relative ${
             isDragging ? "opacity-50 shadow-lg" : ""
           }`}
           onClick={(e) => {
@@ -68,6 +68,12 @@ function DraggableTask({ task, onTaskClick, onMarkDone, onDelete }: DraggableTas
             onTaskClick?.(task);
           }}
         >
+          {task.has_unseen_update && (
+            <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5 z-10">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-primary"></span>
+            </span>
+          )}
           <div
             className={`rounded px-1 py-0.5 relative overflow-hidden text-[11px] leading-tight ${isDone ? "line-through" : ""}`}
             style={{
