@@ -146,9 +146,10 @@ export function TaskCard({ task, onRefresh, allTags }: TaskCardProps) {
 
   const handleMarkDone = async () => {
     try {
+      const { data: { user } } = await supabase.auth.getUser();
       const { error } = await supabase
         .from("tasks" as any)
-        .update({ status: "done" })
+        .update({ status: "done", updated_by: user?.id || null })
         .eq("id", task.id);
 
       if (error) throw error;

@@ -168,6 +168,7 @@ export function EditTaskDialog({
   const onSubmit = async (values: TaskFormValues) => {
     setLoading(true);
     try {
+      const { data: { user } } = await supabase.auth.getUser();
       const { error } = await supabase
         .from("tasks" as any)
         .update({
@@ -176,6 +177,7 @@ export function EditTaskDialog({
           status: values.status,
           priority: values.priority,
           due_date: values.due_date?.toISOString() || null,
+          updated_by: user?.id || null,
         })
         .eq("id", task.id);
 
