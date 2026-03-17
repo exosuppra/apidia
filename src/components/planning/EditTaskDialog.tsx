@@ -106,6 +106,19 @@ export function EditTaskDialog({
         due_date: task.due_date ? new Date(task.due_date) : undefined,
         selectedTags: task.tags?.map((t) => t.id) || [],
       });
+
+      // Mark task as seen
+      (async () => {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          await supabase
+            .from("task_seen" as any)
+            .upsert(
+              { task_id: task.id, user_id: user.id, seen_at: new Date().toISOString() },
+              { onConflict: "task_id,user_id" }
+            );
+        }
+      })();
     }
   }, [open, task, form]);
 
