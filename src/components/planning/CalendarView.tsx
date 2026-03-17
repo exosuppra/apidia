@@ -70,8 +70,8 @@ function DraggableTask({ task, onTaskClick, onMarkDone, onDelete }: DraggableTas
         >
           {task.has_unseen_update && (
             <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5 z-10">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-primary"></span>
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-500 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500"></span>
             </span>
           )}
           <div

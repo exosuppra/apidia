@@ -184,8 +184,8 @@ export function TaskCard({ task, onRefresh, allTags }: TaskCardProps) {
           }`}>
             {task.has_unseen_update && (
               <span className="absolute -top-1 -right-1 flex h-3 w-3 z-10">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-3 w-3 bg-primary"></span>
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-500 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
               </span>
             )}
             <CardContent className="p-4 transition-all">
