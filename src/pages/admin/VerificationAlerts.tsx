@@ -155,6 +155,7 @@ export default function VerificationAlerts() {
       const { count } = await supabase
         .from("fiches_data")
         .select("*", { count: "exact", head: true })
+        .eq("is_published", true)
         .or(`last_verified_at.is.null,last_verified_at.lt.${thresholdDate.toISOString()}`);
 
       setPendingFichesCount(count || 0);
