@@ -60,7 +60,7 @@ function DraggableTask({ task, onTaskClick, onMarkDone, onDelete }: DraggableTas
           style={style}
           {...listeners}
           {...attributes}
-          className={`text-xs p-0.5 rounded truncate cursor-grab hover:opacity-90 transition-all duration-200 hover:shadow-sm relative ${
+          className={`text-xs p-0.5 rounded truncate cursor-grab hover:opacity-90 transition-all duration-200 hover:shadow-sm relative overflow-visible ${
             isDragging ? "opacity-50 shadow-lg" : ""
           }`}
           onClick={(e) => {
