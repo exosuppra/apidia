@@ -207,6 +207,8 @@ export default function PlanningEditorial() {
     setIsEditDialogOpen(open);
     if (!open) {
       setSelectedTask(null);
+      // Refresh to update seen status (notification dots)
+      loadData();
     }
   };
 
