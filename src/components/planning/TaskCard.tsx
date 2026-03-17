@@ -300,7 +300,10 @@ export function TaskCard({ task, onRefresh, allTags }: TaskCardProps) {
 
       <EditTaskDialog
         open={isEditDialogOpen}
-        onOpenChange={setIsEditDialogOpen}
+        onOpenChange={(open) => {
+          setIsEditDialogOpen(open);
+          if (!open) onRefresh();
+        }}
         task={task}
         onSuccess={onRefresh}
         allTags={allTags}
