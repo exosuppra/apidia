@@ -796,6 +796,35 @@ export type Database = {
           },
         ]
       }
+      task_seen: {
+        Row: {
+          id: string
+          seen_at: string
+          task_id: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          seen_at?: string
+          task_id: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          seen_at?: string
+          task_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_seen_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       task_tags: {
         Row: {
           created_at: string
@@ -845,6 +874,7 @@ export type Database = {
           status: string
           title: string
           updated_at: string
+          updated_by: string | null
           validation_comment: string | null
           validation_requested_at: string | null
           validation_responded_at: string | null
@@ -863,6 +893,7 @@ export type Database = {
           status?: string
           title: string
           updated_at?: string
+          updated_by?: string | null
           validation_comment?: string | null
           validation_requested_at?: string | null
           validation_responded_at?: string | null
@@ -881,6 +912,7 @@ export type Database = {
           status?: string
           title?: string
           updated_at?: string
+          updated_by?: string | null
           validation_comment?: string | null
           validation_requested_at?: string | null
           validation_responded_at?: string | null

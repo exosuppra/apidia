@@ -43,4 +43,6 @@ export interface Task {
   validation_requested_at?: string | null;
   validation_responded_at?: string | null;
   validation_target?: "laura" | "marie" | null;
+  updated_by?: string | null;
+  has_unseen_update?: boolean;
 }

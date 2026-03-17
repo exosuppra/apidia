@@ -143,17 +143,35 @@ export default function PlanningEditorial() {
 
       if (attachmentsError) throw attachmentsError;
 
-      // Merge task tags and attachments
-      const tasksWithTags = (tasksData || []).map((task: any) => ({
-        ...task,
-        tags: (taskTagsData || [])
-          .filter((tt: any) => tt.task_id === task.id)
-          .map((tt: any) => (tagsData || []).find((tag: any) => tag.id === tt.tag_id))
-          .filter(Boolean),
-        attachments: (attachmentsData || []).filter(
-          (att: any) => att.task_id === task.id
-        ),
-      }));
+      // Load task seen status for current user
+      const { data: seenData } = await supabase
+        .from("task_seen" as any)
+        .select("*")
+        .eq("user_id", user.id);
+
+      const seenMap = new Map<string, string>();
+      (seenData || []).forEach((s: any) => {
+        seenMap.set(s.task_id, s.seen_at);
+      });
+
+      // Merge task tags, attachments and unseen status
+      const tasksWithTags = (tasksData || []).map((task: any) => {
+        const seenAt = seenMap.get(task.id);
+        const hasUnseenUpdate = task.updated_by && task.updated_by !== user.id && (
+          !seenAt || new Date(task.updated_at) > new Date(seenAt)
+        );
+        return {
+          ...task,
+          tags: (taskTagsData || [])
+            .filter((tt: any) => tt.task_id === task.id)
+            .map((tt: any) => (tagsData || []).find((tag: any) => tag.id === tt.tag_id))
+            .filter(Boolean),
+          attachments: (attachmentsData || []).filter(
+            (att: any) => att.task_id === task.id
+          ),
+          has_unseen_update: hasUnseenUpdate,
+        };
+      });
 
       setTasks(tasksWithTags);
       setTags((tagsData as any) || []);

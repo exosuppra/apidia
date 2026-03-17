@@ -106,6 +106,19 @@ export function EditTaskDialog({
         due_date: task.due_date ? new Date(task.due_date) : undefined,
         selectedTags: task.tags?.map((t) => t.id) || [],
       });
+
+      // Mark task as seen
+      (async () => {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          await supabase
+            .from("task_seen" as any)
+            .upsert(
+              { task_id: task.id, user_id: user.id, seen_at: new Date().toISOString() },
+              { onConflict: "task_id,user_id" }
+            );
+        }
+      })();
     }
   }, [open, task, form]);
 
@@ -168,6 +181,7 @@ export function EditTaskDialog({
   const onSubmit = async (values: TaskFormValues) => {
     setLoading(true);
     try {
+      const { data: { user } } = await supabase.auth.getUser();
       const { error } = await supabase
         .from("tasks" as any)
         .update({
@@ -176,6 +190,7 @@ export function EditTaskDialog({
           status: values.status,
           priority: values.priority,
           due_date: values.due_date?.toISOString() || null,
+          updated_by: user?.id || null,
         })
         .eq("id", task.id);
 
