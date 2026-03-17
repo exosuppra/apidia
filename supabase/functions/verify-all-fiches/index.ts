@@ -438,7 +438,7 @@ serve(async (req) => {
     }
 
     const dataUpdateThreshold = new Date();
-    dataUpdateThreshold.setDate(dataUpdateThreshold.getDate() - config.days_consider_recent);
+    dataUpdateThreshold.setDate(dataUpdateThreshold.getDate() - config.days_consider_recent_import);
 
     const allFiches: Array<{ fiche_id: string; fiche_type: string; last_verified_at: string | null; last_data_update_at: string | null }> = [];
     const pageSize = 1000;
@@ -478,12 +478,12 @@ serve(async (req) => {
       .filter(f => (shouldApplyRecentUpdateFilters ? !excludedFicheIds.includes(f.fiche_id) : true))
       .filter(f => {
         if (!shouldApplyRecentUpdateFilters) return true;
+        if (!config.exclude_recently_imported) return true;
         if (!f.last_data_update_at) return true;
         const updateDate = new Date(f.last_data_update_at);
         return updateDate < dataUpdateThreshold;
       })
       .slice(0, fichesLimit);
-
     console.log(`Found ${fichesToVerify.length} fiches to verify (after filtering)`);
 
     if (fichesToVerify.length === 0) {
