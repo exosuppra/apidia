@@ -1,47 +1,42 @@
 
 
-## Plan : Validation Laura / Marie pour les tâches "Article Web"
+## Plan : Créer un événement Outlook via Make.com pour les tâches "Article Web"
 
 ### Principe
-Quand une tâche a le tag **"Article Web"**, le bouton "Créer et demander validation" (CreateTaskDialog) et "Demander validation" (EditTaskDialog) sont remplacés par deux boutons : **"Demander Validation Laura"** et **"Demander Validation Marie"**. Chacun appelle un webhook Make.com distinct. Le retour (validé/rejeté) affiche qui a validé.
+Quand une tâche avec le tag "Article Web" est créée dans le planning éditorial, un webhook Make.com est appelé avec les détails de la tâche. Le scénario Make se charge de créer l'événement dans l'agenda Outlook.
 
 ### Modifications
 
-#### 1. Ajouter 2 nouveaux secrets
-- `MAKE_VALIDATION_LAURA_WEBHOOK_URL`
-- `MAKE_VALIDATION_MARIE_WEBHOOK_URL`
+#### 1. Ajouter un nouveau secret
+- `MAKE_OUTLOOK_EVENT_WEBHOOK_URL` : URL du webhook Make.com qui crée l'événement Outlook.
 
-Vous serez invité a les renseigner via l'interface.
+#### 2. Créer une Edge Function `create-outlook-event`
+- Reçoit : `title`, `description`, `due_date`, `tags` (pour vérifier "Article Web" côté serveur aussi)
+- Envoie un POST au webhook Make avec ces données
+- Make.com se charge de créer l'événement Outlook (module Microsoft 365 Outlook > Create an Event)
 
-#### 2. Modifier la base de données
-Ajouter une colonne `validation_target` (text, nullable) a la table `tasks` pour stocker "laura" ou "marie".
+#### 3. Modifier `CreateTaskDialog.tsx`
+- Après la création réussie d'une tâche avec le tag "Article Web", appeler l'edge function `create-outlook-event` avec les infos de la tâche (titre, description, date)
+- Afficher un toast de confirmation ou d'erreur
 
-#### 3. Modifier l'Edge Function `request-task-validation`
-- Accepter un nouveau parametre `target` ("laura" | "marie" | null).
-- Si `target` est "laura", utiliser le secret `MAKE_VALIDATION_LAURA_WEBHOOK_URL`.
-- Si `target` est "marie", utiliser `MAKE_VALIDATION_MARIE_WEBHOOK_URL`.
-- Sinon, utiliser le webhook generique existant `MAKE_TASK_VALIDATION_WEBHOOK_URL`.
-- Sauvegarder `validation_target` dans la tache.
+#### 4. Données envoyées au webhook
+```json
+{
+  "title": "Titre de la tâche",
+  "description": "Description de la tâche",
+  "due_date": "2026-03-20T10:00:00",
+  "planning_name": "Nom du planning",
+  "task_id": "uuid"
+}
+```
 
-#### 4. Modifier `CreateTaskDialog.tsx`
-- Detecter si le tag "Article Web" est selectionne parmi les `selectedTags` (comparer le nom du tag).
-- Si oui : remplacer le bouton "Créer et demander validation" par deux boutons :
-  - "Demander Validation Laura" (appelle `onSubmit` avec `target: "laura"`)
-  - "Demander Validation Marie" (appelle `onSubmit` avec `target: "marie"`)
-- Transmettre le `target` a `requestTaskValidation`.
-
-#### 5. Modifier `EditTaskDialog.tsx`
-- Meme logique : detecter si la tache a le tag "Article Web".
-- Si oui : remplacer le bouton "Demander validation" par les deux boutons Laura/Marie.
-- Transmettre le `target` a la fonction `requestValidation`.
-
-#### 6. Afficher qui a valide
-- Dans les deux dialogs, quand `validation_status` est "validated" ou "rejected", afficher "Validé par Laura" / "Rejeté par Marie" en se basant sur `validation_target`.
-
-#### 7. Mettre a jour le type `Task`
-Ajouter `validation_target?: "laura" | "marie" | null` dans `src/types/planning.ts`.
+### Côté Make.com (à configurer par l'utilisateur)
+1. Créer un scénario avec un trigger "Webhooks > Custom webhook"
+2. Ajouter un module "Microsoft 365 Outlook > Create an Event"
+3. Mapper les champs reçus (titre, description, date) vers l'événement Outlook
+4. Copier l'URL du webhook dans le secret Lovable
 
 ### Détails techniques
-- La detection du tag "Article Web" se fait en croisant `selectedTags` (array d'IDs) avec la liste `tags`/`allTags` pour trouver le nom correspondant.
-- Les deux nouveaux boutons utilisent des couleurs distinctes (ex: bleu pour Laura, violet pour Marie) pour les differencier visuellement.
+- La détection du tag "Article Web" se fait en croisant les `selectedTags` avec la liste des tags pour trouver le nom, comme pour la logique de validation Laura/Marie existante.
+- L'appel est fait après la création de la tâche (pas bloquant) pour ne pas ralentir le flow de création.
 
