@@ -194,7 +194,7 @@ export function CreateTaskDialog({
       );
       if (taskIsArticleWeb && task?.id) {
         try {
-          const planningName = plannings?.find((p: any) => p.id === planningId)?.title || "";
+          const planningName = "";
           await supabase.functions.invoke("create-outlook-event", {
             body: {
               title: values.title,
