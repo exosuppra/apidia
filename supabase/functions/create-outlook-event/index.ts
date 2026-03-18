@@ -37,19 +37,35 @@ serve(async (req) => {
 
     if (due_date) {
       const d = new Date(due_date);
-      // If time is midnight (00:00), set start to 9:00 and end to 12:30
-      if (d.getUTCHours() === 0 && d.getUTCMinutes() === 0) {
-        d.setUTCHours(9, 0, 0, 0);
-        start_date = d.toISOString();
-        const endD = new Date(d);
-        endD.setUTCHours(12, 30, 0, 0);
-        end_date = endD.toISOString();
+      const hours = d.getUTCHours();
+      const minutes = d.getUTCMinutes();
+      // Consider "no specific time" if midnight UTC OR close to midnight (timezone offset, e.g. 23:00 UTC = 00:00 CET)
+      const isNoTime = (hours === 0 && minutes === 0) || (hours === 23 && minutes === 0) || (hours === 22 && minutes === 0);
+      
+      if (isNoTime) {
+        // Extract the local date: if UTC hour is 22 or 23, the local date is the next day
+        let year = d.getUTCFullYear();
+        let month = d.getUTCMonth();
+        let day = d.getUTCDate();
+        if (hours >= 22) {
+          // Local date is next day
+          const nextDay = new Date(Date.UTC(year, month, day + 1));
+          year = nextDay.getUTCFullYear();
+          month = nextDay.getUTCMonth();
+          day = nextDay.getUTCDate();
+        }
+        // Set start 9:00 and end 12:30 in Europe/Paris (UTC+1 winter / UTC+2 summer)
+        // Use fixed UTC+1 offset as approximation for France
+        start_date = new Date(Date.UTC(year, month, day, 8, 0, 0)).toISOString(); // 9h Paris = 8h UTC
+        end_date = new Date(Date.UTC(year, month, day, 11, 30, 0)).toISOString(); // 12h30 Paris = 11h30 UTC
       } else {
-        // Use the provided time, end = start + 3.5h
+        // Specific time provided, use as-is with 3.5h duration
         start_date = d.toISOString();
         const endD = new Date(d.getTime() + 3.5 * 60 * 60 * 1000);
         end_date = endD.toISOString();
       }
+      
+      console.log("Computed start_date:", start_date, "end_date:", end_date, "from due_date:", due_date);
     }
 
     const webhookPayload = {
