@@ -125,6 +125,8 @@ export default function VerificationAlerts() {
     confirmed: 0,
     ignored: 0,
     fixed: 0,
+    distinctFichesTotal: 0,
+    distinctFichesPending: 0,
   });
 
   // Configuration state
@@ -261,12 +263,18 @@ export default function VerificationAlerts() {
         supabase.from("verification_alerts").select("*", { count: "exact", head: true }).eq("status", "fixed"),
       ]);
 
+      // Compute distinct fiche counts from loaded data
+      const allFicheIds = new Set(typedData.map(a => a.fiche_id));
+      const pendingFicheIds = new Set(typedData.filter(a => a.status === "pending").map(a => a.fiche_id));
+
       setStats({
         total: totalRes.count || 0,
         pending: pendingRes.count || 0,
         confirmed: confirmedRes.count || 0,
         ignored: ignoredRes.count || 0,
         fixed: fixedRes.count || 0,
+        distinctFichesTotal: allFicheIds.size,
+        distinctFichesPending: pendingFicheIds.size,
       });
     } catch (error) {
       console.error("Error loading alerts:", error);
@@ -662,10 +670,11 @@ export default function VerificationAlerts() {
           <div className="grid gap-4 md:grid-cols-5 mb-6">
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Total</CardTitle>
+                <CardTitle className="text-sm font-medium text-muted-foreground">Total alertes</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{stats.total}</div>
+                <p className="text-xs text-muted-foreground mt-1">{stats.distinctFichesTotal} fiches distinctes</p>
               </CardContent>
             </Card>
             <Card>
@@ -677,6 +686,7 @@ export default function VerificationAlerts() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-yellow-600">{stats.pending}</div>
+                <p className="text-xs text-muted-foreground mt-1">{stats.distinctFichesPending} fiches distinctes</p>
               </CardContent>
             </Card>
             <Card>
