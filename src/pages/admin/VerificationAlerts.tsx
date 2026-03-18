@@ -125,6 +125,8 @@ export default function VerificationAlerts() {
     confirmed: 0,
     ignored: 0,
     fixed: 0,
+    distinctFichesTotal: 0,
+    distinctFichesPending: 0,
   });
 
   // Configuration state
