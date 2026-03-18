@@ -31,10 +31,32 @@ serve(async (req) => {
 
     console.log("Sending Outlook event creation for task:", task_id, "Title:", title);
 
+    // Calculate start_date and end_date from due_date
+    let start_date = due_date || null;
+    let end_date = due_date || null;
+
+    if (due_date) {
+      const d = new Date(due_date);
+      // If time is midnight (00:00), set start to 9:00 and end to 12:30
+      if (d.getUTCHours() === 0 && d.getUTCMinutes() === 0) {
+        d.setUTCHours(9, 0, 0, 0);
+        start_date = d.toISOString();
+        const endD = new Date(d);
+        endD.setUTCHours(12, 30, 0, 0);
+        end_date = endD.toISOString();
+      } else {
+        // Use the provided time, end = start + 3.5h
+        start_date = d.toISOString();
+        const endD = new Date(d.getTime() + 3.5 * 60 * 60 * 1000);
+        end_date = endD.toISOString();
+      }
+    }
+
     const webhookPayload = {
       title,
       description: description || "",
-      due_date: due_date || null,
+      start_date,
+      end_date,
       planning_name: planning_name || "",
       task_id: task_id || "",
     };
