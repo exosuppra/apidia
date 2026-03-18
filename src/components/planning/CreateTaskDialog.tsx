@@ -187,6 +187,37 @@ export function CreateTaskDialog({
         await requestTaskValidation(task.id, values.title, values.description || "", values.due_date?.toISOString() || null, validationTarget);
       }
 
+      // Create Outlook event for "Article Web" tasks
+      const taskSelectedTags = values.selectedTags || [];
+      const taskIsArticleWeb = taskSelectedTags.some(
+        (tagId) => localTags.find((t) => t.id === tagId)?.name === "Article Web"
+      );
+      if (taskIsArticleWeb && task?.id) {
+        try {
+          const planningName = "";
+          await supabase.functions.invoke("create-outlook-event", {
+            body: {
+              title: values.title,
+              description: values.description || "",
+              due_date: values.due_date?.toISOString() || null,
+              planning_name: planningName,
+              task_id: task.id,
+            },
+          });
+          toast({
+            title: "📅 Événement Outlook créé",
+            description: "L'événement a été ajouté à votre agenda Outlook.",
+          });
+        } catch (outlookError: any) {
+          console.error("Outlook event creation failed:", outlookError);
+          toast({
+            variant: "destructive",
+            title: "Erreur Outlook",
+            description: "La tâche a été créée mais l'événement Outlook n'a pas pu être ajouté.",
+          });
+        }
+      }
+
       toast({
         title: "Tâche créée",
         description: requestValidation 
