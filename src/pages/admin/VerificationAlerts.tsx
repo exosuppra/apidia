@@ -263,12 +263,18 @@ export default function VerificationAlerts() {
         supabase.from("verification_alerts").select("*", { count: "exact", head: true }).eq("status", "fixed"),
       ]);
 
+      // Compute distinct fiche counts from loaded data
+      const allFicheIds = new Set(typedData.map(a => a.fiche_id));
+      const pendingFicheIds = new Set(typedData.filter(a => a.status === "pending").map(a => a.fiche_id));
+
       setStats({
         total: totalRes.count || 0,
         pending: pendingRes.count || 0,
         confirmed: confirmedRes.count || 0,
         ignored: ignoredRes.count || 0,
         fixed: fixedRes.count || 0,
+        distinctFichesTotal: allFicheIds.size,
+        distinctFichesPending: pendingFicheIds.size,
       });
     } catch (error) {
       console.error("Error loading alerts:", error);
