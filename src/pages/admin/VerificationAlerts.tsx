@@ -670,10 +670,11 @@ export default function VerificationAlerts() {
           <div className="grid gap-4 md:grid-cols-5 mb-6">
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Total</CardTitle>
+                <CardTitle className="text-sm font-medium text-muted-foreground">Total alertes</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{stats.total}</div>
+                <p className="text-xs text-muted-foreground mt-1">{stats.distinctFichesTotal} fiches distinctes</p>
               </CardContent>
             </Card>
             <Card>
@@ -685,6 +686,7 @@ export default function VerificationAlerts() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-yellow-600">{stats.pending}</div>
+                <p className="text-xs text-muted-foreground mt-1">{stats.distinctFichesPending} fiches distinctes</p>
               </CardContent>
             </Card>
             <Card>
