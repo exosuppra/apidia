@@ -283,24 +283,23 @@ export function CalendarView({ tasks, tags, onRefresh, onDateDoubleClick, onTask
         description: `Tâche déplacée au ${format(newDate, "d MMMM", { locale: fr })}`,
       });
 
-      // Trigger Outlook webhook if task has "Article Web" tag
+      // Trigger Outlook move webhook if task has "Article Web" tag
       const hasArticleWebTag = task.tags?.some(
         (t) => t.name.toLowerCase() === "article web"
       );
       if (hasArticleWebTag) {
         try {
-          const planningName = "";
-          await supabase.functions.invoke("create-outlook-event", {
+          await supabase.functions.invoke("move-outlook-event", {
             body: {
               title: task.title,
               description: task.description || "",
               due_date: newDate.toISOString(),
-              planning_name: planningName,
+              planning_name: "",
               task_id: task.id,
             },
           });
         } catch (e) {
-          console.error("Outlook sync error:", e);
+          console.error("Outlook move sync error:", e);
         }
       }
 
