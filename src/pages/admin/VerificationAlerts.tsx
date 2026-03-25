@@ -409,6 +409,42 @@ export default function VerificationAlerts() {
     loadConfig();
   };
 
+  const handleBulkAction = async () => {
+    if (!bulkAction) return;
+    setBulkProcessing(true);
+    try {
+      if (bulkAction === 'ignore') {
+        // Update all pending alerts to ignored in batches
+        const { error } = await supabase
+          .from('verification_alerts')
+          .update({ 
+            status: 'ignored', 
+            reviewed_at: new Date().toISOString(),
+            notes: 'Ignoré en masse',
+          })
+          .eq('status', 'pending');
+
+        if (error) throw error;
+        toast.success(`${stats.pending} alertes marquées comme ignorées`);
+      } else if (bulkAction === 'delete') {
+        const { error } = await supabase
+          .from('verification_alerts')
+          .delete()
+          .eq('status', 'pending');
+
+        if (error) throw error;
+        toast.success(`${stats.pending} alertes supprimées`);
+      }
+      setBulkAction(null);
+      loadAlerts();
+    } catch (error) {
+      console.error('Bulk action error:', error);
+      toast.error("Erreur lors de l'action en masse");
+    } finally {
+      setBulkProcessing(false);
+    }
+  };
+
   return (
     <>
       <Seo 
