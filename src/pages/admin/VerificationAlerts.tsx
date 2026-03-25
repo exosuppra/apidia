@@ -472,7 +472,29 @@ export default function VerificationAlerts() {
                 </p>
               </div>
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap">
+              {stats.pending > 0 && (
+                <>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => setBulkAction('ignore')}
+                    className="text-muted-foreground"
+                  >
+                    <EyeOff className="h-4 w-4 mr-2" />
+                    Tout ignorer ({stats.pending})
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => setBulkAction('delete')}
+                    className="text-destructive border-destructive/30 hover:bg-destructive/10"
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Tout supprimer ({stats.pending})
+                  </Button>
+                </>
+              )}
               <Button variant="outline" onClick={loadAlerts} disabled={loading}>
                 <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
                 Actualiser
