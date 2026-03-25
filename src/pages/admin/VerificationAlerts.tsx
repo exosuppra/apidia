@@ -48,6 +48,8 @@ import {
   Settings,
   Save,
   Calendar,
+  Trash2,
+  EyeOff,
 } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -119,6 +121,8 @@ export default function VerificationAlerts() {
   const [updating, setUpdating] = useState(false);
   const [applyingCorrection, setApplyingCorrection] = useState(false);
   const [runningVerification, setRunningVerification] = useState(false);
+  const [bulkAction, setBulkAction] = useState<'ignore' | 'delete' | null>(null);
+  const [bulkProcessing, setBulkProcessing] = useState(false);
   const [stats, setStats] = useState({
     total: 0,
     pending: 0,
@@ -405,6 +409,42 @@ export default function VerificationAlerts() {
     loadConfig();
   };
 
+  const handleBulkAction = async () => {
+    if (!bulkAction) return;
+    setBulkProcessing(true);
+    try {
+      if (bulkAction === 'ignore') {
+        // Update all pending alerts to ignored in batches
+        const { error } = await supabase
+          .from('verification_alerts')
+          .update({ 
+            status: 'ignored', 
+            reviewed_at: new Date().toISOString(),
+            notes: 'Ignoré en masse',
+          })
+          .eq('status', 'pending');
+
+        if (error) throw error;
+        toast.success(`${stats.pending} alertes marquées comme ignorées`);
+      } else if (bulkAction === 'delete') {
+        const { error } = await supabase
+          .from('verification_alerts')
+          .delete()
+          .eq('status', 'pending');
+
+        if (error) throw error;
+        toast.success(`${stats.pending} alertes supprimées`);
+      }
+      setBulkAction(null);
+      loadAlerts();
+    } catch (error) {
+      console.error('Bulk action error:', error);
+      toast.error("Erreur lors de l'action en masse");
+    } finally {
+      setBulkProcessing(false);
+    }
+  };
+
   return (
     <>
       <Seo 
@@ -432,7 +472,29 @@ export default function VerificationAlerts() {
                 </p>
               </div>
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap">
+              {stats.pending > 0 && (
+                <>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => setBulkAction('ignore')}
+                    className="text-muted-foreground"
+                  >
+                    <EyeOff className="h-4 w-4 mr-2" />
+                    Tout ignorer ({stats.pending})
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => setBulkAction('delete')}
+                    className="text-destructive border-destructive/30 hover:bg-destructive/10"
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Tout supprimer ({stats.pending})
+                  </Button>
+                </>
+              )}
               <Button variant="outline" onClick={loadAlerts} disabled={loading}>
                 <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
                 Actualiser
@@ -951,6 +1013,41 @@ export default function VerificationAlerts() {
                     <Wand2 className="h-4 w-4 mr-2" />
                   )}
                   Appliquer la correction
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          {/* Bulk Action Confirmation Dialog */}
+          <Dialog open={bulkAction !== null} onOpenChange={(open) => !open && setBulkAction(null)}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>
+                  {bulkAction === 'ignore' ? 'Ignorer toutes les alertes en attente' : 'Supprimer toutes les alertes en attente'}
+                </DialogTitle>
+                <DialogDescription>
+                  {bulkAction === 'ignore'
+                    ? `Vous allez marquer ${stats.pending} alertes comme ignorées. Cette action est réversible.`
+                    : `Vous allez supprimer définitivement ${stats.pending} alertes en attente. Cette action est irréversible.`}
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setBulkAction(null)} disabled={bulkProcessing}>
+                  Annuler
+                </Button>
+                <Button
+                  variant={bulkAction === 'delete' ? 'destructive' : 'default'}
+                  onClick={handleBulkAction}
+                  disabled={bulkProcessing}
+                >
+                  {bulkProcessing ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : bulkAction === 'ignore' ? (
+                    <EyeOff className="h-4 w-4 mr-2" />
+                  ) : (
+                    <Trash2 className="h-4 w-4 mr-2" />
+                  )}
+                  {bulkAction === 'ignore' ? 'Tout ignorer' : 'Tout supprimer'}
                 </Button>
               </DialogFooter>
             </DialogContent>
