@@ -1017,6 +1017,41 @@ export default function VerificationAlerts() {
               </DialogFooter>
             </DialogContent>
           </Dialog>
+
+          {/* Bulk Action Confirmation Dialog */}
+          <Dialog open={bulkAction !== null} onOpenChange={(open) => !open && setBulkAction(null)}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>
+                  {bulkAction === 'ignore' ? 'Ignorer toutes les alertes en attente' : 'Supprimer toutes les alertes en attente'}
+                </DialogTitle>
+                <DialogDescription>
+                  {bulkAction === 'ignore'
+                    ? `Vous allez marquer ${stats.pending} alertes comme ignorées. Cette action est réversible.`
+                    : `Vous allez supprimer définitivement ${stats.pending} alertes en attente. Cette action est irréversible.`}
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setBulkAction(null)} disabled={bulkProcessing}>
+                  Annuler
+                </Button>
+                <Button
+                  variant={bulkAction === 'delete' ? 'destructive' : 'default'}
+                  onClick={handleBulkAction}
+                  disabled={bulkProcessing}
+                >
+                  {bulkProcessing ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : bulkAction === 'ignore' ? (
+                    <EyeOff className="h-4 w-4 mr-2" />
+                  ) : (
+                    <Trash2 className="h-4 w-4 mr-2" />
+                  )}
+                  {bulkAction === 'ignore' ? 'Tout ignorer' : 'Tout supprimer'}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
     </>
