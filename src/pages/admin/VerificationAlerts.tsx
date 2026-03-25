@@ -48,6 +48,8 @@ import {
   Settings,
   Save,
   Calendar,
+  Trash2,
+  EyeOff,
 } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -119,6 +121,8 @@ export default function VerificationAlerts() {
   const [updating, setUpdating] = useState(false);
   const [applyingCorrection, setApplyingCorrection] = useState(false);
   const [runningVerification, setRunningVerification] = useState(false);
+  const [bulkAction, setBulkAction] = useState<'ignore' | 'delete' | null>(null);
+  const [bulkProcessing, setBulkProcessing] = useState(false);
   const [stats, setStats] = useState({
     total: 0,
     pending: 0,
