@@ -115,6 +115,7 @@ export default function VerificationAlerts() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [fieldFilter, setFieldFilter] = useState<string>("all");
+  const [minConfidence, setMinConfidence] = useState<string>("all");
   const [selectedAlert, setSelectedAlert] = useState<VerificationAlert | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [notes, setNotes] = useState("");
@@ -300,7 +301,8 @@ export default function VerificationAlerts() {
       alert.fiche_id.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === "all" || alert.status === statusFilter;
     const matchesField = fieldFilter === "all" || alert.field_name === fieldFilter;
-    return matchesSearch && matchesStatus && matchesField;
+    const matchesConfidence = minConfidence === "all" || (alert.confidence_score !== null && alert.confidence_score >= parseFloat(minConfidence));
+    return matchesSearch && matchesStatus && matchesField && matchesConfidence;
   });
 
   const handleViewDetails = (alert: VerificationAlert) => {
@@ -823,6 +825,18 @@ export default function VerificationAlerts() {
                     <SelectItem value="email">Email</SelectItem>
                     <SelectItem value="site_web">Site web</SelectItem>
                     <SelectItem value="adresse">Adresse</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Select value={minConfidence} onValueChange={setMinConfidence}>
+                  <SelectTrigger className="w-[200px]">
+                    <SelectValue placeholder="Score de confiance" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Tous les scores</SelectItem>
+                    <SelectItem value="0.9">≥ 90% (très fiable)</SelectItem>
+                    <SelectItem value="0.7">≥ 70% (fiable)</SelectItem>
+                    <SelectItem value="0.5">≥ 50% (moyen)</SelectItem>
+                    <SelectItem value="0.3">≥ 30% (faible)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
