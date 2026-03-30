@@ -38,7 +38,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, Trash2, Send, Loader2, Clock, CheckCircle2, XCircle, Sparkles, CheckCheck } from "lucide-react";
+import { CalendarIcon, Trash2, Send, Loader2, Clock, CheckCircle2, XCircle } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
@@ -80,9 +80,6 @@ export function EditTaskDialog({
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [requestingValidation, setRequestingValidation] = useState(false);
   const [localTags, setLocalTags] = useState<Tag[]>(allTags);
-  const [aiPrompt, setAiPrompt] = useState("");
-  const [aiProposals, setAiProposals] = useState<{ a: string; b: string } | null>(null);
-  const [generatingAi, setGeneratingAi] = useState(false);
 
   const form = useForm<TaskFormValues>({
     resolver: zodResolver(taskSchema),

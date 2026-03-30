@@ -28,7 +28,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, Send, Loader2, Sparkles, CheckCheck } from "lucide-react";
+import { CalendarIcon, Send, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
@@ -72,9 +72,6 @@ export function CreateTaskDialog({
   const [localTags, setLocalTags] = useState<Tag[]>(tags);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [uploadingFiles, setUploadingFiles] = useState(false);
-  const [aiPrompt, setAiPrompt] = useState("");
-  const [aiProposals, setAiProposals] = useState<{ a: string; b: string } | null>(null);
-  const [generatingAi, setGeneratingAi] = useState(false);
 
   const form = useForm<TaskFormValues>({
     resolver: zodResolver(taskSchema),
@@ -227,8 +224,6 @@ export function CreateTaskDialog({
 
       form.reset();
       setSelectedFiles([]);
-      setAiPrompt("");
-      setAiProposals(null);
       onOpenChange(false);
       onSuccess();
     } catch (error: any) {
