@@ -523,14 +523,28 @@ export function EditTaskDialog({
                     </Button>
                   </div>
                 ) : task.validation_status === "validated" ? (
-                  <div className="flex items-center gap-2 px-3 py-2 bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 rounded-md text-sm" title={task.validation_comment || undefined}>
-                    <CheckCircle2 className="h-4 w-4" />
-                    <span>Validé{getValidationTargetLabel()}</span>
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2 px-3 py-2 bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 rounded-md text-sm">
+                      <CheckCircle2 className="h-4 w-4 flex-shrink-0" />
+                      <span>Validé{getValidationTargetLabel()}</span>
+                    </div>
+                    {task.validation_comment && (
+                      <div className="px-3 py-2 bg-green-50 dark:bg-green-900/10 border border-green-200 dark:border-green-800 rounded-md text-sm text-green-700 dark:text-green-400 italic">
+                        💬 {task.validation_comment}
+                      </div>
+                    )}
                   </div>
                 ) : task.validation_status === "rejected" ? (
-                  <div className="flex items-center gap-2 px-3 py-2 bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300 rounded-md text-sm" title={task.validation_comment || undefined}>
-                    <XCircle className="h-4 w-4" />
-                    <span>Rejeté{getValidationTargetLabel()}</span>
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2 px-3 py-2 bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300 rounded-md text-sm">
+                      <XCircle className="h-4 w-4 flex-shrink-0" />
+                      <span>Rejeté{getValidationTargetLabel()}</span>
+                    </div>
+                    {task.validation_comment && (
+                      <div className="px-3 py-2 bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800 rounded-md text-sm text-red-700 dark:text-red-400 italic">
+                        💬 {task.validation_comment}
+                      </div>
+                    )}
                   </div>
                 ) : isArticleWeb ? (
                   <>
