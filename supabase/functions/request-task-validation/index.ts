@@ -92,11 +92,17 @@ serve(async (req) => {
       console.warn("Could not fetch attachments:", e);
     }
 
+    // Convert description to HTML for proper formatting in emails
+    const descriptionHtml = (description || "")
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*(.*?)\*/g, '<em>$1</em>')
+      .replace(/\n/g, '<br>');
+
     // Send to Make webhook - flat fields for easy Make.com mapping
     const webhookPayload: Record<string, unknown> = {
       taskId,
       title,
-      description: description || "",
+      description: descriptionHtml,
       dueDate: dueDate || null,
       attachments_count: attachmentUrls.length,
     };
