@@ -120,6 +120,70 @@ export default function AdminDashboard() {
     saveSectionOrder(newOrder);
   };
 
+  const actionLabelsMap: Record<string, string> = {
+    login: "s'est connecté(e)",
+    logout: "s'est déconnecté(e)",
+    view_page: "a consulté une page",
+    create_task: "a créé une tâche",
+    update_task: "a mis à jour une tâche",
+    delete_task: "a supprimé une tâche",
+    validate_task: "a validé une tâche",
+    reject_task: "a rejeté une tâche",
+    import_fiches: "a importé des fiches",
+    export_data: "a exporté des données",
+    verify_fiche: "a vérifié une fiche",
+    edit_fiche: "a modifié une fiche",
+    sync_apidae: "a lancé une synchronisation Apidae",
+    linking_check: "a vérifié un site Linking",
+    linking_send_email: "a envoyé un email Linking",
+    create_planning: "a créé un planning",
+    update_planning: "a mis à jour un planning",
+    apidia_knowledge_update: "a mis à jour la base Apidia",
+    import_excel: "a importé un fichier Excel",
+    bulk_verification: "a lancé une vérification en masse",
+    other: "a effectué une action",
+  };
+
+  const actionLabel = (type: string) => actionLabelsMap[type] || type;
+
+  const formatDetails = (details: any) => {
+    if (!details) return "";
+    if (typeof details === "string") return details;
+    if (details.page) return `Page : ${details.page}`;
+    if (details.task_title) return details.task_title;
+    if (details.fiche_id) return `Fiche ${details.fiche_id}`;
+    if (details.url) return details.url;
+    return JSON.stringify(details).substring(0, 100);
+  };
+
+  const ActionIcon = ({ actionType }: { actionType: string }) => {
+    const iconClass = "h-4 w-4";
+    switch (actionType) {
+      case "login":
+      case "logout":
+        return <Shield className={`${iconClass} text-primary`} />;
+      case "create_task":
+      case "update_task":
+      case "validate_task":
+      case "reject_task":
+        return <Calendar className={`${iconClass} text-blue-500`} />;
+      case "import_fiches":
+      case "import_excel":
+        return <FileText className={`${iconClass} text-green-500`} />;
+      case "verify_fiche":
+      case "edit_fiche":
+        return <Eye className={`${iconClass} text-orange-500`} />;
+      case "linking_check":
+      case "linking_send_email":
+        return <Link2 className={`${iconClass} text-purple-500`} />;
+      case "sync_apidae":
+      case "bulk_verification":
+        return <RefreshCw className={`${iconClass} text-cyan-500`} />;
+      default:
+        return <Activity className={`${iconClass} text-muted-foreground`} />;
+    }
+  };
+
   // Section visibility checks
   const sectionVisible: Record<SectionKey, boolean> = {
     "rh-admin": hasPermission('users') || hasPermission('rh') || hasPermission('missions') || hasPermission('planning-santons'),
