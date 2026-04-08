@@ -214,12 +214,12 @@ export default function AdminDashboard() {
             {hasPermission('apidia') && (
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Apidia : Agent d'accueil virtuel</CardTitle>
+                  <CardTitle className="text-sm font-medium">Apidia : Base de connaissances</CardTitle>
                   <Bot className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <CardDescription>Chatbot conseiller en séjour basé sur les données touristiques</CardDescription>
-                  <Button className="w-full mt-4" variant="outline" onClick={() => navigate("/admin/apidia")}>Accéder à Apidia</Button>
+                  <CardDescription>Enrichissez les connaissances du conseiller en séjour virtuel</CardDescription>
+                  <Button className="w-full mt-4" variant="outline" onClick={() => navigate("/admin/apidia")}>Gérer la base</Button>
                 </CardContent>
               </Card>
             )}

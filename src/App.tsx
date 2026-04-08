@@ -48,7 +48,8 @@ import GenerationSiteWeb from "./pages/GenerationSiteWeb";
 import PublicPlanning from "./pages/PublicPlanning";
 import PlanningSantons from "./pages/admin/PlanningSantons";
 import Linking from "./pages/admin/Linking";
-import ApidiaChatbot from "./pages/admin/ApidiaChatbot";
+import ApidiaKnowledge from "./pages/admin/ApidiaKnowledge";
+import ApidiaChat from "./pages/ApidiaChat";
 
 const queryClient = new QueryClient();
 
@@ -251,7 +252,7 @@ const App = () => (
                 <RequirePasswordChange>
                   <RequirePermission pageKey="apidia">
                     <AdminLayout>
-                      <ApidiaChatbot />
+                      <ApidiaKnowledge />
                     </AdminLayout>
                   </RequirePermission>
                 </RequirePasswordChange>
@@ -284,6 +285,9 @@ const App = () => (
             
             {/* Google OAuth callback */}
             <Route path="/google-callback" element={<GoogleCallback />} />
+            
+            {/* Public Apidia chat */}
+            <Route path="/apidia" element={<ApidiaChat />} />
             
             {/* Public planning view */}
             <Route path="/planning/:token" element={<PublicPlanning />} />
