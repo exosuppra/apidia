@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import Seo from "@/components/Seo";
-import { Shield, LogOut, Users, FileText, Eye, Calendar, CalendarClock, Clock, Globe, BarChart3, History, Star, Briefcase, TreePine, GripVertical, ArrowUp, ArrowDown, Link2, Bot, Activity, RefreshCw } from "lucide-react";
+import { Shield, LogOut, Users, FileText, Eye, Calendar, CalendarClock, Clock, Globe, BarChart3, History, Star, Briefcase, TreePine, GripVertical, ArrowUp, ArrowDown, Link2, Bot, Activity, RefreshCw, MessageCircle } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { logUserAction } from "@/lib/logUserAction";
@@ -188,7 +188,7 @@ export default function AdminDashboard() {
   // Section visibility checks
   const sectionVisible: Record<SectionKey, boolean> = {
     "rh-admin": hasPermission('users') || hasPermission('rh') || hasPermission('missions') || hasPermission('planning-santons'),
-    "donnees-touristiques": hasPermission('requests') || hasPermission('fiches') || hasPermission('logs') || hasPermission('apidia'),
+    "donnees-touristiques": hasPermission('requests') || hasPermission('fiches') || hasPermission('logs') || hasPermission('apidia') || hasPermission('telegram-oto'),
     "reseaux-sociaux": hasPermission('planning'),
     "projet-web": hasPermission('intense-verdon') || hasPermission('stats-web') || hasPermission('stats-ereputation') || hasPermission('linking'),
   };
@@ -304,6 +304,18 @@ export default function AdminDashboard() {
                 <CardContent>
                   <CardDescription>Enrichissez les connaissances du conseiller en séjour virtuel</CardDescription>
                   <Button className="w-full mt-4" variant="outline" onClick={() => navigate("/admin/apidia")}>Gérer la base</Button>
+                </CardContent>
+              </Card>
+            )}
+            {hasPermission('telegram-oto') && (
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">OTO : Chat Telegram</CardTitle>
+                  <MessageCircle className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <CardDescription>Chat bidirectionnel avec les utilisateurs via Telegram</CardDescription>
+                  <Button className="w-full mt-4" variant="outline" onClick={() => navigate("/admin/telegram-oto")}>Accéder au chat OTO</Button>
                 </CardContent>
               </Card>
             )}
