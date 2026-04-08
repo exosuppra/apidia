@@ -48,7 +48,8 @@ import GenerationSiteWeb from "./pages/GenerationSiteWeb";
 import PublicPlanning from "./pages/PublicPlanning";
 import PlanningSantons from "./pages/admin/PlanningSantons";
 import Linking from "./pages/admin/Linking";
-import ApidiaChatbot from "./pages/admin/ApidiaChatbot";
+import ApidiaKnowledge from "./pages/admin/ApidiaKnowledge";
+import ApidiaChat from "./pages/ApidiaChat";
 
 const queryClient = new QueryClient();
 
