@@ -342,7 +342,49 @@ export default function Linking() {
           </div>
         </div>
 
-        {/* Bulk progress banner */}
+        {/* How it works */}
+        <Collapsible>
+          <CollapsibleTrigger asChild>
+            <Button variant="ghost" size="sm" className="w-full justify-between text-muted-foreground hover:text-foreground">
+              <span className="flex items-center gap-2"><Info className="w-4 h-4" />Comment fonctionne le système Linking ?</span>
+              <ChevronDown className="w-4 h-4" />
+            </Button>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <Card className="border-muted bg-muted/30">
+              <CardContent className="pt-4 space-y-3 text-sm text-muted-foreground">
+                <p className="font-medium text-foreground">Le module Linking permet de vérifier automatiquement que les sites web des communes affichent des informations touristiques à jour.</p>
+                <div className="space-y-2">
+                  <p className="font-medium text-foreground">📋 Étape 1 : Import des sites</p>
+                  <p>Importez vos sites via un fichier Excel (colonnes : Commune, Type de contenu, URL, Date de mise à jour) ou ajoutez-les manuellement avec le bouton "Ajouter".</p>
+                </div>
+                <div className="space-y-2">
+                  <p className="font-medium text-foreground">🔍 Étape 2 : Vérification automatique</p>
+                  <p>Cliquez sur "Vérifier tout" ou sur l'icône 🔄 d'un site individuel. Le système utilise <strong>Firecrawl</strong> pour scrapper le contenu de chaque page web, puis une <strong>IA</strong> analyse si les informations touristiques présentes sont correctes et à jour.</p>
+                </div>
+                <div className="space-y-2">
+                  <p className="font-medium text-foreground">📊 Étape 3 : Résultat de l'analyse</p>
+                  <p>Chaque site reçoit un statut :</p>
+                  <ul className="list-disc list-inside space-y-1 ml-2">
+                    <li><strong className="text-primary">OK</strong> — Les informations sont à jour, rien à signaler.</li>
+                    <li><strong className="text-destructive">À modifier</strong> — Des erreurs ou informations obsolètes ont été détectées. Les modifications suggérées sont enregistrées.</li>
+                    <li><strong>En attente</strong> — Le site n'a pas encore été vérifié.</li>
+                  </ul>
+                </div>
+                <div className="space-y-2">
+                  <p className="font-medium text-foreground">✉️ Étape 4 : Envoi du mail de correction</p>
+                  <p>Pour les sites "À modifier", cliquez sur l'icône ✉️ pour envoyer un mail pré-écrit (via un webhook Make) demandant au responsable du site de mettre à jour les informations erronées. L'email contient automatiquement les modifications détectées.</p>
+                </div>
+                <div className="space-y-2">
+                  <p className="font-medium text-foreground">🔄 Vérification automatique</p>
+                  <p>Un webhook Make peut déclencher la vérification de tous les sites en arrière-plan, sans avoir besoin d'ouvrir l'application. Configurez un scénario Make pointant vers la fonction <code className="bg-muted px-1 rounded text-xs">trigger-linking-check</code>.</p>
+                </div>
+              </CardContent>
+            </Card>
+          </CollapsibleContent>
+        </Collapsible>
+
+
         {bulkChecking && (
           <Card className="border-primary/30 bg-primary/5">
             <CardContent className="pt-4 space-y-3">
