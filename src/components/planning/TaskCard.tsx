@@ -73,7 +73,14 @@ export function TaskCard({ task, onRefresh, allTags }: TaskCardProps) {
       ? (task.validation_target === "laura" ? " par Laura" : " par Marie") 
       : "";
 
-    const badgeConfig = {
+    const respondedAt = task.validation_responded_at
+      ? format(new Date(task.validation_responded_at), "dd/MM/yyyy à HH:mm", { locale: fr })
+      : null;
+    const requestedAt = task.validation_requested_at
+      ? format(new Date(task.validation_requested_at), "dd/MM/yyyy à HH:mm", { locale: fr })
+      : null;
+
+    const badgeConfig: Record<string, { icon: any; label: string; className: string }> = {
       pending: {
         icon: Clock,
         label: `En attente${targetLabel}`,
@@ -81,12 +88,12 @@ export function TaskCard({ task, onRefresh, allTags }: TaskCardProps) {
       },
       validated: {
         icon: CheckCircle2,
-        label: `Validé${targetLabel}`,
+        label: `Validé${targetLabel}${respondedAt ? ` le ${respondedAt}` : ""}`,
         className: "bg-green-100 text-green-800 border-green-300 dark:bg-green-900/30 dark:text-green-300 dark:border-green-700",
       },
       rejected: {
         icon: XCircle,
-        label: `Rejeté${targetLabel}`,
+        label: `Rejeté${targetLabel}${respondedAt ? ` le ${respondedAt}` : ""}`,
         className: "bg-red-100 text-red-800 border-red-300 dark:bg-red-900/30 dark:text-red-300 dark:border-red-700",
       },
     };

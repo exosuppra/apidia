@@ -504,9 +504,16 @@ export function EditTaskDialog({
                 {/* Validation section - show status or request button */}
                 {task.validation_status === "pending" ? (
                   <div className="flex items-center gap-2">
-                    <div className="flex items-center gap-2 px-3 py-2 bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300 rounded-md text-sm">
-                      <Clock className="h-4 w-4" />
-                      <span>En attente{getValidationTargetLabel()}</span>
+                    <div className="flex flex-col gap-1">
+                      <div className="flex items-center gap-2 px-3 py-2 bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300 rounded-md text-sm">
+                        <Clock className="h-4 w-4" />
+                        <span>En attente{getValidationTargetLabel()}</span>
+                      </div>
+                      {task.validation_requested_at && (
+                        <span className="text-xs text-muted-foreground px-3">
+                          Demandé le {format(new Date(task.validation_requested_at), "dd/MM/yyyy à HH:mm", { locale: fr })}
+                        </span>
+                      )}
                     </div>
                     <Button
                       type="button"
@@ -528,6 +535,11 @@ export function EditTaskDialog({
                       <CheckCircle2 className="h-4 w-4 flex-shrink-0" />
                       <span>Validé{getValidationTargetLabel()}</span>
                     </div>
+                    {task.validation_responded_at && (
+                      <span className="text-xs text-muted-foreground px-3">
+                        Le {format(new Date(task.validation_responded_at), "dd/MM/yyyy à HH:mm", { locale: fr })}
+                      </span>
+                    )}
                     {task.validation_comment && (
                       <div className="px-3 py-2 bg-green-50 dark:bg-green-900/10 border border-green-200 dark:border-green-800 rounded-md text-sm text-green-700 dark:text-green-400 italic">
                         💬 {task.validation_comment}
@@ -540,6 +552,11 @@ export function EditTaskDialog({
                       <XCircle className="h-4 w-4 flex-shrink-0" />
                       <span>Rejeté{getValidationTargetLabel()}</span>
                     </div>
+                    {task.validation_responded_at && (
+                      <span className="text-xs text-muted-foreground px-3">
+                        Le {format(new Date(task.validation_responded_at), "dd/MM/yyyy à HH:mm", { locale: fr })}
+                      </span>
+                    )}
                     {task.validation_comment && (
                       <div className="px-3 py-2 bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800 rounded-md text-sm text-red-700 dark:text-red-400 italic">
                         💬 {task.validation_comment}
