@@ -272,6 +272,7 @@ export default function Linking() {
 
       await supabase.from("linking_sites").update({ date_contact: new Date().toISOString().split("T")[0] }).eq("id", site.id);
       setSites(prev => prev.map(s => s.id === site.id ? { ...s, date_contact: new Date().toISOString().split("T")[0] } : s));
+      logUserAction("linking_send_email", { url: site.url, commune: site.commune_nom });
       toast({ title: "Mail envoyé", description: `Webhook déclenché pour ${site.commune_nom}` });
     } catch (err) {
       console.error("Send error:", err);
