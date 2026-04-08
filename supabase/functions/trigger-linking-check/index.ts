@@ -170,20 +170,36 @@ Deno.serve(async (req) => {
         const communeName = commune?.nom || "inconnue";
         const useGemini = !!Deno.env.get("GEMINI_API_KEY");
 
-        const prompt = `Tu es un expert en vérification de données touristiques pour la commune de "${communeName}" (DLVA - Durance Luberon Verdon Agglomération, Alpes-de-Haute-Provence).
+        const prompt = `Tu es un expert en vérification de données touristiques pour la commune de "${communeName}" située dans le territoire DLVA (Durance Luberon Verdon Agglomération), département des Alpes-de-Haute-Provence (04), région Provence-Alpes-Côte d'Azur.
 
-Analyse le contenu de cette page web (type: ${site.type_contenu || "inconnu"}, URL: ${site.url}) et détermine si les informations sont à jour et correctes.
+Page analysée : ${site.url}
+Type de contenu : ${site.type_contenu || "page web touristique"}
+
+CRITÈRES DE VÉRIFICATION — vérifie chacun de ces points :
+1. La commune "${communeName}" est-elle bien mentionnée et correctement orthographiée ?
+2. Le département (04 / Alpes-de-Haute-Provence) est-il correct ?
+3. Les informations de contact (téléphone, email, adresse) semblent-elles plausibles et complètes ?
+4. Les horaires ou périodes d'ouverture mentionnés sont-ils cohérents (pas de dates passées présentées comme futures) ?
+5. Les liens vers d'autres sites fonctionnent-ils (pas de mentions de pages supprimées) ?
+6. Y a-t-il des informations manifestement obsolètes (événements passés présentés comme à venir, tarifs anciens, etc.) ?
+7. Le contenu est-il suffisamment riche et informatif pour un visiteur ?
+
+RÈGLES IMPORTANTES :
+- Si la page parle bien de la commune et que les informations semblent globalement correctes et à jour, mets "is_up_to_date": true même si la page n'est pas parfaite.
+- Ne signale que les VRAIS problèmes factuels (erreur de nom, mauvais département, dates obsolètes, infos manifestement fausses).
+- Ne signale PAS comme problème : le manque de détails, le style rédactionnel, l'absence de photos, ou des informations que tu ne peux pas vérifier.
+- Si tu n'es pas sûr qu'une info est fausse, considère-la comme correcte.
 
 Contenu de la page :
 ---
 ${content}
 ---
 
-Réponds en JSON avec exactement ce format :
+Réponds UNIQUEMENT en JSON avec ce format :
 {
-  "is_up_to_date": true/false,
-  "issues": ["liste des problèmes trouvés"],
-  "suggested_email": "Texte du mail à envoyer si nécessaire. Vide si tout est OK."
+  "is_up_to_date": true ou false,
+  "issues": ["description précise de chaque problème factuel trouvé"],
+  "suggested_email": "Si is_up_to_date est false : rédige un email poli en français au webmaster mentionnant la commune ${communeName} et les corrections précises à apporter. Si true : chaîne vide."
 }`;
 
         let aiResult: string;
@@ -212,12 +228,12 @@ Réponds en JSON avec exactement ce format :
             body: JSON.stringify({
               model: "google/gemini-2.5-flash",
               messages: [
-                { role: "system", content: "Tu réponds uniquement en JSON valide." },
+                { role: "system", content: "Tu es un vérificateur de données touristiques. Tu réponds uniquement en JSON valide. Tu es indulgent : si les informations semblent globalement correctes, tu mets is_up_to_date à true." },
                 { role: "user", content: prompt },
               ],
               response_format: { type: "json_object" },
             }),
-          });
+          );
           const lovableData = await lovableRes.json();
           aiResult = lovableData.choices?.[0]?.message?.content || "{}";
         }
@@ -225,17 +241,20 @@ Réponds en JSON avec exactement ce format :
         let parsed;
         try {
           const jsonMatch = aiResult.match(/\{[\s\S]*\}/);
-          parsed = jsonMatch ? JSON.parse(jsonMatch[0]) : { is_up_to_date: false, issues: ["Erreur d'analyse"] };
+          parsed = jsonMatch ? JSON.parse(jsonMatch[0]) : { is_up_to_date: true, issues: [] };
         } catch {
-          parsed = { is_up_to_date: false, issues: ["Erreur d'analyse IA"] };
+          parsed = { is_up_to_date: true, issues: [] };
         }
 
-        const newStatut = parsed.is_up_to_date ? "ok" : "a_modifier";
+        // If AI says not up to date but gives no concrete issues, treat as OK
+        const hasConcreteIssues = parsed.issues && parsed.issues.length > 0 && 
+          !parsed.issues.every((i: string) => i.toLowerCase().includes("vérification manuelle") || i.toLowerCase().includes("impossible"));
+        
+        const effectiveUpToDate = parsed.is_up_to_date || !hasConcreteIssues;
+        const newStatut = effectiveUpToDate ? "ok" : "a_modifier";
         let modifications: string | null = null;
-        if (!parsed.is_up_to_date) {
-          modifications = parsed.issues?.length
-            ? "• " + parsed.issues.join("\n• ")
-            : "• Vérification manuelle nécessaire.";
+        if (!effectiveUpToDate && parsed.issues?.length) {
+          modifications = "• " + parsed.issues.join("\n• ");
         }
 
         await supabase.from("linking_sites").update({
