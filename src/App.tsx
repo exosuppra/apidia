@@ -286,6 +286,9 @@ const App = () => (
             {/* Google OAuth callback */}
             <Route path="/google-callback" element={<GoogleCallback />} />
             
+            {/* Public Apidia chat */}
+            <Route path="/apidia" element={<ApidiaChat />} />
+            
             {/* Public planning view */}
             <Route path="/planning/:token" element={<PublicPlanning />} />
             
