@@ -32,6 +32,8 @@ export default function AdminDashboard() {
   const [showIntenseVerdonPopup, setShowIntenseVerdonPopup] = useState(false);
   const [sectionOrder, setSectionOrder] = useState<SectionKey[]>(DEFAULT_ORDER);
   const [isReordering, setIsReordering] = useState(false);
+  const [activityLogs, setActivityLogs] = useState<any[]>([]);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   const handleIntenseVerdonClick = () => {
     const newTab = window.open("https://intense-verdon-edito.lovable.app", "_blank");
