@@ -397,8 +397,8 @@ export default function Linking() {
                   <p>Pour les sites "À modifier", cliquez sur l'icône ✉️ pour envoyer un mail pré-écrit (via un webhook Make) demandant au responsable du site de mettre à jour les informations erronées. L'email contient automatiquement les modifications détectées.</p>
                 </div>
                 <div className="space-y-2">
-                  <p className="font-medium text-foreground">🔄 Vérification automatique</p>
-                  <p>Un webhook Make peut déclencher la vérification de tous les sites en arrière-plan, sans avoir besoin d'ouvrir l'application. Configurez un scénario Make pointant vers la fonction <code className="bg-muted px-1 rounded text-xs">trigger-linking-check</code>.</p>
+                  <p className="font-medium text-foreground">🔄 Vérification automatique quotidienne</p>
+                  <p>Une vérification automatique de tous les sites est programmée <strong>chaque jour à 9h00</strong>. Le système lance le scraping et l'analyse IA en arrière-plan, sans intervention manuelle nécessaire. Vous pouvez également déclencher une vérification manuelle à tout moment via le bouton "Vérifier tout".</p>
                 </div>
               </CardContent>
             </Card>
