@@ -10,7 +10,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Plus, Trash2, Edit2, BookOpen, Loader2 } from "lucide-react";
+import { Plus, Trash2, Edit2, BookOpen, Loader2, ExternalLink } from "lucide-react";
 import Seo from "@/components/Seo";
 
 type KnowledgeEntry = {
@@ -118,6 +118,12 @@ export default function ApidiaKnowledge() {
             Apidia : Base de connaissances
           </h1>
           <p className="text-muted-foreground">Enrichissez les connaissances d'Apidia pour améliorer ses réponses</p>
+          <Button variant="outline" size="sm" className="mt-2" asChild>
+            <a href="/apidia" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
+              <ExternalLink className="w-4 h-4" />
+              Ouvrir le chatbot Apidia
+            </a>
+          </Button>
         </div>
 
         <Card>

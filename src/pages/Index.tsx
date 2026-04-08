@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import Seo from "@/components/Seo";
 import { useAuth } from "@/context/AuthProvider";
 import { Button } from "@/components/ui/button";
+import { Bot } from "lucide-react";
 
 const Index = () => {
   const { user, loading } = useAuth();
@@ -20,12 +21,18 @@ const Index = () => {
       <div className="text-center max-w-xl space-y-4">
         <h1 className="text-4xl font-bold">Bienvenue sur ApidIA</h1>
         <p className="text-lg text-muted-foreground">Commencez par vous connecter pour accéder à votre espace.</p>
-        <div className="flex items-center justify-center gap-3">
+        <div className="flex items-center justify-center gap-3 flex-wrap">
           <Button asChild variant="outline">
             <Link to="/catalogue">Découvrir nos services</Link>
           </Button>
           <Button asChild>
             <Link to="/auth/login">Se connecter</Link>
+          </Button>
+          <Button asChild variant="secondary">
+            <Link to="/apidia" className="flex items-center gap-2">
+              <Bot className="w-4 h-4" />
+              Conseiller en séjour
+            </Link>
           </Button>
         </div>
       </div>
