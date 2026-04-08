@@ -395,24 +395,38 @@ export default function Linking() {
         </Collapsible>
 
 
-        {bulkChecking && (
-          <Card className="border-primary/30 bg-primary/5">
+        {/* Bulk progress banner */}
+        {(bulkChecking || checkConfig?.current_status === "completed") && checkConfig && (
+          <Card className={`border-primary/30 ${bulkChecking ? "bg-primary/5" : "bg-green-50 dark:bg-green-950/20 border-green-300"}`}>
             <CardContent className="pt-4 space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                  {bulkChecking ? (
+                    <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                  ) : (
+                    <Check className="w-4 h-4 text-green-600" />
+                  )}
                   <span className="text-sm font-medium">
-                    Vérification en cours ({bulkProgress.current}/{bulkProgress.total})
+                    {bulkChecking
+                      ? `Vérification en cours (${checkConfig.current_checked}/${checkConfig.current_total})`
+                      : `Vérification terminée — ${checkConfig.current_checked} vérifiés, ${checkConfig.current_errors} erreurs`
+                    }
                   </span>
                 </div>
-                <Button variant="ghost" size="sm" onClick={() => { bulkAbortRef.current = true; }}>
-                  <X className="w-4 h-4 mr-1" />Arrêter
-                </Button>
+                {bulkChecking && (
+                  <Button variant="ghost" size="sm" onClick={handleStopBulkCheck}>
+                    <X className="w-4 h-4 mr-1" />Arrêter
+                  </Button>
+                )}
               </div>
-              <Progress value={(bulkProgress.current / bulkProgress.total) * 100} className="h-2" />
-              <p className="text-xs text-muted-foreground truncate">
-                {bulkProgress.currentSite}
-              </p>
+              {checkConfig.current_total > 0 && (
+                <Progress value={(checkConfig.current_checked / checkConfig.current_total) * 100} className="h-2" />
+              )}
+              {bulkChecking && checkConfig.current_site_url && (
+                <p className="text-xs text-muted-foreground truncate">
+                  {checkConfig.current_site_url}
+                </p>
+              )}
             </CardContent>
           </Card>
         )}
