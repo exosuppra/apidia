@@ -5,11 +5,11 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Extract key info from Apidae fiches for comparison
+// Extract detailed info from Apidae fiches
 function extractApidaeReference(fiches: any[]): string {
   if (!fiches || fiches.length === 0) return "";
 
-  const entries = fiches.slice(0, 15).map((f: any) => {
+  const entries = fiches.slice(0, 5).map((f: any) => {
     const d = f.data || {};
     const nom = d.nom?.libelleFr || d.nom?.libelleEn || "Sans nom";
     const adresse = d.localisation?.adresse || {};
@@ -20,9 +20,10 @@ function extractApidaeReference(fiches: any[]): string {
     const contacts: string[] = [];
     const moyens = d.informations?.moyensCommunication || [];
     for (const m of moyens) {
-      if (m.type?.libelleFr === "Téléphone" || m.type?.id === 201) contacts.push(`Tel: ${m.coordonnees?.fr || m.coordonnees}`);
-      if (m.type?.libelleFr === "Mél" || m.type?.id === 204) contacts.push(`Email: ${m.coordonnees?.fr || m.coordonnees}`);
-      if (m.type?.libelleFr === "Site web" || m.type?.id === 205) contacts.push(`Web: ${m.coordonnees?.fr || m.coordonnees}`);
+      const coord = typeof m.coordonnees === "object" ? m.coordonnees?.fr : m.coordonnees;
+      if (m.type?.libelleFr === "Téléphone" || m.type?.id === 201) contacts.push(`Tél: ${coord}`);
+      if (m.type?.libelleFr === "Mél" || m.type?.id === 204) contacts.push(`Email: ${coord}`);
+      if (m.type?.libelleFr === "Site web" || m.type?.id === 205) contacts.push(`Web: ${coord}`);
     }
 
     const ouvertures: string[] = [];
@@ -31,38 +32,109 @@ function extractApidaeReference(fiches: any[]): string {
       ouvertures.push(`${p.dateDebut || "?"} → ${p.dateFin || "?"}`);
     }
 
-    return `- ${nom} (${f.fiche_type || ""})\n  Adresse: ${rue}, ${cp} ${commune}\n  ${contacts.join(" | ")}\n  Ouverture: ${ouvertures.join(", ") || "non renseigné"}`;
+    const descCourte = d.presentation?.descriptifCourt?.libelleFr || "";
+
+    return `📌 ${nom} (type: ${f.fiche_type || "inconnu"}, ID: ${f.fiche_id})\n  Adresse: ${rue}, ${cp} ${commune}\n  Contacts: ${contacts.join(" | ") || "aucun"}\n  Ouverture: ${ouvertures.join(", ") || "non renseigné"}\n  Description: ${descCourte.substring(0, 200)}`;
   });
 
-  return entries.join("\n");
+  return entries.join("\n\n");
 }
 
-// Cache for Apidae data per commune to avoid repeated queries
-const communeApidaeCache = new Map<string, string>();
+// Quick AI call to extract establishment names from scraped content
+async function extractEstablishmentName(content: string, aiKey: string, useGemini: boolean): Promise<string[]> {
+  const extractPrompt = `Analyse ce contenu de page web et extrait le ou les noms d'établissements touristiques mentionnés (hôtel, restaurant, camping, musée, activité, office de tourisme, etc.).
 
-async function getApidaeReferenceForCommune(supabase: any, communeName: string): Promise<string> {
-  if (communeApidaeCache.has(communeName)) {
-    return communeApidaeCache.get(communeName)!;
+Retourne UNIQUEMENT un JSON : {"names": ["Nom 1", "Nom 2"]}
+Si aucun nom d'établissement n'est identifiable, retourne {"names": []}
+
+Contenu (premiers 2000 caractères) :
+${content.substring(0, 2000)}`;
+
+  try {
+    if (useGemini) {
+      const res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${aiKey}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: extractPrompt }] }],
+            generationConfig: { responseMimeType: "application/json" },
+          }),
+        }
+      );
+      const data = await res.json();
+      const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
+      const parsed = JSON.parse(text);
+      return parsed.names || [];
+    } else {
+      const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${aiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash-lite",
+          messages: [{ role: "user", content: extractPrompt }],
+          response_format: { type: "json_object" },
+        }),
+      });
+      const data = await res.json();
+      const text = data.choices?.[0]?.message?.content || "{}";
+      const parsed = JSON.parse(text);
+      return parsed.names || [];
+    }
+  } catch (e) {
+    console.error("Failed to extract establishment name:", e);
+    return [];
+  }
+}
+
+// Search Apidae for specific establishment by name + commune
+async function findMatchingApidaeFiches(supabase: any, names: string[], communeName: string): Promise<any[]> {
+  const allFiches: any[] = [];
+  const seenIds = new Set<string>();
+
+  for (const name of names.slice(0, 3)) {
+    const { data: rpcFiches } = await supabase.rpc("search_fiches_apidae", {
+      p_search_term: name,
+      p_commune: communeName,
+      p_limit: 5,
+    });
+
+    if (rpcFiches && rpcFiches.length > 0) {
+      const ids = rpcFiches.map((f: any) => f.fiche_id).filter((id: string) => !seenIds.has(id));
+      ids.forEach((id: string) => seenIds.add(id));
+      if (ids.length > 0) {
+        const { data: fullFiches } = await supabase
+          .from("fiches_data")
+          .select("fiche_id, fiche_type, data")
+          .in("fiche_id", ids)
+          .limit(5);
+        if (fullFiches) allFiches.push(...fullFiches);
+      }
+    }
   }
 
-  let reference = "";
-  const { data: rpcFiches } = await supabase.rpc("search_fiches_apidae", {
-    p_commune: communeName,
-    p_limit: 20,
-  });
-
-  if (rpcFiches && rpcFiches.length > 0) {
-    const ids = rpcFiches.map((f: any) => f.fiche_id);
-    const { data: fullFiches } = await supabase
-      .from("fiches_data")
-      .select("fiche_id, fiche_type, data")
-      .in("fiche_id", ids)
-      .limit(20);
-    reference = extractApidaeReference(fullFiches || []);
+  // Fallback: commune-wide if no name match
+  if (allFiches.length === 0) {
+    const { data: rpcFiches } = await supabase.rpc("search_fiches_apidae", {
+      p_commune: communeName,
+      p_limit: 10,
+    });
+    if (rpcFiches && rpcFiches.length > 0) {
+      const ids = rpcFiches.map((f: any) => f.fiche_id);
+      const { data: fullFiches } = await supabase
+        .from("fiches_data")
+        .select("fiche_id, fiche_type, data")
+        .in("fiche_id", ids)
+        .limit(10);
+      if (fullFiches) allFiches.push(...fullFiches);
+    }
   }
 
-  communeApidaeCache.set(communeName, reference);
-  return reference;
+  return allFiches;
 }
 
 Deno.serve(async (req) => {
@@ -86,7 +158,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    // If not resuming, start a new run
     if (!isResume) {
       if (config.current_status === "running") {
         return new Response(JSON.stringify({ message: "Already running", status: "running" }), {
@@ -109,7 +180,6 @@ Deno.serve(async (req) => {
       }).eq("id", config.id);
     }
 
-    // Re-fetch config
     const { data: freshConfigs } = await supabase.from("linking_check_config").select("*").limit(1);
     const freshConfig = freshConfigs?.[0];
 
@@ -119,7 +189,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Get next batch
     const { data: sites } = await supabase
       .from("linking_sites")
       .select("id, url, commune_id, type_contenu, modifications")
@@ -152,6 +221,7 @@ Deno.serve(async (req) => {
       throw new Error("Missing required API keys");
     }
 
+    const useGemini = !!Deno.env.get("GEMINI_API_KEY");
     let checkedInBatch = 0;
     let errorsInBatch = 0;
     const startTime = Date.now();
@@ -160,7 +230,6 @@ Deno.serve(async (req) => {
     for (const site of sites) {
       if (Date.now() - startTime > BUDGET_MS) break;
 
-      // Check if interrupted
       const { data: checkStatus } = await supabase
         .from("linking_check_config")
         .select("current_status")
@@ -182,9 +251,6 @@ Deno.serve(async (req) => {
           .single();
 
         const communeName = commune?.nom || "inconnue";
-
-        // Fetch Apidae reference data for this commune
-        const apidaeReference = await getApidaeReferenceForCommune(supabase, communeName);
 
         // Scrape
         const scrapeResp = await fetch("https://api.firecrawl.dev/v1/scrape", {
@@ -226,41 +292,53 @@ Deno.serve(async (req) => {
           continue;
         }
 
-        // AI analysis with Apidae reference
-        const useGemini = !!Deno.env.get("GEMINI_API_KEY");
+        // Step 1: Extract establishment name
+        const establishmentNames = await extractEstablishmentName(content, AI_KEY, useGemini);
+        console.log(`[${site.url}] Detected names: ${establishmentNames.join(", ")}`);
+
+        // Step 2: Find matching Apidae fiches
+        const matchedFiches = await findMatchingApidaeFiches(supabase, establishmentNames, communeName);
+        const apidaeReference = extractApidaeReference(matchedFiches);
+        console.log(`[${site.url}] Matched ${matchedFiches.length} Apidae fiches`);
+
+        // Step 3: AI comparison
+        const matchInfo = establishmentNames.length > 0
+          ? `\nÉtablissements détectés sur la page : ${establishmentNames.join(", ")}`
+          : "";
 
         const apidaeSection = apidaeReference
-          ? `\nDONNÉES DE RÉFÉRENCE APIDAE (source de vérité) :\nVoici les informations officielles issues de la base Apidae pour la commune "${communeName}". Compare les informations de la page avec ces données :\n${apidaeReference}\n`
-          : `\nAucune donnée Apidae trouvée pour cette commune. Base ta vérification uniquement sur la cohérence du contenu.\n`;
+          ? `\nFICHES APIDAE CORRESPONDANTES (source de vérité) :\n${apidaeReference}\n`
+          : `\nAucune fiche Apidae correspondante trouvée. Vérification basée sur la cohérence uniquement.\n`;
 
-        const prompt = `Tu es un expert en vérification de données touristiques pour la commune de "${communeName}" située dans le territoire DLVA (Durance Luberon Verdon Agglomération), département des Alpes-de-Haute-Provence (04), région Provence-Alpes-Côte d'Azur.
+        const prompt = `Tu es un expert en vérification de données touristiques pour "${communeName}" (DLVA, 04).
 
-Page analysée : ${site.url}
-Type de contenu : ${site.type_contenu || "page web touristique"}
+Page : ${site.url}
+Type : ${site.type_contenu || "page web touristique"}
+${matchInfo}
 ${apidaeSection}
 
-MÉTHODE DE VÉRIFICATION :
-1. Compare les informations de la page (noms, adresses, téléphones, horaires) avec les données Apidae ci-dessus.
-2. Signale les ÉCARTS FACTUELS : numéro de téléphone différent, adresse incorrecte, horaires obsolètes, nom d'établissement mal orthographié.
-3. Vérifie que la commune "${communeName}" et le département (04) sont corrects.
-4. Vérifie la cohérence des dates (pas de dates passées présentées comme futures).
+MÉTHODE :
+1. Compare infos page vs fiches Apidae (noms, adresses, téléphones, horaires).
+2. Signale UNIQUEMENT les écarts factuels précis : "Page : XX / Apidae : YY".
+3. Vérifie commune et département (04).
+4. Vérifie dates obsolètes.
 
-RÈGLES IMPORTANTES :
-- Si les informations correspondent aux données Apidae ou semblent globalement correctes et à jour, mets "is_up_to_date": true.
-- Ne signale que les VRAIS écarts factuels vérifiables par rapport aux données Apidae.
-- Ne signale PAS : le style rédactionnel, l'absence de photos, le manque de détails, ou des infos impossibles à vérifier.
-- Si tu n'es pas sûr qu'une info est fausse, considère-la comme correcte.
+RÈGLES :
+- Infos correctes ou correspondantes → "is_up_to_date": true.
+- Que les VRAIS écarts vérifiables.
+- Ignore style, photos, détails non vérifiables.
+- Doute → correct.
 
-Contenu de la page :
+Contenu :
 ---
 ${content}
 ---
 
-Réponds UNIQUEMENT en JSON :
+JSON uniquement :
 {
-  "is_up_to_date": true ou false,
-  "issues": ["description précise de chaque écart, mentionnant la valeur sur la page ET la valeur Apidae de référence"],
-  "suggested_email": "Si is_up_to_date est false : email poli au webmaster avec les corrections précises. Si true : chaîne vide."
+  "is_up_to_date": true/false,
+  "issues": ["Écart précis : valeur page vs valeur Apidae"],
+  "suggested_email": "Email correction si nécessaire, sinon chaîne vide."
 }`;
 
         let aiResult: string;
@@ -289,7 +367,7 @@ Réponds UNIQUEMENT en JSON :
             body: JSON.stringify({
               model: "google/gemini-2.5-flash",
               messages: [
-                { role: "system", content: "Tu es un vérificateur de données touristiques. Tu réponds uniquement en JSON valide. Tu compares les données de la page avec les données Apidae de référence." },
+                { role: "system", content: "Tu compares les données page web vs Apidae. JSON valide uniquement." },
                 { role: "user", content: prompt },
               ],
               response_format: { type: "json_object" },
@@ -307,7 +385,7 @@ Réponds UNIQUEMENT en JSON :
           parsed = { is_up_to_date: true, issues: [] };
         }
 
-        // Filter out vague issues
+        // Filter vague issues
         const hasConcreteIssues = parsed.issues && parsed.issues.length > 0 &&
           !parsed.issues.every((i: string) => i.toLowerCase().includes("vérification manuelle") || i.toLowerCase().includes("impossible"));
 
@@ -323,13 +401,18 @@ Réponds UNIQUEMENT en JSON :
           modifications,
           last_scraped_at: new Date().toISOString(),
           date_dernier_controle: new Date().toISOString().split("T")[0],
-          last_scrape_result: { ...parsed, suggested_email: parsed.suggested_email || "", apidae_data_available: !!apidaeReference },
+          last_scrape_result: {
+            ...parsed,
+            suggested_email: parsed.suggested_email || "",
+            matched_establishments: establishmentNames,
+            matched_apidae_count: matchedFiches.length,
+          },
         }).eq("id", site.id);
 
         checkedInBatch++;
 
         // Rate limiting
-        await new Promise(r => setTimeout(r, 1500));
+        await new Promise(r => setTimeout(r, 1000));
       } catch (siteError) {
         console.error(`Error checking ${site.url}:`, siteError);
         errorsInBatch++;
