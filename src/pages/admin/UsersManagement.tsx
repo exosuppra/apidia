@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Trash2, Plus, Shield, Eye, FileText, Calendar, KeyRound, ArrowLeft, Clock, History, Globe, BarChart3, Star, Briefcase, Loader2, TreePine } from "lucide-react";
+import { Trash2, Plus, Shield, Eye, FileText, Calendar, KeyRound, ArrowLeft, Clock, History, Globe, BarChart3, Star, Briefcase, Loader2, TreePine, Link } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useNavigate } from "react-router-dom";
@@ -32,6 +32,7 @@ const AVAILABLE_PAGES = [
   { key: "stats-web", label: "Statistiques Web", icon: BarChart3 },
   { key: "stats-ereputation", label: "E-réputation Google", icon: Star },
   { key: "planning-santons", label: "Planning Foire aux Santons", icon: TreePine },
+  { key: "linking", label: "Linking", icon: Link },
 ];
 
 export default function UsersManagement() {
