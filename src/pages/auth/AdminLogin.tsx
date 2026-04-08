@@ -70,6 +70,7 @@ export default function AdminLogin() {
         description: "Bienvenue dans l'interface d'administration",
       });
 
+      logUserAction("login");
       navigate("/admin/dashboard");
     } catch (error: any) {
       // Traduire les messages d'erreur en français
