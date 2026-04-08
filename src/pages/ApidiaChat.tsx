@@ -10,9 +10,9 @@ import { useSpeechRecognition, useSpeechSynthesis } from "@/hooks/useSpeech";
 type Msg = { role: "user" | "assistant"; content: string; fichesPreview?: FichePreview[] };
 
 const SUGGESTIONS = [
-  "Que faire ce week-end dans le Verdon ?",
+  "Que faire ce week-end à Manosque ?",
   "Où manger à Manosque ?",
-  "Quelles randonnées recommandez-vous ?",
+  "Quelles randonnées recommandez-vous dans le Pays de Manosque ?",
   "Y a-t-il des événements en ce moment ?",
 ];
 
@@ -153,7 +153,7 @@ export default function ApidiaChat() {
 
   return (
     <>
-      <Seo title="Apidia - Conseiller en séjour" description="Votre conseiller en séjour virtuel pour le Verdon et la Provence" />
+      <Seo title="Apidia - Conseiller en séjour" description="Votre conseiller en séjour virtuel pour le Pays de Manosque et la Provence" />
       <div className="h-[100dvh] bg-background flex flex-col">
         {/* Header */}
         <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4 py-3 flex items-center gap-3 shrink-0">
