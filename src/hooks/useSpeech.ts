@@ -40,49 +40,92 @@ export function useSpeechRecognition() {
   return { isListening, transcript, startListening, stopListening, isSupported };
 }
 
-export function useSpeechSynthesis() {
+export function useElevenLabsTTS() {
   const [isSpeaking, setIsSpeaking] = useState(false);
-  const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
 
-  const isSupported = typeof window !== "undefined" && "speechSynthesis" in window;
+  const speak = useCallback(async (text: string) => {
+    if (!text) return;
 
-  const speak = useCallback((text: string) => {
-    if (!isSupported) return;
-    // Strip markdown
-    const clean = text
-      .replace(/#{1,6}\s/g, "")
-      .replace(/\*\*(.*?)\*\*/g, "$1")
-      .replace(/\*(.*?)\*/g, "$1")
-      .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
-      .replace(/`([^`]+)`/g, "$1")
-      .replace(/- /g, "")
-      .replace(/\n+/g, ". ");
+    // Stop any current playback
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current = null;
+    }
+    if (abortRef.current) {
+      abortRef.current.abort();
+    }
 
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(clean);
-    utterance.lang = "fr-FR";
-    utterance.rate = 1.05;
-    utterance.onend = () => setIsSpeaking(false);
-    utterance.onerror = () => setIsSpeaking(false);
-
-    // Try to select a French voice
-    const voices = window.speechSynthesis.getVoices();
-    const frVoice = voices.find(v => v.lang.startsWith("fr"));
-    if (frVoice) utterance.voice = frVoice;
-
-    utteranceRef.current = utterance;
-    window.speechSynthesis.speak(utterance);
     setIsSpeaking(true);
-  }, [isSupported]);
+    const controller = new AbortController();
+    abortRef.current = controller;
+
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/elevenlabs-tts`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+          body: JSON.stringify({ text }),
+          signal: controller.signal,
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`TTS error: ${response.status}`);
+      }
+
+      const audioBlob = await response.blob();
+      const audioUrl = URL.createObjectURL(audioBlob);
+      const audio = new Audio(audioUrl);
+      audioRef.current = audio;
+
+      audio.onended = () => {
+        setIsSpeaking(false);
+        URL.revokeObjectURL(audioUrl);
+        audioRef.current = null;
+      };
+      audio.onerror = () => {
+        setIsSpeaking(false);
+        URL.revokeObjectURL(audioUrl);
+        audioRef.current = null;
+      };
+
+      await audio.play();
+    } catch (e: any) {
+      if (e.name !== "AbortError") {
+        console.error("ElevenLabs TTS error:", e);
+      }
+      setIsSpeaking(false);
+    }
+  }, []);
 
   const stop = useCallback(() => {
-    window.speechSynthesis.cancel();
+    if (abortRef.current) {
+      abortRef.current.abort();
+      abortRef.current = null;
+    }
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current = null;
+    }
     setIsSpeaking(false);
   }, []);
 
   useEffect(() => {
-    return () => { window.speechSynthesis?.cancel(); };
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+      }
+      if (abortRef.current) {
+        abortRef.current.abort();
+      }
+    };
   }, []);
 
-  return { isSpeaking, speak, stop, isSupported };
+  return { isSpeaking, speak, stop, isSupported: true };
 }
