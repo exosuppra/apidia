@@ -538,11 +538,11 @@ export default function AdminDashboard() {
             </CardHeader>
             <CardContent className="p-0">
               <iframe
-                src="https://oto-arena.lovable.app"
+                src="https://oto-arena.lovable.app/embed"
                 className="w-full border-0 rounded-b-lg"
-                style={{ height: "600px" }}
+                style={{ height: "500px", borderRadius: "8px" }}
+                allow="autoplay"
                 title="OTO Arena - Claude Pixel Live"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope"
               />
             </CardContent>
           </Card>
