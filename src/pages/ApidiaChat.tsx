@@ -26,7 +26,7 @@ export default function ApidiaChat() {
   const navigate = useNavigate();
 
   const { isListening, transcript, startListening, stopListening, isSupported: sttSupported } = useSpeechRecognition();
-  const { isSpeaking, speak, stop: stopSpeaking, isSupported: ttsSupported } = useSpeechSynthesis();
+  const { isSpeaking, speak, stop: stopSpeaking, isSupported: ttsSupported } = useElevenLabsTTS();
 
   const scrollToBottom = () => chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   useEffect(() => { scrollToBottom(); }, [messages]);
