@@ -63,10 +63,10 @@ export default function Linking() {
   const [newType, setNewType] = useState("");
   const [newEmail, setNewEmail] = useState("");
 
-  // Bulk check state
-  const [bulkChecking, setBulkChecking] = useState(false);
-  const [bulkProgress, setBulkProgress] = useState({ current: 0, total: 0, currentSite: "" });
-  const bulkAbortRef = useRef(false);
+  // Bulk check state (server-side)
+  type CheckConfig = { id: string; current_status: string; current_total: number; current_checked: number; current_errors: number; current_site_url: string | null; started_at: string | null; completed_at: string | null };
+  const [checkConfig, setCheckConfig] = useState<CheckConfig | null>(null);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
