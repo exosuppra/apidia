@@ -14,6 +14,7 @@ import { useNavigate } from "react-router-dom";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import Seo from "@/components/Seo";
 import * as XLSX from "xlsx";
+import { logUserAction } from "@/lib/logUserAction";
 
 type Commune = { id: string; nom: string; created_at: string };
 type Site = {
