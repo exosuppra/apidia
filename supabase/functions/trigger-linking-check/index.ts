@@ -266,12 +266,12 @@ Réponds en JSON avec exactement ce format :
     }).eq("id", freshConfig.id);
 
     // Self-chain: fire-and-forget to process next batch
-    const { data: remaining } = await supabase
+    const { count: remainingCount } = await supabase
       .from("linking_sites")
       .select("id", { count: "exact", head: true })
       .or(`last_scraped_at.is.null,last_scraped_at.lt.${freshConfig.started_at}`);
 
-    if ((remaining as any)?.length > 0 || (remaining as any) > 0) {
+    if ((remainingCount || 0) > 0) {
       // Re-check status before chaining
       const { data: statusCheck } = await supabase
         .from("linking_check_config")
