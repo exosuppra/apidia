@@ -504,9 +504,16 @@ export function EditTaskDialog({
                 {/* Validation section - show status or request button */}
                 {task.validation_status === "pending" ? (
                   <div className="flex items-center gap-2">
-                    <div className="flex items-center gap-2 px-3 py-2 bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300 rounded-md text-sm">
-                      <Clock className="h-4 w-4" />
-                      <span>En attente{getValidationTargetLabel()}</span>
+                    <div className="flex flex-col gap-1">
+                      <div className="flex items-center gap-2 px-3 py-2 bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300 rounded-md text-sm">
+                        <Clock className="h-4 w-4" />
+                        <span>En attente{getValidationTargetLabel()}</span>
+                      </div>
+                      {task.validation_requested_at && (
+                        <span className="text-xs text-muted-foreground px-3">
+                          Demandé le {format(new Date(task.validation_requested_at), "dd/MM/yyyy à HH:mm", { locale: fr })}
+                        </span>
+                      )}
                     </div>
                     <Button
                       type="button"
