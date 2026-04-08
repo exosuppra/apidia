@@ -432,6 +432,89 @@ export type Database = {
         }
         Relationships: []
       }
+      linking_communes: {
+        Row: {
+          created_at: string
+          id: string
+          nom: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          nom: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          nom?: string
+        }
+        Relationships: []
+      }
+      linking_sites: {
+        Row: {
+          commune_id: string
+          contact_email: string | null
+          contact_notes: string | null
+          created_at: string
+          date_contact: string | null
+          date_dernier_controle: string | null
+          date_mise_a_jour: string | null
+          id: string
+          last_scrape_result: Json | null
+          last_scraped_at: string | null
+          modifications: string | null
+          reponse: string | null
+          statut: string
+          type_contenu: string | null
+          updated_at: string
+          url: string
+        }
+        Insert: {
+          commune_id: string
+          contact_email?: string | null
+          contact_notes?: string | null
+          created_at?: string
+          date_contact?: string | null
+          date_dernier_controle?: string | null
+          date_mise_a_jour?: string | null
+          id?: string
+          last_scrape_result?: Json | null
+          last_scraped_at?: string | null
+          modifications?: string | null
+          reponse?: string | null
+          statut?: string
+          type_contenu?: string | null
+          updated_at?: string
+          url: string
+        }
+        Update: {
+          commune_id?: string
+          contact_email?: string | null
+          contact_notes?: string | null
+          created_at?: string
+          date_contact?: string | null
+          date_dernier_controle?: string | null
+          date_mise_a_jour?: string | null
+          id?: string
+          last_scrape_result?: Json | null
+          last_scraped_at?: string | null
+          modifications?: string | null
+          reponse?: string | null
+          statut?: string
+          type_contenu?: string | null
+          updated_at?: string
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "linking_sites_commune_id_fkey"
+            columns: ["commune_id"]
+            isOneToOne: false
+            referencedRelation: "linking_communes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
