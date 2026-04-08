@@ -382,7 +382,7 @@ export default function Linking() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <Card><CardContent className="pt-4 text-center"><div className="text-2xl font-bold">{communes.length}</div><p className="text-xs text-muted-foreground">Communes</p></CardContent></Card>
           <Card><CardContent className="pt-4 text-center"><div className="text-2xl font-bold">{sites.length}</div><p className="text-xs text-muted-foreground">Sites</p></CardContent></Card>
-          <Card><CardContent className="pt-4 text-center"><div className="text-2xl font-bold text-green-600">{sites.filter(s => s.statut === "ok").length}</div><p className="text-xs text-muted-foreground">OK</p></CardContent></Card>
+          <Card><CardContent className="pt-4 text-center"><div className="text-2xl font-bold text-primary">{sites.filter(s => s.statut === "ok").length}</div><p className="text-xs text-muted-foreground">OK</p></CardContent></Card>
           <Card><CardContent className="pt-4 text-center"><div className="text-2xl font-bold text-destructive">{sites.filter(s => s.statut === "a_modifier").length}</div><p className="text-xs text-muted-foreground">À modifier</p></CardContent></Card>
         </div>
 
