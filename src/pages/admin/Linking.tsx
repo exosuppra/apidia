@@ -181,12 +181,15 @@ export default function Linking() {
       if (error) throw error;
 
       const newStatut = data.is_up_to_date ? "ok" : "a_modifier";
+      const issuesText = data.issues?.length
+        ? data.issues.join("\n• ")
+        : (!data.is_up_to_date ? "Des informations semblent obsolètes ou incorrectes (détails non précisés par l'IA)." : null);
       const updates = {
         last_scrape_result: data,
         last_scraped_at: new Date().toISOString(),
         date_dernier_controle: new Date().toISOString().split("T")[0],
         statut: newStatut,
-        modifications: data.issues?.length ? data.issues.join("; ") : site.modifications,
+        modifications: newStatut === "a_modifier" ? (issuesText ? `• ${issuesText}` : "Vérification manuelle nécessaire.") : null,
       };
 
       await supabase.from("linking_sites").update(updates).eq("id", site.id);
