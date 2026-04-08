@@ -552,6 +552,11 @@ export function EditTaskDialog({
                       <XCircle className="h-4 w-4 flex-shrink-0" />
                       <span>Rejeté{getValidationTargetLabel()}</span>
                     </div>
+                    {task.validation_responded_at && (
+                      <span className="text-xs text-muted-foreground px-3">
+                        Le {format(new Date(task.validation_responded_at), "dd/MM/yyyy à HH:mm", { locale: fr })}
+                      </span>
+                    )}
                     {task.validation_comment && (
                       <div className="px-3 py-2 bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800 rounded-md text-sm text-red-700 dark:text-red-400 italic">
                         💬 {task.validation_comment}
