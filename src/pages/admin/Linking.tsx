@@ -333,9 +333,14 @@ export default function Linking() {
       <div className="space-y-4 p-4 md:p-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-          <div>
-            <h1 className="text-xl md:text-2xl font-bold">Linking</h1>
-            <p className="text-muted-foreground text-xs md:text-sm">Suivi des sites web par commune</p>
+          <div className="flex items-center gap-3">
+            <Button variant="ghost" size="icon" onClick={() => navigate("/admin")} title="Retour à l'accueil">
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <div>
+              <h1 className="text-xl md:text-2xl font-bold">Linking</h1>
+              <p className="text-muted-foreground text-xs md:text-sm">Suivi des sites web par commune</p>
+            </div>
           </div>
           <div className="flex flex-wrap gap-2">
             <Button variant="outline" size="sm" onClick={() => setShowAddDialog(true)}>
