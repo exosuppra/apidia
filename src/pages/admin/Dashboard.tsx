@@ -47,21 +47,35 @@ export default function AdminDashboard() {
     const fetchData = async () => {
       if (!user) return;
 
-      const [permResult, orderResult] = await Promise.all([
+      const [permResult, orderResult, roleResult] = await Promise.all([
         supabase.from('admin_permissions').select('page_key').eq('user_id', user.id),
         supabase.from('admin_dashboard_order').select('section_order').eq('user_id', user.id).maybeSingle(),
+        supabase.rpc('has_role', { _user_id: user.id, _role: 'admin' }),
       ]);
 
       setPermissions(permResult.data?.map(p => p.page_key) || []);
+      setIsAdmin(roleResult.data === true);
 
       if (orderResult.data?.section_order) {
         const saved = orderResult.data.section_order as SectionKey[];
-        // Ensure all keys are present (in case new sections were added)
         const merged = [...saved, ...DEFAULT_ORDER.filter(k => !saved.includes(k))];
         setSectionOrder(merged);
       }
 
+      // Fetch activity logs
+      const logsQuery = supabase
+        .from('user_action_logs')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(20);
+
+      const { data: logs } = await logsQuery;
+      setActivityLogs(logs || []);
+
       setLoading(false);
+
+      // Log page view
+      logUserAction("view_page", { page: "dashboard" });
     };
 
     fetchData();
