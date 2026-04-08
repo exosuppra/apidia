@@ -82,6 +82,7 @@ export default function AdminDashboard() {
   }, [user]);
 
   const handleLogout = async () => {
+    logUserAction("logout");
     await supabase.auth.signOut();
     toast({
       title: "Déconnexion",
