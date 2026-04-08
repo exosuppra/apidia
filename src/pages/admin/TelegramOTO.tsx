@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import Seo from "@/components/Seo";
 import { Send, Bot, User, RefreshCw, MessageCircle } from "lucide-react";
+import otoAvatar from "@/assets/char-oto.png";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 
