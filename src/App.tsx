@@ -50,6 +50,7 @@ import PlanningSantons from "./pages/admin/PlanningSantons";
 import Linking from "./pages/admin/Linking";
 import ApidiaKnowledge from "./pages/admin/ApidiaKnowledge";
 import ApidiaChat from "./pages/ApidiaChat";
+import TelegramOTO from "./pages/admin/TelegramOTO";
 
 const queryClient = new QueryClient();
 
@@ -253,6 +254,18 @@ const App = () => (
                   <RequirePermission pageKey="apidia">
                     <AdminLayout>
                       <ApidiaKnowledge />
+                    </AdminLayout>
+                  </RequirePermission>
+                </RequirePasswordChange>
+              </RequireAdminAuth>
+            } />
+            
+            <Route path="/admin/telegram-oto" element={
+              <RequireAdminAuth>
+                <RequirePasswordChange>
+                  <RequirePermission pageKey="telegram-oto">
+                    <AdminLayout>
+                      <TelegramOTO />
                     </AdminLayout>
                   </RequirePermission>
                 </RequirePasswordChange>
