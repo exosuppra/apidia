@@ -77,9 +77,23 @@ Deno.serve(async (req) => {
 
     const truncatedContent = pageContent.substring(0, 8000);
 
-    const prompt = `Tu es un expert en vérification de données touristiques pour la commune de "${commune}" (DLVA - Durance Luberon Verdon Agglomération, Alpes-de-Haute-Provence).
+    const prompt = `Tu es un expert en vérification de données touristiques pour la commune de "${commune}" située dans le territoire DLVA (Durance Luberon Verdon Agglomération), département des Alpes-de-Haute-Provence (04), région Provence-Alpes-Côte d'Azur.
 
-Analyse le contenu de cette page web (type: ${type_contenu || 'inconnu'}, URL: ${url}) et détermine si les informations sont à jour et correctes.
+Page analysée : ${url}
+Type de contenu : ${type_contenu || "page web touristique"}
+
+CRITÈRES DE VÉRIFICATION :
+1. La commune "${commune}" est-elle bien mentionnée et correctement orthographiée ?
+2. Le département (04 / Alpes-de-Haute-Provence) est-il correct ?
+3. Les informations de contact semblent-elles plausibles et complètes ?
+4. Les horaires ou périodes d'ouverture sont-ils cohérents (pas de dates passées présentées comme futures) ?
+5. Y a-t-il des informations manifestement obsolètes ?
+6. Le contenu est-il suffisamment informatif pour un visiteur ?
+
+RÈGLES :
+- Si les informations semblent globalement correctes, mets "is_up_to_date": true.
+- Ne signale que les VRAIS problèmes factuels.
+- En cas de doute, considère l'info comme correcte.
 
 ${current_info ? `Informations connues sur les modifications à apporter : ${current_info}` : ''}
 
@@ -88,11 +102,11 @@ Contenu de la page :
 ${truncatedContent}
 ---
 
-Réponds en JSON avec exactement ce format :
+Réponds en JSON :
 {
   "is_up_to_date": true/false,
-  "issues": ["liste des problèmes trouvés"],
-  "suggested_email": "Texte du mail à envoyer au webmaster si des modifications sont nécessaires. Le mail doit être poli, professionnel, en français, mentionner la commune et les corrections à apporter. Si tout est OK, laisser vide."
+  "issues": ["problèmes factuels précis"],
+  "suggested_email": "Email au webmaster si nécessaire, sinon chaîne vide."
 }`;
 
     const useGemini = !!Deno.env.get('GEMINI_API_KEY');
