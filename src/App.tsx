@@ -47,6 +47,7 @@ import GestionAvis from "./pages/GestionAvis";
 import GenerationSiteWeb from "./pages/GenerationSiteWeb";
 import PublicPlanning from "./pages/PublicPlanning";
 import PlanningSantons from "./pages/admin/PlanningSantons";
+import Linking from "./pages/admin/Linking";
 
 const queryClient = new QueryClient();
 
@@ -226,6 +227,18 @@ const App = () => (
                   <RequirePermission pageKey="planning-santons">
                     <AdminLayout>
                       <PlanningSantons />
+                    </AdminLayout>
+                  </RequirePermission>
+                </RequirePasswordChange>
+              </RequireAdminAuth>
+            } />
+            
+            <Route path="/admin/linking" element={
+              <RequireAdminAuth>
+                <RequirePasswordChange>
+                  <RequirePermission pageKey="linking">
+                    <AdminLayout>
+                      <Linking />
                     </AdminLayout>
                   </RequirePermission>
                 </RequirePasswordChange>
