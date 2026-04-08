@@ -118,6 +118,12 @@ export default function ApidiaKnowledge() {
             Apidia : Base de connaissances
           </h1>
           <p className="text-muted-foreground">Enrichissez les connaissances d'Apidia pour améliorer ses réponses</p>
+          <Button variant="outline" size="sm" className="mt-2" asChild>
+            <a href="/apidia" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
+              <ExternalLink className="w-4 h-4" />
+              Ouvrir le chatbot Apidia
+            </a>
+          </Button>
         </div>
 
         <Card>
