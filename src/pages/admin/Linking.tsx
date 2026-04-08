@@ -245,6 +245,7 @@ export default function Linking() {
         body: { batch_size: 5 },
       });
       if (error) throw error;
+      logUserAction("bulk_verification", { type: "linking", total_sites: sites.length });
       toast({ title: "Vérification lancée", description: "La vérification s'exécute en arrière-plan." });
       fetchCheckConfig();
     } catch (err) {
