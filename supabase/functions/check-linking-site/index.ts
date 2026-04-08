@@ -1,7 +1,41 @@
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+// Extract key info from Apidae fiches for comparison
+function extractApidaeReference(fiches: any[]): string {
+  if (!fiches || fiches.length === 0) return "";
+
+  const entries = fiches.slice(0, 15).map((f: any) => {
+    const d = f.data || {};
+    const nom = d.nom?.libelleFr || d.nom?.libelleEn || "Sans nom";
+    const adresse = d.localisation?.adresse || {};
+    const commune = adresse.commune?.nom || "";
+    const cp = adresse.codePostal || "";
+    const rue = [adresse.adresse1, adresse.adresse2].filter(Boolean).join(", ");
+    
+    const contacts: string[] = [];
+    const moyens = d.informations?.moyensCommunication || [];
+    for (const m of moyens) {
+      if (m.type?.libelleFr === "Téléphone" || m.type?.id === 201) contacts.push(`Tel: ${m.coordonnees?.fr || m.coordonnees}`);
+      if (m.type?.libelleFr === "Mél" || m.type?.id === 204) contacts.push(`Email: ${m.coordonnees?.fr || m.coordonnees}`);
+      if (m.type?.libelleFr === "Site web" || m.type?.id === 205) contacts.push(`Web: ${m.coordonnees?.fr || m.coordonnees}`);
+    }
+
+    const ouvertures: string[] = [];
+    const periodes = d.ouverture?.periodesOuvertures || [];
+    for (const p of periodes) {
+      ouvertures.push(`${p.dateDebut || "?"} → ${p.dateFin || "?"}`);
+    }
+
+    return `- ${nom} (${f.fiche_type || ""})\n  Adresse: ${rue}, ${cp} ${commune}\n  ${contacts.join(" | ")}\n  Ouverture: ${ouvertures.join(", ") || "non renseigné"}`;
+  });
+
+  return entries.join("\n");
+}
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -26,7 +60,41 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Step 1: Scrape the URL with Firecrawl
+    // Step 1: Fetch Apidae reference data for this commune
+    let apidaeReference = "";
+    if (commune) {
+      const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+      const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+      const supabase = createClient(supabaseUrl, supabaseKey);
+
+      const { data: fiches } = await supabase
+        .from("fiches_data")
+        .select("fiche_id, fiche_type, data")
+        .ilike("data->>localisation", `%${commune}%`)
+        .limit(20);
+
+      // Fallback: broader search using RPC
+      if (!fiches || fiches.length === 0) {
+        const { data: rpcFiches } = await supabase.rpc("search_fiches_apidae", {
+          p_commune: commune,
+          p_limit: 20,
+        });
+        if (rpcFiches && rpcFiches.length > 0) {
+          // Re-fetch full data for these fiches
+          const ids = rpcFiches.map((f: any) => f.fiche_id);
+          const { data: fullFiches } = await supabase
+            .from("fiches_data")
+            .select("fiche_id, fiche_type, data")
+            .in("fiche_id", ids)
+            .limit(20);
+          apidaeReference = extractApidaeReference(fullFiches || []);
+        }
+      } else {
+        apidaeReference = extractApidaeReference(fiches);
+      }
+    }
+
+    // Step 2: Scrape the URL with Firecrawl
     console.log('Scraping URL:', url);
     const scrapeResponse = await fetch('https://api.firecrawl.dev/v1/scrape', {
       method: 'POST',
@@ -66,7 +134,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Step 2: Use AI to analyze the content
+    // Step 3: Use AI to analyze the content WITH Apidae reference
     const apiKey = Deno.env.get('GEMINI_API_KEY') || Deno.env.get('LOVABLE_API_KEY');
     if (!apiKey) {
       return new Response(
@@ -77,23 +145,27 @@ Deno.serve(async (req) => {
 
     const truncatedContent = pageContent.substring(0, 8000);
 
+    const apidaeSection = apidaeReference
+      ? `\n\nDONNÉES DE RÉFÉRENCE APIDAE (source de vérité) :\nVoici les informations officielles issues de la base Apidae pour la commune "${commune}". Compare les informations de la page web avec ces données de référence :\n${apidaeReference}\n`
+      : `\n\nAucune donnée Apidae trouvée pour cette commune. Base ta vérification uniquement sur la cohérence du contenu.\n`;
+
     const prompt = `Tu es un expert en vérification de données touristiques pour la commune de "${commune}" située dans le territoire DLVA (Durance Luberon Verdon Agglomération), département des Alpes-de-Haute-Provence (04), région Provence-Alpes-Côte d'Azur.
 
 Page analysée : ${url}
 Type de contenu : ${type_contenu || "page web touristique"}
+${apidaeSection}
 
-CRITÈRES DE VÉRIFICATION :
-1. La commune "${commune}" est-elle bien mentionnée et correctement orthographiée ?
-2. Le département (04 / Alpes-de-Haute-Provence) est-il correct ?
-3. Les informations de contact semblent-elles plausibles et complètes ?
-4. Les horaires ou périodes d'ouverture sont-ils cohérents (pas de dates passées présentées comme futures) ?
-5. Y a-t-il des informations manifestement obsolètes ?
-6. Le contenu est-il suffisamment informatif pour un visiteur ?
+MÉTHODE DE VÉRIFICATION :
+1. Compare les informations de la page (noms, adresses, téléphones, horaires) avec les données Apidae ci-dessus.
+2. Signale les ÉCARTS FACTUELS : numéro de téléphone différent, adresse incorrecte, horaires obsolètes, nom d'établissement mal orthographié.
+3. Vérifie que la commune "${commune}" et le département (04) sont corrects.
+4. Vérifie la cohérence des dates (pas de dates passées présentées comme futures).
 
 RÈGLES :
-- Si les informations semblent globalement correctes, mets "is_up_to_date": true.
-- Ne signale que les VRAIS problèmes factuels.
-- En cas de doute, considère l'info comme correcte.
+- Si les informations correspondent aux données Apidae ou semblent globalement correctes, mets "is_up_to_date": true.
+- Ne signale que les VRAIS écarts factuels vérifiables par rapport aux données Apidae.
+- Ne signale PAS le style rédactionnel, l'absence de photos, ou des détails impossibles à vérifier.
+- Si tu n'es pas sûr qu'une info est fausse, considère-la comme correcte.
 
 ${current_info ? `Informations connues sur les modifications à apporter : ${current_info}` : ''}
 
@@ -105,8 +177,8 @@ ${truncatedContent}
 Réponds en JSON :
 {
   "is_up_to_date": true/false,
-  "issues": ["problèmes factuels précis"],
-  "suggested_email": "Email au webmaster si nécessaire, sinon chaîne vide."
+  "issues": ["description précise de chaque écart factuel trouvé, en mentionnant la valeur sur la page ET la valeur de référence Apidae"],
+  "suggested_email": "Email au webmaster si nécessaire avec les corrections précises, sinon chaîne vide."
 }`;
 
     const useGemini = !!Deno.env.get('GEMINI_API_KEY');
@@ -127,7 +199,7 @@ Réponds en JSON :
       const geminiData = await geminiRes.json();
       aiResult = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
     } else {
-      const lovableRes = await fetch('https://api.lovable.dev/v1/chat/completions', {
+      const lovableRes = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${apiKey}`,
