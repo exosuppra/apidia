@@ -462,6 +462,45 @@ export type Database = {
         }
         Relationships: []
       }
+      linking_check_config: {
+        Row: {
+          completed_at: string | null
+          created_at: string | null
+          current_checked: number | null
+          current_errors: number | null
+          current_site_url: string | null
+          current_status: string | null
+          current_total: number | null
+          id: string
+          started_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string | null
+          current_checked?: number | null
+          current_errors?: number | null
+          current_site_url?: string | null
+          current_status?: string | null
+          current_total?: number | null
+          id?: string
+          started_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string | null
+          current_checked?: number | null
+          current_errors?: number | null
+          current_site_url?: string | null
+          current_status?: string | null
+          current_total?: number | null
+          id?: string
+          started_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       linking_communes: {
         Row: {
           created_at: string

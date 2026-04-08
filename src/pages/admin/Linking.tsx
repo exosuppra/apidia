@@ -63,10 +63,10 @@ export default function Linking() {
   const [newType, setNewType] = useState("");
   const [newEmail, setNewEmail] = useState("");
 
-  // Bulk check state
-  const [bulkChecking, setBulkChecking] = useState(false);
-  const [bulkProgress, setBulkProgress] = useState({ current: 0, total: 0, currentSite: "" });
-  const bulkAbortRef = useRef(false);
+  // Bulk check state (server-side)
+  type CheckConfig = { id: string; current_status: string; current_total: number; current_checked: number; current_errors: number; current_site_url: string | null; started_at: string | null; completed_at: string | null };
+  const [checkConfig, setCheckConfig] = useState<CheckConfig | null>(null);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -88,6 +88,28 @@ export default function Linking() {
   }, []);
 
   useEffect(() => { fetchData(); }, [fetchData]);
+
+  // Poll check config for progress
+  const fetchCheckConfig = useCallback(async () => {
+    const { data } = await supabase.from("linking_check_config").select("*").limit(1);
+    if (data?.[0]) setCheckConfig(data[0] as any);
+  }, []);
+
+  useEffect(() => { fetchCheckConfig(); }, [fetchCheckConfig]);
+
+  const bulkChecking = checkConfig?.current_status === "running";
+
+  useEffect(() => {
+    if (bulkChecking) {
+      pollRef.current = setInterval(() => {
+        fetchCheckConfig();
+        fetchData(); // Also refresh sites to see updated statuses
+      }, 4000);
+    } else {
+      if (pollRef.current) clearInterval(pollRef.current);
+    }
+    return () => { if (pollRef.current) clearInterval(pollRef.current); };
+  }, [bulkChecking, fetchCheckConfig, fetchData]);
 
   const filteredSites = sites.filter(s => {
     if (filterCommune !== "all" && s.commune_id !== filterCommune) return false;
@@ -214,39 +236,24 @@ export default function Linking() {
   };
 
   const handleCheckAll = async () => {
-    const toCheck = filteredSites.filter(s => s.statut !== "ok" || !s.last_scraped_at);
-    if (toCheck.length === 0) {
-      toast({ title: "Rien à vérifier", description: "Tous les sites filtrés sont déjà OK." });
-      return;
+    try {
+      const { data, error } = await supabase.functions.invoke("trigger-linking-check", {
+        body: { batch_size: 5 },
+      });
+      if (error) throw error;
+      toast({ title: "Vérification lancée", description: "La vérification s'exécute en arrière-plan." });
+      fetchCheckConfig();
+    } catch (err) {
+      console.error("Bulk check error:", err);
+      toast({ title: "Erreur", description: "Impossible de lancer la vérification", variant: "destructive" });
     }
+  };
 
-    setBulkChecking(true);
-    bulkAbortRef.current = false;
-    setBulkProgress({ current: 0, total: toCheck.length, currentSite: "" });
-
-    let okCount = 0, issueCount = 0, errorCount = 0;
-
-    for (let i = 0; i < toCheck.length; i++) {
-      if (bulkAbortRef.current) break;
-      const site = toCheck[i];
-      setBulkProgress({ current: i + 1, total: toCheck.length, currentSite: `${site.commune_nom} — ${site.type_contenu || new URL(site.url).hostname}` });
-
-      try {
-        await handleCheckSite(site);
-        // Check updated state
-        const updated = sites.find(s => s.id === site.id);
-        if (updated?.statut === "ok") okCount++; else issueCount++;
-      } catch {
-        errorCount++;
-      }
-    }
-
-    setBulkChecking(false);
-    toast({
-      title: bulkAbortRef.current ? "Vérification interrompue" : "Vérification terminée",
-      description: `${okCount} OK, ${issueCount} à modifier, ${errorCount} erreurs`,
-    });
-    fetchData(); // Final refresh to sync state
+  const handleStopBulkCheck = async () => {
+    if (!checkConfig) return;
+    await supabase.from("linking_check_config").update({ current_status: "interrupted" }).eq("id", checkConfig.id);
+    toast({ title: "Vérification interrompue" });
+    fetchCheckConfig();
   };
 
   const handleSendEmail = async (site: SiteWithCommune) => {
@@ -388,24 +395,38 @@ export default function Linking() {
         </Collapsible>
 
 
-        {bulkChecking && (
-          <Card className="border-primary/30 bg-primary/5">
+        {/* Bulk progress banner */}
+        {(bulkChecking || checkConfig?.current_status === "completed") && checkConfig && (
+          <Card className={`border-primary/30 ${bulkChecking ? "bg-primary/5" : "bg-green-50 dark:bg-green-950/20 border-green-300"}`}>
             <CardContent className="pt-4 space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                  {bulkChecking ? (
+                    <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                  ) : (
+                    <Check className="w-4 h-4 text-green-600" />
+                  )}
                   <span className="text-sm font-medium">
-                    Vérification en cours ({bulkProgress.current}/{bulkProgress.total})
+                    {bulkChecking
+                      ? `Vérification en cours (${checkConfig.current_checked}/${checkConfig.current_total})`
+                      : `Vérification terminée — ${checkConfig.current_checked} vérifiés, ${checkConfig.current_errors} erreurs`
+                    }
                   </span>
                 </div>
-                <Button variant="ghost" size="sm" onClick={() => { bulkAbortRef.current = true; }}>
-                  <X className="w-4 h-4 mr-1" />Arrêter
-                </Button>
+                {bulkChecking && (
+                  <Button variant="ghost" size="sm" onClick={handleStopBulkCheck}>
+                    <X className="w-4 h-4 mr-1" />Arrêter
+                  </Button>
+                )}
               </div>
-              <Progress value={(bulkProgress.current / bulkProgress.total) * 100} className="h-2" />
-              <p className="text-xs text-muted-foreground truncate">
-                {bulkProgress.currentSite}
-              </p>
+              {checkConfig.current_total > 0 && (
+                <Progress value={(checkConfig.current_checked / checkConfig.current_total) * 100} className="h-2" />
+              )}
+              {bulkChecking && checkConfig.current_site_url && (
+                <p className="text-xs text-muted-foreground truncate">
+                  {checkConfig.current_site_url}
+                </p>
+              )}
             </CardContent>
           </Card>
         )}
