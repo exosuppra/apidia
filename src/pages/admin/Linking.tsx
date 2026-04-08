@@ -44,6 +44,7 @@ const statusConfig: Record<string, { label: string; variant: "default" | "second
 };
 
 export default function Linking() {
+  const navigate = useNavigate();
   const { toast } = useToast();
   const [communes, setCommunes] = useState<Commune[]>([]);
   const [sites, setSites] = useState<SiteWithCommune[]>([]);
