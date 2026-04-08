@@ -324,7 +324,7 @@ export default function Linking() {
   return (
     <>
       <Seo title="Linking - Suivi par commune" description="Suivi du linking par commune" />
-      <div className="space-y-6">
+      <div className="space-y-6 p-6">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold">Linking</h1>
