@@ -89,6 +89,28 @@ export default function Linking() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
+  // Poll check config for progress
+  const fetchCheckConfig = useCallback(async () => {
+    const { data } = await supabase.from("linking_check_config").select("*").limit(1);
+    if (data?.[0]) setCheckConfig(data[0] as any);
+  }, []);
+
+  useEffect(() => { fetchCheckConfig(); }, [fetchCheckConfig]);
+
+  const bulkChecking = checkConfig?.current_status === "running";
+
+  useEffect(() => {
+    if (bulkChecking) {
+      pollRef.current = setInterval(() => {
+        fetchCheckConfig();
+        fetchData(); // Also refresh sites to see updated statuses
+      }, 4000);
+    } else {
+      if (pollRef.current) clearInterval(pollRef.current);
+    }
+    return () => { if (pollRef.current) clearInterval(pollRef.current); };
+  }, [bulkChecking, fetchCheckConfig, fetchData]);
+
   const filteredSites = sites.filter(s => {
     if (filterCommune !== "all" && s.commune_id !== filterCommune) return false;
     if (filterStatut !== "all" && s.statut !== filterStatut) return false;
