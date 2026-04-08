@@ -199,7 +199,7 @@ export default function ApidiaChat() {
                 </div>
                 <h2 className="text-lg font-semibold">Bonjour ! 👋</h2>
                 <p className="text-sm text-muted-foreground max-w-sm">
-                  Je suis Apidia, votre conseiller en séjour virtuel. Posez-moi une question sur le Verdon et la Provence !
+                  Je suis Apidia, votre conseiller en séjour virtuel. Posez-moi une question sur le Pays de Manosque et la Provence !
                 </p>
                 {(sttSupported || ttsSupported) && (
                   <p className="text-xs text-muted-foreground max-w-sm mt-2">
