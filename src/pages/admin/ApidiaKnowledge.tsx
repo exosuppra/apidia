@@ -30,6 +30,7 @@ const CATEGORIES = [
 
 export default function ApidiaKnowledge() {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [knowledge, setKnowledge] = useState<KnowledgeEntry[]>([]);
   const [knowledgeLoading, setKnowledgeLoading] = useState(true);
   const [showAddDialog, setShowAddDialog] = useState(false);
