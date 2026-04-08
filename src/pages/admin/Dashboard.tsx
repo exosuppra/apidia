@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import Seo from "@/components/Seo";
-import { Shield, LogOut, Users, FileText, Eye, Calendar, CalendarClock, Clock, Globe, BarChart3, History, Star, Briefcase, TreePine, GripVertical, ArrowUp, ArrowDown } from "lucide-react";
+import { Shield, LogOut, Users, FileText, Eye, Calendar, CalendarClock, Clock, Globe, BarChart3, History, Star, Briefcase, TreePine, GripVertical, ArrowUp, ArrowDown, Link2 } from "lucide-react";
 import { useAuth } from "@/context/AuthProvider";
 import {
   Dialog,
@@ -106,7 +106,7 @@ export default function AdminDashboard() {
     "rh-admin": hasPermission('users') || hasPermission('rh') || hasPermission('missions') || hasPermission('planning-santons'),
     "donnees-touristiques": hasPermission('requests') || hasPermission('fiches') || hasPermission('logs'),
     "reseaux-sociaux": hasPermission('planning'),
-    "projet-web": hasPermission('intense-verdon') || hasPermission('stats-web') || hasPermission('stats-ereputation'),
+    "projet-web": hasPermission('intense-verdon') || hasPermission('stats-web') || hasPermission('stats-ereputation') || hasPermission('linking'),
   };
 
   const sectionLabels: Record<SectionKey, string> = {
@@ -266,6 +266,18 @@ export default function AdminDashboard() {
                 <CardContent>
                   <CardDescription>Suivi des avis et notes Google par établissement</CardDescription>
                   <Button className="w-full mt-4" variant="outline" onClick={() => navigate("/admin/stats-ereputation")}>Voir les statistiques</Button>
+                </CardContent>
+              </Card>
+            )}
+            {hasPermission('linking') && (
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Linking</CardTitle>
+                  <Link2 className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <CardDescription>Suivi du linking par commune et vérification des sites</CardDescription>
+                  <Button className="w-full mt-4" variant="outline" onClick={() => navigate("/admin/linking")}>Accéder au linking</Button>
                 </CardContent>
               </Card>
             )}
