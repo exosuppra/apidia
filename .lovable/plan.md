@@ -1,47 +1,62 @@
 
 
-## Plan : Validation Laura / Marie pour les tâches "Article Web"
+## Plan : Rubrique "Linking" dans Gestion de Projet Web
 
-### Principe
-Quand une tâche a le tag **"Article Web"**, le bouton "Créer et demander validation" (CreateTaskDialog) et "Demander validation" (EditTaskDialog) sont remplacés par deux boutons : **"Demander Validation Laura"** et **"Demander Validation Marie"**. Chacun appelle un webhook Make.com distinct. Le retour (validé/rejeté) affiche qui a validé.
+### Objectif
+Ajouter une rubrique de suivi du linking par commune dans la section "Gestion de Projet Web" du dashboard admin. L'outil permet d'importer les données depuis le fichier Excel, de scrapper les URLs via Firecrawl pour vérifier que les informations sont à jour, et d'envoyer un webhook Make avec un mail pré-écrit quand des modifications sont nécessaires.
 
-### Modifications
+### Fonctionnalités
 
-#### 1. Ajouter 2 nouveaux secrets
-- `MAKE_VALIDATION_LAURA_WEBHOOK_URL`
-- `MAKE_VALIDATION_MARIE_WEBHOOK_URL`
+1. **Liste des communes et URLs** -- tableau affichant toutes les communes avec leurs sites associés (type de contenu, URL, date dernier contrôle, statut, modifications à apporter, contact)
+2. **Import Excel** -- bouton pour parser le fichier E-réputation.xlsx et insérer les données en base
+3. **Ajout/modification manuelle** -- formulaire pour ajouter une commune, un site, ou modifier les données existantes
+4. **Vérification Firecrawl** -- bouton "Vérifier" sur chaque URL (ou en masse) qui scrappe la page et utilise l'IA pour détecter si les informations sont obsolètes ou erronées
+5. **Webhook Make** -- quand une anomalie est détectée, bouton pour envoyer un webhook Make avec les données du site et un mail pré-écrit demandant la mise à jour
 
-Vous serez invité a les renseigner via l'interface.
+### Modifications techniques
 
-#### 2. Modifier la base de données
-Ajouter une colonne `validation_target` (text, nullable) a la table `tasks` pour stocker "laura" ou "marie".
+#### Base de données (2 tables)
 
-#### 3. Modifier l'Edge Function `request-task-validation`
-- Accepter un nouveau parametre `target` ("laura" | "marie" | null).
-- Si `target` est "laura", utiliser le secret `MAKE_VALIDATION_LAURA_WEBHOOK_URL`.
-- Si `target` est "marie", utiliser `MAKE_VALIDATION_MARIE_WEBHOOK_URL`.
-- Sinon, utiliser le webhook generique existant `MAKE_TASK_VALIDATION_WEBHOOK_URL`.
-- Sauvegarder `validation_target` dans la tache.
+**`linking_communes`** : id, nom (text), created_at
+**`linking_sites`** : id, commune_id (FK), type_contenu (text), url (text), date_mise_a_jour (text), date_dernier_controle (date), statut (text: ok/a_modifier/en_attente), modifications (text), date_contact (date), reponse (text), contact_email (text), contact_notes (text), last_scrape_result (jsonb), last_scraped_at (timestamptz), created_at, updated_at
 
-#### 4. Modifier `CreateTaskDialog.tsx`
-- Detecter si le tag "Article Web" est selectionne parmi les `selectedTags` (comparer le nom du tag).
-- Si oui : remplacer le bouton "Créer et demander validation" par deux boutons :
-  - "Demander Validation Laura" (appelle `onSubmit` avec `target: "laura"`)
-  - "Demander Validation Marie" (appelle `onSubmit` avec `target: "marie"`)
-- Transmettre le `target` a `requestTaskValidation`.
+RLS : admin-only (pattern existant avec `has_role`).
 
-#### 5. Modifier `EditTaskDialog.tsx`
-- Meme logique : detecter si la tache a le tag "Article Web".
-- Si oui : remplacer le bouton "Demander validation" par les deux boutons Laura/Marie.
-- Transmettre le `target` a la fonction `requestValidation`.
+#### Edge Function : `check-linking-site`
+- Reçoit une URL
+- Appelle Firecrawl (scrape en markdown) via le connecteur déjà configuré
+- Envoie le contenu scrappé + les données actuelles de la commune à l'IA (Lovable AI / Gemini) pour analyser si les informations sont à jour
+- Retourne un résultat structuré : { is_up_to_date: boolean, issues: string[], suggested_email: string }
 
-#### 6. Afficher qui a valide
-- Dans les deux dialogs, quand `validation_status` est "validated" ou "rejected", afficher "Validé par Laura" / "Rejeté par Marie" en se basant sur `validation_target`.
+#### Secret : `MAKE_LINKING_WEBHOOK_URL`
+- Nouveau webhook Make pour envoyer les mails de demande de mise à jour
 
-#### 7. Mettre a jour le type `Task`
-Ajouter `validation_target?: "laura" | "marie" | null` dans `src/types/planning.ts`.
+#### Nouveau fichier : `src/pages/admin/Linking.tsx`
+- Page complète avec :
+  - Sélecteur de commune (filtre)
+  - Tableau des sites avec colonnes : Commune, Type, URL, Dernier contrôle, Statut (badge coloré), Modifications, Contact
+  - Actions par ligne : Vérifier (Firecrawl), Envoyer mail (webhook Make), Modifier
+  - Bouton d'import Excel
+  - Bouton "Vérifier tout" pour lancer la vérification en masse
+  - Dialog de détail avec le résultat du scraping et le mail pré-écrit suggéré
 
-### Détails techniques
-- La detection du tag "Article Web" se fait en croisant `selectedTags` (array d'IDs) avec la liste `tags`/`allTags` pour trouver le nom correspondant.
-- Les deux nouveaux boutons utilisent des couleurs distinctes (ex: bleu pour Laura, violet pour Marie) pour les differencier visuellement.
+#### Dashboard + Routing
+- Ajouter une carte "Linking" dans la section "projet-web" du dashboard (permission `linking`)
+- Ajouter la route `/admin/linking` dans App.tsx avec `RequirePermission pageKey="linking"`
+
+#### Import Excel
+- Edge function ou logique côté client qui parse le fichier Excel uploadé
+- Mapping des colonnes vers les tables `linking_communes` et `linking_sites`
+- Gestion des doublons (upsert par commune + URL)
+
+### Flux utilisateur
+
+```text
+1. Admin ouvre "Linking" depuis le dashboard
+2. Voit la liste des sites par commune (importés ou ajoutés manuellement)
+3. Clique "Vérifier" sur un site → Firecrawl scrappe → IA analyse → résultat affiché
+4. Si des erreurs sont détectées → badge "À modifier" + mail pré-écrit suggéré
+5. Admin clique "Envoyer le mail" → webhook Make déclenché avec les infos
+6. Admin met à jour le statut manuellement après réponse
+```
 
