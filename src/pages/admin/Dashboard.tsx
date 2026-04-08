@@ -409,6 +409,26 @@ export default function AdminDashboard() {
               </CardContent>
             </Card>
           )}
+
+          {/* OTO Arena - Agents IA en direct */}
+          <Card className="mt-8">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Bot className="h-5 w-5 text-primary" />
+                OTO Arena — Agents IA en direct
+              </CardTitle>
+              <CardDescription>Visualisez l'activité des agents IA en temps réel</CardDescription>
+            </CardHeader>
+            <CardContent className="p-0">
+              <iframe
+                src="https://oto-arena.lovable.app"
+                className="w-full border-0 rounded-b-lg"
+                style={{ height: "600px" }}
+                title="OTO Arena - Claude Pixel Live"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope"
+              />
+            </CardContent>
+          </Card>
         </div>
       </div>
 
