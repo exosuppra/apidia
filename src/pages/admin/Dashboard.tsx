@@ -538,7 +538,7 @@ export default function AdminDashboard() {
             </CardHeader>
             <CardContent className="p-0">
               <iframe
-                src="https://oto-arena.lovable.app/embed"
+                src="https://oto-arena.lovable.app/embed?focus=b5b567c6-f866-45a1-8b7a-7f1a267a1f64"
                 className="w-full border-0 rounded-b-lg"
                 style={{ height: "500px", borderRadius: "8px" }}
                 allow="autoplay"
