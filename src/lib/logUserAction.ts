@@ -31,7 +31,7 @@ export async function logUserAction(
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    await supabase.from("user_action_logs").insert({
+    await (supabase.from("user_action_logs").insert as any)({
       user_id: user.id,
       user_email: user.email || "unknown",
       action_type: actionType,
