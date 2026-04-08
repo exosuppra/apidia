@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import Seo from "@/components/Seo";
-import { Shield, LogOut, Users, FileText, Eye, Calendar, CalendarClock, Clock, Globe, BarChart3, History, Star, Briefcase, TreePine, GripVertical, ArrowUp, ArrowDown, Link2 } from "lucide-react";
+import { Shield, LogOut, Users, FileText, Eye, Calendar, CalendarClock, Clock, Globe, BarChart3, History, Star, Briefcase, TreePine, GripVertical, ArrowUp, ArrowDown, Link2, Bot } from "lucide-react";
 import { useAuth } from "@/context/AuthProvider";
 import {
   Dialog,
@@ -104,7 +104,7 @@ export default function AdminDashboard() {
   // Section visibility checks
   const sectionVisible: Record<SectionKey, boolean> = {
     "rh-admin": hasPermission('users') || hasPermission('rh') || hasPermission('missions') || hasPermission('planning-santons'),
-    "donnees-touristiques": hasPermission('requests') || hasPermission('fiches') || hasPermission('logs'),
+    "donnees-touristiques": hasPermission('requests') || hasPermission('fiches') || hasPermission('logs') || hasPermission('apidia'),
     "reseaux-sociaux": hasPermission('planning'),
     "projet-web": hasPermission('intense-verdon') || hasPermission('stats-web') || hasPermission('stats-ereputation') || hasPermission('linking'),
   };
@@ -208,6 +208,18 @@ export default function AdminDashboard() {
                 <CardContent>
                   <CardDescription>Voir l'historique des actions des utilisateurs</CardDescription>
                   <Button className="w-full mt-4" variant="outline" onClick={() => navigate("/admin/logs")}>Consulter l'historique</Button>
+                </CardContent>
+              </Card>
+            )}
+            {hasPermission('apidia') && (
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Apidia : Agent d'accueil virtuel</CardTitle>
+                  <Bot className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <CardDescription>Chatbot conseiller en séjour basé sur les données touristiques</CardDescription>
+                  <Button className="w-full mt-4" variant="outline" onClick={() => navigate("/admin/apidia")}>Accéder à Apidia</Button>
                 </CardContent>
               </Card>
             )}

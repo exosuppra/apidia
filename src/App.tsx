@@ -48,6 +48,7 @@ import GenerationSiteWeb from "./pages/GenerationSiteWeb";
 import PublicPlanning from "./pages/PublicPlanning";
 import PlanningSantons from "./pages/admin/PlanningSantons";
 import Linking from "./pages/admin/Linking";
+import ApidiaChatbot from "./pages/admin/ApidiaChatbot";
 
 const queryClient = new QueryClient();
 
@@ -239,6 +240,18 @@ const App = () => (
                   <RequirePermission pageKey="linking">
                     <AdminLayout>
                       <Linking />
+                    </AdminLayout>
+                  </RequirePermission>
+                </RequirePasswordChange>
+              </RequireAdminAuth>
+            } />
+            
+            <Route path="/admin/apidia" element={
+              <RequireAdminAuth>
+                <RequirePasswordChange>
+                  <RequirePermission pageKey="apidia">
+                    <AdminLayout>
+                      <ApidiaChatbot />
                     </AdminLayout>
                   </RequirePermission>
                 </RequirePasswordChange>
