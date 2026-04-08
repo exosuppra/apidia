@@ -125,40 +125,147 @@ serve(async (req) => {
       : "";
 
     const lastUserMsg = [...messages].reverse().find(m => m.role === "user")?.content || "";
+    const msgLower = lastUserMsg.toLowerCase();
 
-    // Search Apidae data
-    const { data: fiches } = await supabase.rpc("search_fiches_apidae", {
-      p_search_term: lastUserMsg.substring(0, 100),
-      p_limit: 10,
-      p_date_active: new Date().toISOString().split("T")[0],
-    });
+    // --- Smart intent extraction ---
+    // Detect fiche type from keywords
+    const typeKeywords: Record<string, string[]> = {
+      RESTAURATION: ["restaurant", "manger", "dîner", "déjeuner", "repas", "cuisine", "table", "resto", "pizz", "brasserie", "bistro", "gastronomie", "diner"],
+      HEBERGEMENT_LOCATIF: ["hébergement", "dormir", "loger", "location", "gîte", "meublé", "appartement"],
+      HOTELLERIE: ["hôtel", "hotel", "chambre d'hôte", "chambre d'hotes", "b&b"],
+      HEBERGEMENT_COLLECTIF: ["camping", "camp", "mobil-home"],
+      FETE_ET_MANIFESTATION: ["événement", "evenement", "fête", "festival", "concert", "spectacle", "marché", "brocante", "exposition", "sortie"],
+      ACTIVITE: ["activité", "activite", "randonnée", "balade", "kayak", "escalade", "vélo", "vtt", "piscine", "loisir", "faire", "visite"],
+      PATRIMOINE_CULTUREL: ["patrimoine", "musée", "château", "église", "monument", "culture", "histoire"],
+      COMMERCE_ET_SERVICE: ["magasin", "boutique", "commerce", "service", "pharmacie"],
+    };
+    
+    let detectedTypes: string[] = [];
+    for (const [type, keywords] of Object.entries(typeKeywords)) {
+      if (keywords.some(kw => msgLower.includes(kw))) {
+        detectedTypes.push(type);
+      }
+    }
 
-    const { data: fichesGeneral } = await supabase.rpc("search_fiches_apidae", {
-      p_search_term: lastUserMsg.substring(0, 100),
-      p_limit: 10,
-    });
+    // Detect commune from message
+    const communes = ["manosque", "gréoux-les-bains", "gréoux", "greoux", "valensole", "oraison", "pierrevert", "sainte-tulle", "volx", "villeneuve", "quinson", "riez", "moustiers", "esparron", "montfuron", "dauphin", "saint-martin-de-brômes", "allemagne-en-provence", "corbières", "la brillanne", "niozelles"];
+    let detectedCommune: string | null = null;
+    for (const c of communes) {
+      if (msgLower.includes(c)) {
+        // Map short names to full commune names
+        if (c === "gréoux" || c === "greoux") detectedCommune = "Gréoux-les-Bains";
+        else if (c === "moustiers") detectedCommune = "Moustiers-Sainte-Marie";
+        else detectedCommune = c.split("-").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join("-");
+        break;
+      }
+    }
 
-    const allFiches = [...(fiches || []), ...(fichesGeneral || [])];
-    const uniqueFiches = allFiches.filter((f, i, arr) => arr.findIndex(x => x.fiche_id === f.fiche_id) === i).slice(0, 15);
+    // Detect if asking about today/tonight/now
+    const dateKeywords = ["ce soir", "aujourd'hui", "maintenant", "ouvert", "en ce moment", "cette semaine", "demain"];
+    const wantsDateFilter = dateKeywords.some(kw => msgLower.includes(kw));
+    const today = new Date().toISOString().split("T")[0];
 
-    // Get full data for preview cards
+    // Extract meaningful search terms (remove common words)
+    const stopWords = ["quels", "quel", "quelle", "quelles", "sont", "les", "des", "est", "ce", "cette", "soir", "aujourd", "hui", "à", "a", "de", "du", "le", "la", "un", "une", "pour", "en", "dans", "où", "ou", "il", "y", "qui", "que", "je", "on", "nous", "vous", "cherche", "veux", "voudrais", "peux", "peut", "faire", "aller", "avoir", "être"];
+    const searchWords = lastUserMsg.split(/[\s,?!.']+/).filter(w => w.length > 2 && !stopWords.includes(w.toLowerCase()));
+    const searchTerm = searchWords.slice(0, 3).join(" ").substring(0, 80) || null;
+
+    console.log("Intent detection:", { detectedTypes, detectedCommune, wantsDateFilter, searchTerm });
+
+    // --- Execute targeted searches ---
+    const searchPromises: Promise<any>[] = [];
+    
+    if (detectedTypes.length > 0) {
+      // Search each detected type separately for better results
+      for (const type of detectedTypes.slice(0, 3)) {
+        searchPromises.push(
+          supabase.rpc("search_fiches_apidae", {
+            p_fiche_type: type,
+            p_commune: detectedCommune,
+            p_limit: 20,
+            ...(wantsDateFilter ? { p_date_active: today } : {}),
+          }).then(r => r.data || [])
+        );
+        // Also search without date filter for completeness
+        if (wantsDateFilter) {
+          searchPromises.push(
+            supabase.rpc("search_fiches_apidae", {
+              p_fiche_type: type,
+              p_commune: detectedCommune,
+              p_limit: 20,
+            }).then(r => r.data || [])
+          );
+        }
+      }
+    } else {
+      // Generic search with extracted terms
+      searchPromises.push(
+        supabase.rpc("search_fiches_apidae", {
+          p_search_term: searchTerm,
+          p_commune: detectedCommune,
+          p_limit: 15,
+          ...(wantsDateFilter ? { p_date_active: today } : {}),
+        }).then(r => r.data || [])
+      );
+      searchPromises.push(
+        supabase.rpc("search_fiches_apidae", {
+          p_search_term: searchTerm,
+          p_commune: detectedCommune,
+          p_limit: 15,
+        }).then(r => r.data || [])
+      );
+    }
+
+    const searchResults = await Promise.all(searchPromises);
+    const allFiches = searchResults.flat();
+    const uniqueFiches = allFiches.filter((f: any, i: number, arr: any[]) => arr.findIndex(x => x.fiche_id === f.fiche_id) === i).slice(0, 25);
+
+    // Get full data for preview cards and opening hours context
     let fichePreviews: any[] = [];
+    let fichesWithHours: any[] = [];
     if (uniqueFiches.length > 0) {
-      const ficheIds = uniqueFiches.map(f => f.fiche_id);
+      const ficheIds = uniqueFiches.map((f: any) => f.fiche_id);
       const { data: fullFiches } = await supabase
         .from("fiches_data")
         .select("fiche_id, fiche_type, data")
         .in("fiche_id", ficheIds);
 
       if (fullFiches && fullFiches.length > 0) {
-        fichePreviews = fullFiches.map(f => extractFichePreview(f.fiche_id, f.fiche_type, f.data)).slice(0, 8);
+        fichePreviews = fullFiches.map(f => extractFichePreview(f.fiche_id, f.fiche_type, f.data)).slice(0, 10);
+        fichesWithHours = fullFiches;
       }
     }
 
+    // Build rich context with opening hours
     const fichesContext = uniqueFiches.length > 0
-      ? uniqueFiches.map(f =>
-        `- ${f.nom} (${f.fiche_type}) à ${f.commune} ${f.code_postal} : ${f.description_courte || f.description_detaillee?.substring(0, 200) || "Pas de description"}`
-      ).join("\n")
+      ? uniqueFiches.map((f: any) => {
+          const full = fichesWithHours.find((fh: any) => fh.fiche_id === f.fiche_id);
+          let hoursInfo = "";
+          if (full?.data?.ouverture?.periodesOuvertures) {
+            const periodes = full.data.ouverture.periodesOuvertures;
+            if (Array.isArray(periodes)) {
+              const relevant = periodes.slice(0, 3).map((p: any) => {
+                let info = `du ${p.dateDebut || "?"} au ${p.dateFin || "?"}`;
+                if (p.horaireOuverture) info += ` (ouverture: ${p.horaireOuverture})`;
+                if (p.horaireFermeture) info += ` (fermeture: ${p.horaireFermeture})`;
+                if (p.complementHoraire?.libelleFr) info += ` - ${p.complementHoraire.libelleFr}`;
+                return info;
+              });
+              hoursInfo = ` | Horaires: ${relevant.join("; ")}`;
+            }
+          }
+          // Contact info
+          let contactInfo = "";
+          if (full?.data?.informations?.moyensCommunication) {
+            const moyens = full.data.informations.moyensCommunication;
+            const tel = moyens.find((m: any) => m.type?.id === 201);
+            if (tel) contactInfo += ` | Tél: ${tel.coordonnees?.fr || ""}`;
+          }
+          // Address
+          const adresse = full?.data?.localisation?.adresse?.adresse1 || "";
+          
+          return `- ${f.nom} (${f.fiche_type}) à ${f.commune} ${f.code_postal}${adresse ? `, ${adresse}` : ""}${contactInfo}${hoursInfo} : ${f.description_courte || f.description_detaillee?.substring(0, 200) || "Pas de description"}`;
+        }).join("\n")
       : "Aucune fiche trouvée pour cette recherche.";
 
     const systemPrompt = `Tu es Apidia, un conseiller en séjour virtuel expert du Pays de Manosque et de ses alentours en Provence.
@@ -177,6 +284,11 @@ RÈGLES IMPORTANTES :
 - Sois proactif : propose des suggestions complémentaires et des alternatives
 - IMPORTANT : quand tu recommandes un lieu ou un événement présent dans les données touristiques, mentionne son nom exact tel qu'il apparaît dans les données. Des cartes visuelles seront affichées automatiquement sous ta réponse avec les fiches correspondantes.
 - Donne des détails pratiques quand disponibles : horaires, tarifs, adresse, téléphone
+- Tu as accès aux HORAIRES D'OUVERTURE des établissements dans les données. Utilise-les pour répondre précisément quand un visiteur demande ce qui est ouvert. Indique les périodes d'ouverture et les horaires quand ils sont disponibles.
+- Ne dis JAMAIS que tu n'as pas d'informations en temps réel. Tu as des données d'ouverture issues des fiches touristiques. Si une fiche apparaît dans les résultats avec un filtre de date active, c'est qu'elle est ouverte à cette date.
+- RECOMMANDE DE CONTACTER l'établissement pour confirmer les horaires exacts du jour.
+
+Date d'aujourd'hui : ${today}
 
 BASE DE CONNAISSANCES COMPLÉMENTAIRE :
 ${knowledgeText || "Aucune information complémentaire disponible."}
