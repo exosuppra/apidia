@@ -5,7 +5,10 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import Seo from "@/components/Seo";
-import { Shield, LogOut, Users, FileText, Eye, Calendar, CalendarClock, Clock, Globe, BarChart3, History, Star, Briefcase, TreePine, GripVertical, ArrowUp, ArrowDown, Link2, Bot } from "lucide-react";
+import { Shield, LogOut, Users, FileText, Eye, Calendar, CalendarClock, Clock, Globe, BarChart3, History, Star, Briefcase, TreePine, GripVertical, ArrowUp, ArrowDown, Link2, Bot, Activity, RefreshCw } from "lucide-react";
+import { format } from "date-fns";
+import { fr } from "date-fns/locale";
+import { logUserAction } from "@/lib/logUserAction";
 import { useAuth } from "@/context/AuthProvider";
 import {
   Dialog,
@@ -29,6 +32,8 @@ export default function AdminDashboard() {
   const [showIntenseVerdonPopup, setShowIntenseVerdonPopup] = useState(false);
   const [sectionOrder, setSectionOrder] = useState<SectionKey[]>(DEFAULT_ORDER);
   const [isReordering, setIsReordering] = useState(false);
+  const [activityLogs, setActivityLogs] = useState<any[]>([]);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   const handleIntenseVerdonClick = () => {
     const newTab = window.open("https://intense-verdon-edito.lovable.app", "_blank");
@@ -42,27 +47,42 @@ export default function AdminDashboard() {
     const fetchData = async () => {
       if (!user) return;
 
-      const [permResult, orderResult] = await Promise.all([
+      const [permResult, orderResult, roleResult] = await Promise.all([
         supabase.from('admin_permissions').select('page_key').eq('user_id', user.id),
         supabase.from('admin_dashboard_order').select('section_order').eq('user_id', user.id).maybeSingle(),
+        supabase.rpc('has_role', { _user_id: user.id, _role: 'admin' }),
       ]);
 
       setPermissions(permResult.data?.map(p => p.page_key) || []);
+      setIsAdmin(roleResult.data === true);
 
       if (orderResult.data?.section_order) {
         const saved = orderResult.data.section_order as SectionKey[];
-        // Ensure all keys are present (in case new sections were added)
         const merged = [...saved, ...DEFAULT_ORDER.filter(k => !saved.includes(k))];
         setSectionOrder(merged);
       }
 
+      // Fetch activity logs
+      const logsQuery = supabase
+        .from('user_action_logs')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(20);
+
+      const { data: logs } = await logsQuery;
+      setActivityLogs(logs || []);
+
       setLoading(false);
+
+      // Log page view
+      logUserAction("view_page", { page: "dashboard" });
     };
 
     fetchData();
   }, [user]);
 
   const handleLogout = async () => {
+    logUserAction("logout");
     await supabase.auth.signOut();
     toast({
       title: "Déconnexion",
@@ -99,6 +119,70 @@ export default function AdminDashboard() {
     [newOrder[idx], newOrder[swapIdx]] = [newOrder[swapIdx], newOrder[idx]];
     setSectionOrder(newOrder);
     saveSectionOrder(newOrder);
+  };
+
+  const actionLabelsMap: Record<string, string> = {
+    login: "s'est connecté(e)",
+    logout: "s'est déconnecté(e)",
+    view_page: "a consulté une page",
+    create_task: "a créé une tâche",
+    update_task: "a mis à jour une tâche",
+    delete_task: "a supprimé une tâche",
+    validate_task: "a validé une tâche",
+    reject_task: "a rejeté une tâche",
+    import_fiches: "a importé des fiches",
+    export_data: "a exporté des données",
+    verify_fiche: "a vérifié une fiche",
+    edit_fiche: "a modifié une fiche",
+    sync_apidae: "a lancé une synchronisation Apidae",
+    linking_check: "a vérifié un site Linking",
+    linking_send_email: "a envoyé un email Linking",
+    create_planning: "a créé un planning",
+    update_planning: "a mis à jour un planning",
+    apidia_knowledge_update: "a mis à jour la base Apidia",
+    import_excel: "a importé un fichier Excel",
+    bulk_verification: "a lancé une vérification en masse",
+    other: "a effectué une action",
+  };
+
+  const actionLabel = (type: string) => actionLabelsMap[type] || type;
+
+  const formatDetails = (details: any) => {
+    if (!details) return "";
+    if (typeof details === "string") return details;
+    if (details.page) return `Page : ${details.page}`;
+    if (details.task_title) return details.task_title;
+    if (details.fiche_id) return `Fiche ${details.fiche_id}`;
+    if (details.url) return details.url;
+    return JSON.stringify(details).substring(0, 100);
+  };
+
+  const ActionIcon = ({ actionType }: { actionType: string }) => {
+    const iconClass = "h-4 w-4";
+    switch (actionType) {
+      case "login":
+      case "logout":
+        return <Shield className={`${iconClass} text-primary`} />;
+      case "create_task":
+      case "update_task":
+      case "validate_task":
+      case "reject_task":
+        return <Calendar className={`${iconClass} text-blue-500`} />;
+      case "import_fiches":
+      case "import_excel":
+        return <FileText className={`${iconClass} text-green-500`} />;
+      case "verify_fiche":
+      case "edit_fiche":
+        return <Eye className={`${iconClass} text-orange-500`} />;
+      case "linking_check":
+      case "linking_send_email":
+        return <Link2 className={`${iconClass} text-purple-500`} />;
+      case "sync_apidae":
+      case "bulk_verification":
+        return <RefreshCw className={`${iconClass} text-cyan-500`} />;
+      default:
+        return <Activity className={`${iconClass} text-muted-foreground`} />;
+    }
   };
 
   // Section visibility checks
@@ -401,11 +485,44 @@ export default function AdminDashboard() {
           {hasPermission('logs') && (
             <Card className="mt-8">
               <CardHeader>
-                <CardTitle>Activité récente</CardTitle>
-                <CardDescription>Les dernières actions effectuées sur la plateforme</CardDescription>
+                <CardTitle className="flex items-center gap-2">
+                  <Activity className="h-5 w-5 text-primary" />
+                  Activité récente
+                </CardTitle>
+                <CardDescription>
+                  {isAdmin ? "Toutes les actions de l'équipe" : "Vos dernières actions"}
+                </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="text-sm text-muted-foreground">Aucune activité récente à afficher</div>
+                {activityLogs.length === 0 ? (
+                  <div className="text-sm text-muted-foreground">Aucune activité récente à afficher</div>
+                ) : (
+                  <div className="space-y-3 max-h-96 overflow-y-auto">
+                    {activityLogs.map((log) => (
+                      <div key={log.id} className="flex items-start gap-3 text-sm border-b border-border pb-3 last:border-0">
+                        <div className="mt-0.5">
+                          <ActionIcon actionType={log.action_type} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            {isAdmin && (
+                              <span className="font-medium text-foreground">{log.user_email}</span>
+                            )}
+                            <span className="text-muted-foreground">{actionLabel(log.action_type)}</span>
+                          </div>
+                          {log.action_details && (
+                            <p className="text-xs text-muted-foreground mt-0.5 truncate">
+                              {formatDetails(log.action_details)}
+                            </p>
+                          )}
+                        </div>
+                        <span className="text-xs text-muted-foreground whitespace-nowrap">
+                          {format(new Date(log.created_at), "dd MMM HH:mm", { locale: fr })}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
           )}

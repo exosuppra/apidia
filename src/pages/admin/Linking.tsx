@@ -14,6 +14,7 @@ import { useNavigate } from "react-router-dom";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import Seo from "@/components/Seo";
 import * as XLSX from "xlsx";
+import { logUserAction } from "@/lib/logUserAction";
 
 type Commune = { id: string; nom: string; created_at: string };
 type Site = {
@@ -203,6 +204,7 @@ export default function Linking() {
         body: { url: site.url, commune: site.commune_nom, type_contenu: site.type_contenu, current_info: site.modifications },
       });
       if (error) throw error;
+      logUserAction("linking_check", { url: site.url, commune: site.commune_nom });
 
       const newStatut = data.is_up_to_date ? "ok" : "a_modifier";
       const issuesText = data.issues?.length
@@ -243,6 +245,7 @@ export default function Linking() {
         body: { batch_size: 5 },
       });
       if (error) throw error;
+      logUserAction("bulk_verification", { type: "linking", total_sites: sites.length });
       toast({ title: "Vérification lancée", description: "La vérification s'exécute en arrière-plan." });
       fetchCheckConfig();
     } catch (err) {
@@ -270,6 +273,7 @@ export default function Linking() {
 
       await supabase.from("linking_sites").update({ date_contact: new Date().toISOString().split("T")[0] }).eq("id", site.id);
       setSites(prev => prev.map(s => s.id === site.id ? { ...s, date_contact: new Date().toISOString().split("T")[0] } : s));
+      logUserAction("linking_send_email", { url: site.url, commune: site.commune_nom });
       toast({ title: "Mail envoyé", description: `Webhook déclenché pour ${site.commune_nom}` });
     } catch (err) {
       console.error("Send error:", err);

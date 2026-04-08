@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { logUserAction } from "@/lib/logUserAction";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -69,6 +70,7 @@ export default function AdminLogin() {
         description: "Bienvenue dans l'interface d'administration",
       });
 
+      logUserAction("login");
       navigate("/admin/dashboard");
     } catch (error: any) {
       // Traduire les messages d'erreur en français

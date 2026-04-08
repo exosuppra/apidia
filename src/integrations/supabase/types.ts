@@ -1090,6 +1090,7 @@ export type Database = {
           ip_address: string | null
           user_agent: string | null
           user_email: string
+          user_id: string | null
           user_id_sheet: string | null
         }
         Insert: {
@@ -1100,6 +1101,7 @@ export type Database = {
           ip_address?: string | null
           user_agent?: string | null
           user_email: string
+          user_id?: string | null
           user_id_sheet?: string | null
         }
         Update: {
@@ -1110,6 +1112,7 @@ export type Database = {
           ip_address?: string | null
           user_agent?: string | null
           user_email?: string
+          user_id?: string | null
           user_id_sheet?: string | null
         }
         Relationships: []
