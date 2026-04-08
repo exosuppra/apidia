@@ -41,11 +41,12 @@ function extractApidaeReference(fiches: any[]): string {
 }
 
 // Quick AI call to extract establishment name from scraped content
-async function extractEstablishmentName(content: string, aiKey: string, useGemini: boolean): Promise<string[]> {
+async function extractEstablishmentInfo(content: string, aiKey: string, useGemini: boolean): Promise<{ names: string[]; emails: string[] }> {
   const extractPrompt = `Analyse ce contenu de page web et extrait le ou les noms d'établissements touristiques mentionnés (hôtel, restaurant, camping, musée, activité, office de tourisme, etc.).
 
-Retourne UNIQUEMENT un JSON : {"names": ["Nom 1", "Nom 2"]}
-Si aucun nom d'établissement n'est identifiable, retourne {"names": []}
+Retourne UNIQUEMENT un JSON : {"names": ["Nom 1", "Nom 2"], "contact_emails": ["email1@example.com"]}
+Si aucun nom d'établissement n'est identifiable, retourne {"names": [], "contact_emails": []}
+Extrais aussi toutes les adresses email de contact visibles sur la page (contact, info, webmaster, etc.).
 
 Contenu (premiers 2000 caractères) :
 ${content.substring(0, 2000)}`;
@@ -66,7 +67,7 @@ ${content.substring(0, 2000)}`;
       const data = await res.json();
       const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
       const parsed = JSON.parse(text);
-      return parsed.names || [];
+      return { names: parsed.names || [], emails: parsed.contact_emails || [] };
     } else {
       const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
@@ -83,11 +84,11 @@ ${content.substring(0, 2000)}`;
       const data = await res.json();
       const text = data.choices?.[0]?.message?.content || "{}";
       const parsed = JSON.parse(text);
-      return parsed.names || [];
+      return { names: parsed.names || [], emails: parsed.contact_emails || [] };
     }
   } catch (e) {
     console.error("Failed to extract establishment name:", e);
-    return [];
+    return { names: [], emails: [] };
   }
 }
 
@@ -214,9 +215,11 @@ Deno.serve(async (req) => {
     const truncatedContent = pageContent.substring(0, 8000);
 
     // Step 2: Extract establishment name from scraped content
-    console.log('Extracting establishment name...');
-    const establishmentNames = await extractEstablishmentName(truncatedContent, apiKey, useGemini);
-    console.log('Found names:', establishmentNames);
+    console.log('Extracting establishment info...');
+    const extractedInfo = await extractEstablishmentInfo(truncatedContent, apiKey, useGemini);
+    const establishmentNames = extractedInfo.names;
+    const extractedEmails = extractedInfo.emails;
+    console.log('Found names:', establishmentNames, 'emails:', extractedEmails);
 
     // Step 3: Find matching Apidae fiches
     let apidaeReference = "";
@@ -325,6 +328,7 @@ Réponds en JSON :
         scrape_content: truncatedContent.substring(0, 2000),
         matched_establishments: establishmentNames,
         matched_apidae_names: matchedNames,
+        extracted_emails: extractedEmails,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

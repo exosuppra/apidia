@@ -210,13 +210,18 @@ export default function Linking() {
       const issuesText = data.issues?.length
         ? data.issues.join("\n• ")
         : (!data.is_up_to_date ? "Des informations semblent obsolètes ou incorrectes (détails non précisés par l'IA)." : null);
-      const updates = {
+      const updates: any = {
         last_scrape_result: data,
         last_scraped_at: new Date().toISOString(),
         date_dernier_controle: new Date().toISOString().split("T")[0],
         statut: newStatut,
         modifications: newStatut === "a_modifier" ? (issuesText ? `• ${issuesText}` : "Vérification manuelle nécessaire.") : null,
       };
+
+      // Auto-fill contact email if extracted and not already set
+      if (data.extracted_emails?.length > 0 && !site.contact_email) {
+        updates.contact_email = data.extracted_emails[0];
+      }
 
       await supabase.from("linking_sites").update(updates).eq("id", site.id);
 
