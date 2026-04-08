@@ -204,6 +204,7 @@ export default function Linking() {
         body: { url: site.url, commune: site.commune_nom, type_contenu: site.type_contenu, current_info: site.modifications },
       });
       if (error) throw error;
+      logUserAction("linking_check", { url: site.url, commune: site.commune_nom });
 
       const newStatut = data.is_up_to_date ? "ok" : "a_modifier";
       const issuesText = data.issues?.length
