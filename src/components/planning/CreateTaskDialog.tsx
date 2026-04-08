@@ -216,6 +216,7 @@ export function CreateTaskDialog({
         }
       }
 
+      logUserAction("create_task", { task_title: values.title });
       toast({
         title: "Tâche créée",
         description: requestValidation 
