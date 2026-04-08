@@ -10,7 +10,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Plus, Trash2, Edit2, BookOpen, Loader2 } from "lucide-react";
+import { Plus, Trash2, Edit2, BookOpen, Loader2, ExternalLink } from "lucide-react";
 import Seo from "@/components/Seo";
 
 type KnowledgeEntry = {
