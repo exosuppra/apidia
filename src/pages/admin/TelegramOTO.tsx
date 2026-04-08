@@ -301,7 +301,7 @@ export default function TelegramOTO() {
             ) : (
               <div className="flex-1 flex items-center justify-center">
                 <div className="text-center space-y-2">
-                  <Bot className="h-12 w-12 text-muted-foreground/30 mx-auto" />
+                  <img src={otoAvatar} alt="OTO" className="h-16 w-16 mx-auto opacity-30" />
                   <p className="text-sm text-muted-foreground">
                     Sélectionnez une conversation pour commencer
                   </p>
