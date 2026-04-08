@@ -1,10 +1,11 @@
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Send, Bot, Loader2, ArrowLeft, Sparkles } from "lucide-react";
+import { Send, Bot, Loader2, ArrowLeft, Sparkles, Mic, MicOff, Volume2, VolumeX } from "lucide-react";
 import Seo from "@/components/Seo";
 import ReactMarkdown from "react-markdown";
 import FichePreviewCard, { FichePreview } from "@/components/chat/FichePreviewCard";
 import { useNavigate } from "react-router-dom";
+import { useSpeechRecognition, useSpeechSynthesis } from "@/hooks/useSpeech";
 
 type Msg = { role: "user" | "assistant"; content: string; fichesPreview?: FichePreview[] };
 
@@ -19,12 +20,28 @@ export default function ApidiaChat() {
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [autoSpeak, setAutoSpeak] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
 
+  const { isListening, transcript, startListening, stopListening, isSupported: sttSupported } = useSpeechRecognition();
+  const { isSpeaking, speak, stop: stopSpeaking, isSupported: ttsSupported } = useSpeechSynthesis();
+
   const scrollToBottom = () => chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   useEffect(() => { scrollToBottom(); }, [messages]);
+
+  // When transcript changes from speech recognition, update input
+  useEffect(() => {
+    if (transcript) setInput(transcript);
+  }, [transcript]);
+
+  // When user stops listening and has a transcript, auto-send
+  useEffect(() => {
+    if (!isListening && transcript) {
+      sendMessage(transcript);
+    }
+  }, [isListening]);
 
   const sendMessage = async (text?: string) => {
     const msg = text || input.trim();
@@ -79,7 +96,6 @@ export default function ApidiaChat() {
           try {
             const parsed = JSON.parse(jsonStr);
 
-            // Check for fiches_previews event
             if (parsed.fiches_previews) {
               pendingFiches = parsed.fiches_previews;
               continue;
@@ -105,7 +121,6 @@ export default function ApidiaChat() {
         }
       }
 
-      // Ensure fiches are attached even if no content delta came after
       if (pendingFiches.length > 0 && assistantSoFar) {
         setMessages(prev => {
           const last = prev[prev.length - 1];
@@ -115,11 +130,24 @@ export default function ApidiaChat() {
           return prev;
         });
       }
+
+      // Auto-speak the response if enabled
+      if (autoSpeak && assistantSoFar) {
+        speak(assistantSoFar);
+      }
     } catch (e: any) {
       setMessages(prev => [...prev, { role: "assistant", content: "Désolé, une erreur est survenue. Veuillez réessayer." }]);
     } finally {
       setIsLoading(false);
       inputRef.current?.focus();
+    }
+  };
+
+  const handleMicClick = () => {
+    if (isListening) {
+      stopListening();
+    } else {
+      startListening();
     }
   };
 
@@ -141,7 +169,21 @@ export default function ApidiaChat() {
               <p className="text-xs text-muted-foreground">Conseiller en séjour virtuel</p>
             </div>
           </div>
-          <div className="ml-auto flex items-center gap-1">
+          <div className="ml-auto flex items-center gap-2">
+            {ttsSupported && (
+              <Button
+                variant={autoSpeak ? "default" : "ghost"}
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => {
+                  if (isSpeaking) stopSpeaking();
+                  setAutoSpeak(!autoSpeak);
+                }}
+                title={autoSpeak ? "Désactiver la voix" : "Activer la voix"}
+              >
+                {autoSpeak ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+              </Button>
+            )}
             <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
             <span className="text-xs text-muted-foreground">En ligne</span>
           </div>
@@ -159,6 +201,11 @@ export default function ApidiaChat() {
                 <p className="text-sm text-muted-foreground max-w-sm">
                   Je suis Apidia, votre conseiller en séjour virtuel. Posez-moi une question sur le Verdon et la Provence !
                 </p>
+                {(sttSupported || ttsSupported) && (
+                  <p className="text-xs text-muted-foreground max-w-sm mt-2">
+                    🎙️ Vous pouvez aussi me parler en utilisant le micro, et j'activerai la voix pour vous répondre !
+                  </p>
+                )}
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full max-w-md">
                 {SUGGESTIONS.map((s) => (
@@ -183,6 +230,17 @@ export default function ApidiaChat() {
                       <Bot className="h-3.5 w-3.5 text-primary" />
                     </div>
                     <span className="text-xs font-medium text-muted-foreground">Apidia</span>
+                    {ttsSupported && msg.content && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-5 w-5 ml-1"
+                        onClick={() => isSpeaking ? stopSpeaking() : speak(msg.content)}
+                        title="Écouter la réponse"
+                      >
+                        {isSpeaking ? <VolumeX className="h-3 w-3" /> : <Volume2 className="h-3 w-3" />}
+                      </Button>
+                    )}
                   </div>
                 )}
                 <div className={`rounded-2xl px-4 py-2.5 text-sm ${
@@ -197,7 +255,6 @@ export default function ApidiaChat() {
                   ) : msg.content}
                 </div>
 
-                {/* Fiche preview cards carousel */}
                 {msg.fichesPreview && msg.fichesPreview.length > 0 && (
                   <div className="overflow-x-auto pb-2 -mx-1">
                     <div className="flex gap-2 px-1" style={{ minWidth: "min-content" }}>
@@ -233,12 +290,24 @@ export default function ApidiaChat() {
         {/* Input bar */}
         <div className="border-t bg-background px-4 py-3 shrink-0">
           <div className="flex gap-2 max-w-2xl mx-auto">
+            {sttSupported && (
+              <Button
+                variant={isListening ? "destructive" : "outline"}
+                size="icon"
+                className={`rounded-full shrink-0 h-10 w-10 ${isListening ? "animate-pulse" : ""}`}
+                onClick={handleMicClick}
+                disabled={isLoading}
+                title={isListening ? "Arrêter l'écoute" : "Parler"}
+              >
+                {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+              </Button>
+            )}
             <input
               ref={inputRef}
               value={input}
               onChange={e => setInput(e.target.value)}
               onKeyDown={e => e.key === "Enter" && !e.shiftKey && sendMessage()}
-              placeholder="Que souhaitez-vous savoir ?"
+              placeholder={isListening ? "🎙️ Je vous écoute..." : "Que souhaitez-vous savoir ?"}
               disabled={isLoading}
               className="flex-1 h-10 rounded-full border border-input bg-background px-4 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
             />
