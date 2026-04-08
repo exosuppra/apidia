@@ -543,7 +543,6 @@ export default function AdminDashboard() {
                 style={{ height: "500px", borderRadius: "8px" }}
                 allow="autoplay"
                 title="OTO Arena - Claude Pixel Live"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope"
               />
             </CardContent>
           </Card>
