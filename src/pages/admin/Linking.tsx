@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -8,8 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Search, Upload, RefreshCw, Mail, Plus, ExternalLink, Check, AlertTriangle, Clock, Loader2, Edit2, Trash2 } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
+import { Search, Upload, RefreshCw, Mail, Plus, ExternalLink, Check, AlertTriangle, Clock, Loader2, Edit2, Trash2, Eye, X } from "lucide-react";
 import Seo from "@/components/Seo";
 import * as XLSX from "xlsx";
 
@@ -35,10 +35,10 @@ type Site = {
 
 type SiteWithCommune = Site & { commune_nom: string };
 
-const statusConfig: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
-  ok: { label: "OK", variant: "default" },
-  a_modifier: { label: "À modifier", variant: "destructive" },
-  en_attente: { label: "En attente", variant: "secondary" },
+const statusConfig: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline"; icon: typeof Check }> = {
+  ok: { label: "OK", variant: "default", icon: Check },
+  a_modifier: { label: "À modifier", variant: "destructive", icon: AlertTriangle },
+  en_attente: { label: "En attente", variant: "secondary", icon: Clock },
 };
 
 export default function Linking() {
@@ -61,6 +61,11 @@ export default function Linking() {
   const [newUrl, setNewUrl] = useState("");
   const [newType, setNewType] = useState("");
   const [newEmail, setNewEmail] = useState("");
+
+  // Bulk check state
+  const [bulkChecking, setBulkChecking] = useState(false);
+  const [bulkProgress, setBulkProgress] = useState({ current: 0, total: 0, currentSite: "" });
+  const bulkAbortRef = useRef(false);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -104,71 +109,51 @@ export default function Linking() {
       const ws = wb.Sheets[wb.SheetNames[0]];
       const rows: any[][] = XLSX.utils.sheet_to_json(ws, { header: 1 });
 
-      // Parse the Excel structure: commune in col A (merged), type in col B, etc.
       let currentCommune = "";
       const entries: { commune: string; type: string; url: string; dateMaj: string; dateControle: string; modifications: string; dateContact: string; reponse: string; contactEmail: string; contactNotes: string }[] = [];
 
-      for (let i = 2; i < rows.length; i++) { // skip header rows
+      for (let i = 2; i < rows.length; i++) {
         const row = rows[i];
         if (!row || row.length < 4) continue;
-
         const communeVal = (row[0] || "").toString().trim();
         if (communeVal) currentCommune = communeVal;
         if (!currentCommune) continue;
-
         const type = (row[1] || "").toString().trim();
         const dateMaj = (row[2] || "").toString().trim();
         const url = (row[3] || "").toString().trim();
         if (!url || !url.startsWith("http")) continue;
-
-        const dateControle = (row[4] || "").toString().trim();
-        const modifications = (row[5] || "").toString().trim();
-        const dateContact = (row[6] || "").toString().trim();
-        const reponse = (row[7] || "").toString().trim();
-        const contactEmail = (row[8] || "").toString().trim();
-        const contactNotes = (row[9] || "").toString().trim();
-
-        entries.push({ commune: currentCommune, type, url, dateMaj, dateControle, modifications, dateContact, reponse, contactEmail, contactNotes });
+        entries.push({
+          commune: currentCommune, type, url, dateMaj,
+          dateControle: (row[4] || "").toString().trim(),
+          modifications: (row[5] || "").toString().trim(),
+          dateContact: (row[6] || "").toString().trim(),
+          reponse: (row[7] || "").toString().trim(),
+          contactEmail: (row[8] || "").toString().trim(),
+          contactNotes: (row[9] || "").toString().trim(),
+        });
       }
 
-      // Upsert communes
       const uniqueCommunes = [...new Set(entries.map(e => e.commune))];
       for (const nom of uniqueCommunes) {
-        const existing = communes.find(c => c.nom === nom);
-        if (!existing) {
+        if (!communes.find(c => c.nom === nom)) {
           await supabase.from("linking_communes").insert({ nom });
         }
       }
 
-      // Re-fetch communes to get IDs
       const { data: allCommunes } = await supabase.from("linking_communes").select("*");
       const communeMap = Object.fromEntries((allCommunes || []).map((c: any) => [c.nom, c.id]));
 
-      // Insert sites (skip duplicates by URL + commune)
       let inserted = 0;
       for (const entry of entries) {
         const commune_id = communeMap[entry.commune];
         if (!commune_id) continue;
-
-        const { data: existing } = await supabase
-          .from("linking_sites")
-          .select("id")
-          .eq("commune_id", commune_id)
-          .eq("url", entry.url)
-          .maybeSingle();
-
+        const { data: existing } = await supabase.from("linking_sites").select("id").eq("commune_id", commune_id).eq("url", entry.url).maybeSingle();
         if (!existing) {
           const statut = entry.modifications && entry.modifications !== "X" && entry.modifications !== "OK" ? "a_modifier" : entry.modifications === "OK" ? "ok" : "en_attente";
           await supabase.from("linking_sites").insert({
-            commune_id,
-            type_contenu: entry.type || null,
-            url: entry.url,
-            date_mise_a_jour: entry.dateMaj || null,
-            statut,
-            modifications: entry.modifications && entry.modifications !== "X" ? entry.modifications : null,
-            contact_email: entry.contactEmail || null,
-            contact_notes: entry.contactNotes || null,
-            reponse: entry.reponse || null,
+            commune_id, type_contenu: entry.type || null, url: entry.url, date_mise_a_jour: entry.dateMaj || null,
+            statut, modifications: entry.modifications && entry.modifications !== "X" ? entry.modifications : null,
+            contact_email: entry.contactEmail || null, contact_notes: entry.contactNotes || null, reponse: entry.reponse || null,
           });
           inserted++;
         }
@@ -185,40 +170,79 @@ export default function Linking() {
     }
   };
 
+  // Single site check — updates local state without refetching everything
   const handleCheckSite = async (site: SiteWithCommune) => {
     setCheckingIds(prev => new Set([...prev, site.id]));
     try {
       const { data, error } = await supabase.functions.invoke("check-linking-site", {
-        body: {
-          url: site.url,
-          commune: site.commune_nom,
-          type_contenu: site.type_contenu,
-          current_info: site.modifications,
-        },
+        body: { url: site.url, commune: site.commune_nom, type_contenu: site.type_contenu, current_info: site.modifications },
       });
-
       if (error) throw error;
 
       const newStatut = data.is_up_to_date ? "ok" : "a_modifier";
-      await supabase.from("linking_sites").update({
+      const updates = {
         last_scrape_result: data,
         last_scraped_at: new Date().toISOString(),
         date_dernier_controle: new Date().toISOString().split("T")[0],
         statut: newStatut,
         modifications: data.issues?.length ? data.issues.join("; ") : site.modifications,
-      }).eq("id", site.id);
+      };
 
-      toast({
-        title: data.is_up_to_date ? "✅ Site à jour" : "⚠️ Modifications détectées",
-        description: data.issues?.length ? data.issues.join(", ") : "Aucun problème détecté",
-      });
-      fetchData();
+      await supabase.from("linking_sites").update(updates).eq("id", site.id);
+
+      // Update local state instead of refetching
+      setSites(prev => prev.map(s => s.id === site.id ? { ...s, ...updates } : s));
+
+      if (!bulkChecking) {
+        toast({
+          title: data.is_up_to_date ? "✅ Site à jour" : "⚠️ Modifications détectées",
+          description: data.issues?.length ? data.issues.slice(0, 2).join(", ") : "Aucun problème détecté",
+        });
+      }
     } catch (err) {
       console.error("Check error:", err);
-      toast({ title: "Erreur", description: "Erreur lors de la vérification", variant: "destructive" });
+      if (!bulkChecking) {
+        toast({ title: "Erreur", description: "Erreur lors de la vérification", variant: "destructive" });
+      }
     } finally {
       setCheckingIds(prev => { const n = new Set(prev); n.delete(site.id); return n; });
     }
+  };
+
+  const handleCheckAll = async () => {
+    const toCheck = filteredSites.filter(s => s.statut !== "ok" || !s.last_scraped_at);
+    if (toCheck.length === 0) {
+      toast({ title: "Rien à vérifier", description: "Tous les sites filtrés sont déjà OK." });
+      return;
+    }
+
+    setBulkChecking(true);
+    bulkAbortRef.current = false;
+    setBulkProgress({ current: 0, total: toCheck.length, currentSite: "" });
+
+    let okCount = 0, issueCount = 0, errorCount = 0;
+
+    for (let i = 0; i < toCheck.length; i++) {
+      if (bulkAbortRef.current) break;
+      const site = toCheck[i];
+      setBulkProgress({ current: i + 1, total: toCheck.length, currentSite: `${site.commune_nom} — ${site.type_contenu || new URL(site.url).hostname}` });
+
+      try {
+        await handleCheckSite(site);
+        // Check updated state
+        const updated = sites.find(s => s.id === site.id);
+        if (updated?.statut === "ok") okCount++; else issueCount++;
+      } catch {
+        errorCount++;
+      }
+    }
+
+    setBulkChecking(false);
+    toast({
+      title: bulkAbortRef.current ? "Vérification interrompue" : "Vérification terminée",
+      description: `${okCount} OK, ${issueCount} à modifier, ${errorCount} erreurs`,
+    });
+    fetchData(); // Final refresh to sync state
   };
 
   const handleSendEmail = async (site: SiteWithCommune) => {
@@ -227,24 +251,13 @@ export default function Linking() {
       const suggestedEmail = site.last_scrape_result?.suggested_email || `Bonjour,\n\nNous avons remarqué que les informations concernant la commune de ${site.commune_nom} sur votre page ${site.url} nécessitent une mise à jour.\n\nModifications à apporter :\n${site.modifications || "Veuillez vérifier les informations."}\n\nCordialement,\nDLVA Tourisme`;
 
       const { error } = await supabase.functions.invoke("send-linking-email", {
-        body: {
-          commune: site.commune_nom,
-          url: site.url,
-          type_contenu: site.type_contenu,
-          contact_email: site.contact_email,
-          modifications: site.modifications,
-          suggested_email: suggestedEmail,
-        },
+        body: { commune: site.commune_nom, url: site.url, type_contenu: site.type_contenu, contact_email: site.contact_email, modifications: site.modifications, suggested_email: suggestedEmail },
       });
-
       if (error) throw error;
 
-      await supabase.from("linking_sites").update({
-        date_contact: new Date().toISOString().split("T")[0],
-      }).eq("id", site.id);
-
-      toast({ title: "Mail envoyé", description: `Webhook déclenché pour ${site.commune_nom} - ${site.type_contenu}` });
-      fetchData();
+      await supabase.from("linking_sites").update({ date_contact: new Date().toISOString().split("T")[0] }).eq("id", site.id);
+      setSites(prev => prev.map(s => s.id === site.id ? { ...s, date_contact: new Date().toISOString().split("T")[0] } : s));
+      toast({ title: "Mail envoyé", description: `Webhook déclenché pour ${site.commune_nom}` });
     } catch (err) {
       console.error("Send error:", err);
       toast({ title: "Erreur", description: "Erreur lors de l'envoi", variant: "destructive" });
@@ -255,35 +268,21 @@ export default function Linking() {
 
   const handleAddSite = async () => {
     if (!newCommune || !newUrl) return;
-
     try {
-      // Find or create commune
       let communeId: string;
       const existing = communes.find(c => c.nom.toLowerCase() === newCommune.toLowerCase());
-      if (existing) {
-        communeId = existing.id;
-      } else {
+      if (existing) { communeId = existing.id; }
+      else {
         const { data, error } = await supabase.from("linking_communes").insert({ nom: newCommune }).select("id").single();
         if (error) throw error;
         communeId = data.id;
       }
-
-      await supabase.from("linking_sites").insert({
-        commune_id: communeId,
-        url: newUrl,
-        type_contenu: newType || null,
-        contact_email: newEmail || null,
-        statut: "en_attente",
-      });
-
+      await supabase.from("linking_sites").insert({ commune_id: communeId, url: newUrl, type_contenu: newType || null, contact_email: newEmail || null, statut: "en_attente" });
       toast({ title: "Site ajouté" });
       setShowAddDialog(false);
-      setNewCommune("");
-      setNewUrl("");
-      setNewType("");
-      setNewEmail("");
+      setNewCommune(""); setNewUrl(""); setNewType(""); setNewEmail("");
       fetchData();
-    } catch (err) {
+    } catch {
       toast({ title: "Erreur", description: "Erreur lors de l'ajout", variant: "destructive" });
     }
   };
@@ -292,13 +291,9 @@ export default function Linking() {
     if (!editSite) return;
     try {
       await supabase.from("linking_sites").update({
-        type_contenu: editSite.type_contenu,
-        url: editSite.url,
-        statut: editSite.statut,
-        modifications: editSite.modifications,
-        contact_email: editSite.contact_email,
-        contact_notes: editSite.contact_notes,
-        reponse: editSite.reponse,
+        type_contenu: editSite.type_contenu, url: editSite.url, statut: editSite.statut,
+        modifications: editSite.modifications, contact_email: editSite.contact_email,
+        contact_notes: editSite.contact_notes, reponse: editSite.reponse,
       }).eq("id", editSite.id);
       toast({ title: "Site mis à jour" });
       setShowEditDialog(false);
@@ -311,24 +306,23 @@ export default function Linking() {
   const handleDeleteSite = async (id: string) => {
     if (!confirm("Supprimer ce site ?")) return;
     await supabase.from("linking_sites").delete().eq("id", id);
+    setSites(prev => prev.filter(s => s.id !== id));
     toast({ title: "Site supprimé" });
-    fetchData();
   };
 
-  const handleCheckAll = async () => {
-    for (const site of filteredSites) {
-      await handleCheckSite(site);
-    }
+  const getHostname = (url: string) => {
+    try { return new URL(url).hostname; } catch { return url; }
   };
 
   return (
     <>
       <Seo title="Linking - Suivi par commune" description="Suivi du linking par commune" />
-      <div className="space-y-6 p-6">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div className="space-y-4 p-4 md:p-6">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold">Linking</h1>
-            <p className="text-muted-foreground text-sm">Suivi des sites web par commune</p>
+            <h1 className="text-xl md:text-2xl font-bold">Linking</h1>
+            <p className="text-muted-foreground text-xs md:text-sm">Suivi des sites web par commune</p>
           </div>
           <div className="flex flex-wrap gap-2">
             <Button variant="outline" size="sm" onClick={() => setShowAddDialog(true)}>
@@ -336,42 +330,58 @@ export default function Linking() {
             </Button>
             <label>
               <Button variant="outline" size="sm" asChild disabled={importing}>
-                <span>
-                  <Upload className="w-4 h-4 mr-1" />{importing ? "Import..." : "Excel"}
-                </span>
+                <span><Upload className="w-4 h-4 mr-1" />{importing ? "Import..." : "Excel"}</span>
               </Button>
               <input type="file" accept=".xlsx,.xls" className="hidden" onChange={handleImportExcel} disabled={importing} />
             </label>
-            <Button variant="outline" size="sm" onClick={handleCheckAll} disabled={checkingIds.size > 0}>
-              <RefreshCw className="w-4 h-4 mr-1" />Vérifier tout
+            <Button variant="outline" size="sm" onClick={handleCheckAll} disabled={bulkChecking || checkingIds.size > 0}>
+              <RefreshCw className={`w-4 h-4 mr-1 ${bulkChecking ? "animate-spin" : ""}`} />
+              {bulkChecking ? "En cours..." : "Vérifier tout"}
             </Button>
           </div>
         </div>
 
+        {/* Bulk progress banner */}
+        {bulkChecking && (
+          <Card className="border-primary/30 bg-primary/5">
+            <CardContent className="pt-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                  <span className="text-sm font-medium">
+                    Vérification en cours ({bulkProgress.current}/{bulkProgress.total})
+                  </span>
+                </div>
+                <Button variant="ghost" size="sm" onClick={() => { bulkAbortRef.current = true; }}>
+                  <X className="w-4 h-4 mr-1" />Arrêter
+                </Button>
+              </div>
+              <Progress value={(bulkProgress.current / bulkProgress.total) * 100} className="h-2" />
+              <p className="text-xs text-muted-foreground truncate">
+                {bulkProgress.currentSite}
+              </p>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Filters */}
-        <div className="flex flex-col sm:flex-row gap-3">
-          <div className="w-full sm:w-48">
-            <Select value={filterCommune} onValueChange={setFilterCommune}>
-              <SelectTrigger><SelectValue placeholder="Toutes les communes" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Toutes les communes</SelectItem>
-                {communes.map(c => (
-                  <SelectItem key={c.id} value={c.id}>{c.nom}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="w-full sm:w-40">
-            <Select value={filterStatut} onValueChange={setFilterStatut}>
-              <SelectTrigger><SelectValue placeholder="Tous les statuts" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Tous les statuts</SelectItem>
-                <SelectItem value="ok">OK</SelectItem>
-                <SelectItem value="a_modifier">À modifier</SelectItem>
-                <SelectItem value="en_attente">En attente</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+        <div className="flex flex-col sm:flex-row gap-2">
+          <Select value={filterCommune} onValueChange={setFilterCommune}>
+            <SelectTrigger className="w-full sm:w-48"><SelectValue placeholder="Toutes les communes" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Toutes les communes</SelectItem>
+              {communes.map(c => <SelectItem key={c.id} value={c.id}>{c.nom}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Select value={filterStatut} onValueChange={setFilterStatut}>
+            <SelectTrigger className="w-full sm:w-40"><SelectValue placeholder="Tous les statuts" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Tous les statuts</SelectItem>
+              <SelectItem value="ok">OK</SelectItem>
+              <SelectItem value="a_modifier">À modifier</SelectItem>
+              <SelectItem value="en_attente">En attente</SelectItem>
+            </SelectContent>
+          </Select>
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input placeholder="Rechercher..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pl-10" />
@@ -379,129 +389,152 @@ export default function Linking() {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Card><CardContent className="pt-4 text-center"><div className="text-2xl font-bold">{communes.length}</div><p className="text-xs text-muted-foreground">Communes</p></CardContent></Card>
-          <Card><CardContent className="pt-4 text-center"><div className="text-2xl font-bold">{sites.length}</div><p className="text-xs text-muted-foreground">Sites</p></CardContent></Card>
-          <Card><CardContent className="pt-4 text-center"><div className="text-2xl font-bold text-primary">{sites.filter(s => s.statut === "ok").length}</div><p className="text-xs text-muted-foreground">OK</p></CardContent></Card>
-          <Card><CardContent className="pt-4 text-center"><div className="text-2xl font-bold text-destructive">{sites.filter(s => s.statut === "a_modifier").length}</div><p className="text-xs text-muted-foreground">À modifier</p></CardContent></Card>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <Card><CardContent className="pt-4 text-center"><div className="text-xl md:text-2xl font-bold">{communes.length}</div><p className="text-xs text-muted-foreground">Communes</p></CardContent></Card>
+          <Card><CardContent className="pt-4 text-center"><div className="text-xl md:text-2xl font-bold">{sites.length}</div><p className="text-xs text-muted-foreground">Sites</p></CardContent></Card>
+          <Card><CardContent className="pt-4 text-center"><div className="text-xl md:text-2xl font-bold text-primary">{sites.filter(s => s.statut === "ok").length}</div><p className="text-xs text-muted-foreground">OK</p></CardContent></Card>
+          <Card><CardContent className="pt-4 text-center"><div className="text-xl md:text-2xl font-bold text-destructive">{sites.filter(s => s.statut === "a_modifier").length}</div><p className="text-xs text-muted-foreground">À modifier</p></CardContent></Card>
         </div>
 
-        {/* Table */}
-        <Card>
-          <CardContent className="p-0">
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Commune</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>URL</TableHead>
-                    <TableHead>Dernier contrôle</TableHead>
-                    <TableHead>Statut</TableHead>
-                    <TableHead>Modifications</TableHead>
-                    <TableHead>Contact</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {loading ? (
-                    <TableRow><TableCell colSpan={8} className="text-center py-8"><Loader2 className="w-5 h-5 animate-spin mx-auto" /></TableCell></TableRow>
-                  ) : filteredSites.length === 0 ? (
-                    <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">Aucun site trouvé</TableCell></TableRow>
-                  ) : (
-                    filteredSites.map(site => (
-                      <TableRow key={site.id}>
-                        <TableCell className="font-medium">{site.commune_nom}</TableCell>
-                        <TableCell>{site.type_contenu || "-"}</TableCell>
-                        <TableCell className="max-w-[200px]">
-                          <a href={site.url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline flex items-center gap-1 truncate">
-                            {new URL(site.url).hostname} <ExternalLink className="w-3 h-3 flex-shrink-0" />
-                          </a>
-                        </TableCell>
-                        <TableCell>{site.date_dernier_controle || "-"}</TableCell>
-                        <TableCell>
-                          <Badge variant={statusConfig[site.statut]?.variant || "secondary"}>
-                            {site.statut === "ok" && <Check className="w-3 h-3 mr-1" />}
-                            {site.statut === "a_modifier" && <AlertTriangle className="w-3 h-3 mr-1" />}
-                            {site.statut === "en_attente" && <Clock className="w-3 h-3 mr-1" />}
-                            {statusConfig[site.statut]?.label || site.statut}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="max-w-[200px] truncate">{site.modifications || "-"}</TableCell>
-                        <TableCell>{site.contact_email || "-"}</TableCell>
-                        <TableCell>
-                          <div className="flex gap-1 justify-end">
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              title="Vérifier"
-                              disabled={checkingIds.has(site.id)}
-                              onClick={() => handleCheckSite(site)}
-                            >
-                              {checkingIds.has(site.id) ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
-                            </Button>
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              title="Envoyer mail"
-                              disabled={sendingIds.has(site.id)}
-                              onClick={() => handleSendEmail(site)}
-                            >
-                              {sendingIds.has(site.id) ? <Loader2 className="w-4 h-4 animate-spin" /> : <Mail className="w-4 h-4" />}
-                            </Button>
-                            <Button size="icon" variant="ghost" title="Détails" onClick={() => { setSelectedSite(site); setShowDetailDialog(true); }}>
-                              <Search className="w-4 h-4" />
-                            </Button>
-                            <Button size="icon" variant="ghost" title="Modifier" onClick={() => { setEditSite({ ...site }); setShowEditDialog(true); }}>
-                              <Edit2 className="w-4 h-4" />
-                            </Button>
-                            <Button size="icon" variant="ghost" title="Supprimer" onClick={() => handleDeleteSite(site.id)}>
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
+        {/* Sites list - card layout for better readability */}
+        {loading ? (
+          <div className="text-center py-12"><Loader2 className="w-6 h-6 animate-spin mx-auto" /></div>
+        ) : filteredSites.length === 0 ? (
+          <div className="text-center py-12 text-muted-foreground text-sm">Aucun site trouvé</div>
+        ) : (
+          <div className="space-y-2">
+            <p className="text-xs text-muted-foreground">{filteredSites.length} site{filteredSites.length > 1 ? "s" : ""} affiché{filteredSites.length > 1 ? "s" : ""}</p>
+            <div className="grid gap-3">
+              {filteredSites.map(site => {
+                const sc = statusConfig[site.statut] || statusConfig.en_attente;
+                const StatusIcon = sc.icon;
+                const isChecking = checkingIds.has(site.id);
+                const isSending = sendingIds.has(site.id);
+
+                return (
+                  <Card key={site.id} className={`transition-opacity ${isChecking ? "opacity-70" : ""}`}>
+                    <CardContent className="p-3 md:p-4">
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                        {/* Main info */}
+                        <div className="flex-1 min-w-0 space-y-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-medium text-sm">{site.commune_nom}</span>
+                            {site.type_contenu && (
+                              <Badge variant="outline" className="text-xs">{site.type_contenu}</Badge>
+                            )}
+                            <Badge variant={sc.variant} className="text-xs">
+                              <StatusIcon className="w-3 h-3 mr-1" />
+                              {sc.label}
+                            </Badge>
+                            {isChecking && (
+                              <Badge variant="outline" className="text-xs animate-pulse">
+                                <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                                Vérification...
+                              </Badge>
+                            )}
                           </div>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
+                          <a
+                            href={site.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs text-primary hover:underline flex items-center gap-1 truncate"
+                          >
+                            {getHostname(site.url)}
+                            <ExternalLink className="w-3 h-3 flex-shrink-0" />
+                          </a>
+                          {site.modifications && site.statut === "a_modifier" && (
+                            <p className="text-xs text-destructive/80 line-clamp-2 mt-1">{site.modifications}</p>
+                          )}
+                          {site.date_dernier_controle && (
+                            <p className="text-xs text-muted-foreground">Dernier contrôle : {site.date_dernier_controle}</p>
+                          )}
+                        </div>
+
+                        {/* Actions */}
+                        <div className="flex items-center gap-1 flex-shrink-0">
+                          <Button size="icon" variant="ghost" className="h-8 w-8" title="Vérifier" disabled={isChecking} onClick={() => handleCheckSite(site)}>
+                            {isChecking ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+                          </Button>
+                          {site.statut === "a_modifier" && (
+                            <Button size="icon" variant="ghost" className="h-8 w-8" title="Envoyer mail" disabled={isSending} onClick={() => handleSendEmail(site)}>
+                              {isSending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Mail className="w-4 h-4" />}
+                            </Button>
+                          )}
+                          <Button size="icon" variant="ghost" className="h-8 w-8" title="Détails" onClick={() => { setSelectedSite(site); setShowDetailDialog(true); }}>
+                            <Eye className="w-4 h-4" />
+                          </Button>
+                          <Button size="icon" variant="ghost" className="h-8 w-8" title="Modifier" onClick={() => { setEditSite({ ...site }); setShowEditDialog(true); }}>
+                            <Edit2 className="w-4 h-4" />
+                          </Button>
+                          <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" title="Supprimer" onClick={() => handleDeleteSite(site.id)}>
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        )}
 
         {/* Detail Dialog */}
         <Dialog open={showDetailDialog} onOpenChange={setShowDetailDialog}>
           <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>{selectedSite?.commune_nom} - {selectedSite?.type_contenu}</DialogTitle>
+              <DialogTitle>{selectedSite?.commune_nom} — {selectedSite?.type_contenu || "Site"}</DialogTitle>
             </DialogHeader>
             {selectedSite && (
-              <div className="space-y-4">
-                <div><strong>URL :</strong> <a href={selectedSite.url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{selectedSite.url}</a></div>
-                <div><strong>Statut :</strong> <Badge variant={statusConfig[selectedSite.statut]?.variant}>{statusConfig[selectedSite.statut]?.label}</Badge></div>
-                {selectedSite.modifications && <div><strong>Modifications :</strong> {selectedSite.modifications}</div>}
-                {selectedSite.contact_email && <div><strong>Contact :</strong> {selectedSite.contact_email}</div>}
-                {selectedSite.reponse && <div><strong>Réponse :</strong> {selectedSite.reponse}</div>}
-                {selectedSite.contact_notes && <div><strong>Notes :</strong> {selectedSite.contact_notes}</div>}
+              <div className="space-y-4 text-sm">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <span className="text-muted-foreground text-xs">URL</span>
+                    <div><a href={selectedSite.url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline break-all">{selectedSite.url}</a></div>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground text-xs">Statut</span>
+                    <div><Badge variant={statusConfig[selectedSite.statut]?.variant}>{statusConfig[selectedSite.statut]?.label}</Badge></div>
+                  </div>
+                  {selectedSite.contact_email && <div><span className="text-muted-foreground text-xs">Contact</span><div>{selectedSite.contact_email}</div></div>}
+                  {selectedSite.date_dernier_controle && <div><span className="text-muted-foreground text-xs">Dernier contrôle</span><div>{selectedSite.date_dernier_controle}</div></div>}
+                  {selectedSite.date_contact && <div><span className="text-muted-foreground text-xs">Date contact</span><div>{selectedSite.date_contact}</div></div>}
+                  {selectedSite.reponse && <div><span className="text-muted-foreground text-xs">Réponse</span><div>{selectedSite.reponse}</div></div>}
+                </div>
+                {selectedSite.modifications && (
+                  <div>
+                    <span className="text-muted-foreground text-xs">Modifications</span>
+                    <p className="mt-1">{selectedSite.modifications}</p>
+                  </div>
+                )}
+                {selectedSite.contact_notes && (
+                  <div>
+                    <span className="text-muted-foreground text-xs">Notes</span>
+                    <p className="mt-1">{selectedSite.contact_notes}</p>
+                  </div>
+                )}
                 {selectedSite.last_scrape_result && (
                   <Card>
-                    <CardHeader><CardTitle className="text-sm">Résultat du dernier scraping</CardTitle></CardHeader>
-                    <CardContent className="space-y-2">
-                      <div><strong>À jour :</strong> {selectedSite.last_scrape_result.is_up_to_date ? "✅ Oui" : "❌ Non"}</div>
+                    <CardHeader className="pb-2"><CardTitle className="text-sm">Résultat du scraping</CardTitle></CardHeader>
+                    <CardContent className="space-y-2 text-sm">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">À jour :</span>
+                        {selectedSite.last_scrape_result.is_up_to_date ? <Badge variant="default">✅ Oui</Badge> : <Badge variant="destructive">❌ Non</Badge>}
+                      </div>
                       {selectedSite.last_scrape_result.issues?.length > 0 && (
                         <div>
-                          <strong>Problèmes :</strong>
-                          <ul className="list-disc list-inside mt-1">
+                          <span className="font-medium">Problèmes :</span>
+                          <ul className="list-disc list-inside mt-1 space-y-1">
                             {selectedSite.last_scrape_result.issues.map((issue: string, i: number) => (
-                              <li key={i} className="text-sm">{issue}</li>
+                              <li key={i} className="text-sm text-destructive/80">{issue}</li>
                             ))}
                           </ul>
                         </div>
                       )}
                       {selectedSite.last_scrape_result.suggested_email && (
                         <div>
-                          <strong>Mail suggéré :</strong>
-                          <pre className="mt-1 p-3 bg-muted rounded text-sm whitespace-pre-wrap">{selectedSite.last_scrape_result.suggested_email}</pre>
+                          <span className="font-medium">Mail suggéré :</span>
+                          <pre className="mt-1 p-3 bg-muted rounded text-xs whitespace-pre-wrap">{selectedSite.last_scrape_result.suggested_email}</pre>
                         </div>
                       )}
                     </CardContent>
@@ -520,22 +553,11 @@ export default function Linking() {
               <div>
                 <label className="text-sm font-medium">Commune</label>
                 <Input value={newCommune} onChange={e => setNewCommune(e.target.value)} placeholder="Nom de la commune" list="communes-list" />
-                <datalist id="communes-list">
-                  {communes.map(c => <option key={c.id} value={c.nom} />)}
-                </datalist>
+                <datalist id="communes-list">{communes.map(c => <option key={c.id} value={c.nom} />)}</datalist>
               </div>
-              <div>
-                <label className="text-sm font-medium">URL</label>
-                <Input value={newUrl} onChange={e => setNewUrl(e.target.value)} placeholder="https://..." />
-              </div>
-              <div>
-                <label className="text-sm font-medium">Type de contenu</label>
-                <Input value={newType} onChange={e => setNewType(e.target.value)} placeholder="Wikipedia, Site Mairie, etc." />
-              </div>
-              <div>
-                <label className="text-sm font-medium">Email de contact</label>
-                <Input value={newEmail} onChange={e => setNewEmail(e.target.value)} placeholder="contact@..." />
-              </div>
+              <div><label className="text-sm font-medium">URL</label><Input value={newUrl} onChange={e => setNewUrl(e.target.value)} placeholder="https://..." /></div>
+              <div><label className="text-sm font-medium">Type de contenu</label><Input value={newType} onChange={e => setNewType(e.target.value)} placeholder="Wikipedia, Site Mairie, etc." /></div>
+              <div><label className="text-sm font-medium">Email de contact</label><Input value={newEmail} onChange={e => setNewEmail(e.target.value)} placeholder="contact@..." /></div>
               <Button onClick={handleAddSite} className="w-full">Ajouter</Button>
             </div>
           </DialogContent>
@@ -547,14 +569,8 @@ export default function Linking() {
             <DialogHeader><DialogTitle>Modifier le site</DialogTitle></DialogHeader>
             {editSite && (
               <div className="space-y-4">
-                <div>
-                  <label className="text-sm font-medium">Type de contenu</label>
-                  <Input value={editSite.type_contenu || ""} onChange={e => setEditSite({ ...editSite, type_contenu: e.target.value })} />
-                </div>
-                <div>
-                  <label className="text-sm font-medium">URL</label>
-                  <Input value={editSite.url} onChange={e => setEditSite({ ...editSite, url: e.target.value })} />
-                </div>
+                <div><label className="text-sm font-medium">Type de contenu</label><Input value={editSite.type_contenu || ""} onChange={e => setEditSite({ ...editSite, type_contenu: e.target.value })} /></div>
+                <div><label className="text-sm font-medium">URL</label><Input value={editSite.url} onChange={e => setEditSite({ ...editSite, url: e.target.value })} /></div>
                 <div>
                   <label className="text-sm font-medium">Statut</label>
                   <Select value={editSite.statut} onValueChange={v => setEditSite({ ...editSite, statut: v })}>
@@ -566,22 +582,10 @@ export default function Linking() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div>
-                  <label className="text-sm font-medium">Modifications</label>
-                  <Textarea value={editSite.modifications || ""} onChange={e => setEditSite({ ...editSite, modifications: e.target.value })} />
-                </div>
-                <div>
-                  <label className="text-sm font-medium">Email de contact</label>
-                  <Input value={editSite.contact_email || ""} onChange={e => setEditSite({ ...editSite, contact_email: e.target.value })} />
-                </div>
-                <div>
-                  <label className="text-sm font-medium">Réponse</label>
-                  <Input value={editSite.reponse || ""} onChange={e => setEditSite({ ...editSite, reponse: e.target.value })} />
-                </div>
-                <div>
-                  <label className="text-sm font-medium">Notes contact</label>
-                  <Textarea value={editSite.contact_notes || ""} onChange={e => setEditSite({ ...editSite, contact_notes: e.target.value })} />
-                </div>
+                <div><label className="text-sm font-medium">Modifications</label><Textarea value={editSite.modifications || ""} onChange={e => setEditSite({ ...editSite, modifications: e.target.value })} /></div>
+                <div><label className="text-sm font-medium">Email de contact</label><Input value={editSite.contact_email || ""} onChange={e => setEditSite({ ...editSite, contact_email: e.target.value })} /></div>
+                <div><label className="text-sm font-medium">Réponse</label><Input value={editSite.reponse || ""} onChange={e => setEditSite({ ...editSite, reponse: e.target.value })} /></div>
+                <div><label className="text-sm font-medium">Notes contact</label><Textarea value={editSite.contact_notes || ""} onChange={e => setEditSite({ ...editSite, contact_notes: e.target.value })} /></div>
                 <Button onClick={handleUpdateSite} className="w-full">Enregistrer</Button>
               </div>
             )}
