@@ -264,7 +264,7 @@ export default function Linking() {
   const handleSendEmail = async (site: SiteWithCommune) => {
     setSendingIds(prev => new Set([...prev, site.id]));
     try {
-      const suggestedEmail = site.last_scrape_result?.suggested_email || `Bonjour,\n\nNous avons remarqué que les informations concernant la commune de ${site.commune_nom} sur votre page ${site.url} nécessitent une mise à jour.\n\nModifications à apporter :\n${site.modifications || "Veuillez vérifier les informations."}\n\nCordialement,\nDLVA Tourisme`;
+      const suggestedEmail = site.last_scrape_result?.suggested_email || `Bonjour,\n\nNous avons remarqué que les informations concernant la commune de ${site.commune_nom} sur votre page ${site.url} nécessitent une mise à jour.\n\nModifications à apporter :\n${site.modifications || "Veuillez vérifier les informations."}\n\nCordialement,\nOffice de Tourisme et des Congrès du Pays de Manosque`;
 
       const { error } = await supabase.functions.invoke("send-linking-email", {
         body: { commune: site.commune_nom, url: site.url, type_contenu: site.type_contenu, contact_email: site.contact_email, modifications: site.modifications, suggested_email: suggestedEmail },
