@@ -190,7 +190,7 @@ export default function TelegramOTO() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-              <MessageCircle className="h-6 w-6 text-primary" />
+              <img src={otoAvatar} alt="OTO" className="h-8 w-8" />
               OTO - Chat Telegram
             </h1>
             <p className="text-muted-foreground text-sm mt-1">
