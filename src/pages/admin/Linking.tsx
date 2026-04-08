@@ -485,8 +485,13 @@ export default function Linking() {
                             {getHostname(site.url)}
                             <ExternalLink className="w-3 h-3 flex-shrink-0" />
                           </a>
-                          {site.modifications && site.statut === "a_modifier" && (
-                            <p className="text-xs text-destructive/80 line-clamp-2 mt-1">{site.modifications}</p>
+                          {site.statut === "a_modifier" && site.modifications && (
+                            <div className="mt-2 p-2 rounded-md bg-destructive/10 border border-destructive/20">
+                              <p className="text-xs font-medium text-destructive flex items-center gap-1 mb-1">
+                                <AlertTriangle className="w-3 h-3" /> Modifications à apporter :
+                              </p>
+                              <p className="text-xs text-destructive/90 whitespace-pre-line">{site.modifications}</p>
+                            </div>
                           )}
                           {site.date_dernier_controle && (
                             <p className="text-xs text-muted-foreground">Dernier contrôle : {site.date_dernier_controle}</p>
