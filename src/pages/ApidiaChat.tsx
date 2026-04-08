@@ -223,41 +223,52 @@ export default function ApidiaChat() {
 
           {messages.map((msg, i) => (
             <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-              <div className={`max-w-[85%] space-y-2`}>
+              <div className="max-w-[88%] md:max-w-[75%] space-y-3" style={{ overflowWrap: "anywhere" }}>
                 {msg.role === "assistant" && (
                   <div className="flex items-center gap-1.5 mb-1">
-                    <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center">
-                      <Bot className="h-3.5 w-3.5 text-primary" />
+                    <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center">
+                      <Bot className="h-4 w-4 text-primary" />
                     </div>
-                    <span className="text-xs font-medium text-muted-foreground">Apidia</span>
+                    <span className="text-xs font-semibold text-foreground/70">Apidia</span>
                     {ttsSupported && msg.content && (
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-5 w-5 ml-1"
+                        className="h-6 w-6 ml-0.5 text-muted-foreground hover:text-primary"
                         onClick={() => isSpeaking ? stopSpeaking() : speak(msg.content)}
                         title="Écouter la réponse"
                       >
-                        {isSpeaking ? <VolumeX className="h-3 w-3" /> : <Volume2 className="h-3 w-3" />}
+                        {isSpeaking ? <VolumeX className="h-3.5 w-3.5" /> : <Volume2 className="h-3.5 w-3.5" />}
                       </Button>
                     )}
                   </div>
                 )}
-                <div className={`rounded-2xl px-4 py-2.5 text-sm ${
-                  msg.role === "user"
-                    ? "bg-primary text-primary-foreground rounded-br-md"
-                    : "bg-muted rounded-bl-md"
-                }`}>
-                  {msg.role === "assistant" ? (
-                    <div className="prose prose-sm dark:prose-invert max-w-none [&>p]:mb-2 [&>ul]:mb-2 [&>ol]:mb-2">
+                {msg.role === "user" ? (
+                  <div className="rounded-2xl rounded-br-sm bg-primary text-primary-foreground px-4 py-2.5 text-sm leading-relaxed shadow-sm">
+                    {msg.content}
+                  </div>
+                ) : (
+                  <div className="rounded-2xl rounded-bl-sm bg-muted/60 border border-border/40 px-5 py-4 text-sm shadow-sm">
+                    <div className="prose prose-sm dark:prose-invert max-w-none
+                      [&>p]:mb-3 [&>p]:leading-relaxed [&>p:last-child]:mb-0
+                      [&>h2]:text-base [&>h2]:font-bold [&>h2]:mt-4 [&>h2]:mb-2 [&>h2]:text-foreground [&>h2]:border-b [&>h2]:border-border/30 [&>h2]:pb-1.5
+                      [&>h3]:text-sm [&>h3]:font-bold [&>h3]:mt-3 [&>h3]:mb-1.5 [&>h3]:text-foreground
+                      [&>ul]:mb-3 [&>ul]:space-y-1.5 [&>ul]:pl-1
+                      [&>ol]:mb-3 [&>ol]:space-y-1.5 [&>ol]:pl-1
+                      [&_li]:leading-relaxed [&_li]:text-foreground/90
+                      [&_li>strong]:text-foreground [&_li>strong]:font-semibold
+                      [&>strong]:text-foreground [&>strong]:font-semibold
+                      [&_a]:text-primary [&_a]:underline [&_a]:underline-offset-2
+                      [&>hr]:my-3 [&>hr]:border-border/30
+                    ">
                       <ReactMarkdown>{msg.content}</ReactMarkdown>
                     </div>
-                  ) : msg.content}
-                </div>
+                  </div>
+                )}
 
                 {msg.fichesPreview && msg.fichesPreview.length > 0 && (
-                  <div className="overflow-x-auto pb-2 -mx-1">
-                    <div className="flex gap-2 px-1" style={{ minWidth: "min-content" }}>
+                  <div className="overflow-x-auto pb-2 -mx-1 mt-2">
+                    <div className="flex gap-2.5 px-1" style={{ minWidth: "min-content" }}>
                       {msg.fichesPreview.map((fiche) => (
                         <FichePreviewCard key={fiche.fiche_id} fiche={fiche} />
                       ))}
