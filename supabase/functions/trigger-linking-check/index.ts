@@ -40,6 +40,27 @@ function extractApidaeReference(fiches: any[]): string {
   return entries.join("\n\n");
 }
 
+function getScrapeErrorMessage(status: number, apiError?: string): string {
+  if (status === 402) return "Scraping impossible : quota Firecrawl épuisé.";
+  if (status === 429) return "Scraping temporairement limité par Firecrawl.";
+  if (status === 403) return "Scraping refusé par le site cible.";
+
+  return `Scraping impossible (${status}${apiError ? ` : ${apiError}` : ""}).`;
+}
+
+function buildScrapeErrorResult(message: string, code: string) {
+  return {
+    result_type: "scrape_error",
+    is_up_to_date: false,
+    issues: [],
+    suggested_email: "",
+    error_message: message,
+    error_code: code,
+    matched_establishments: [],
+    matched_apidae_count: 0,
+  };
+}
+
 // Quick AI call to extract establishment names from scraped content
 async function extractEstablishmentName(content: string, aiKey: string, useGemini: boolean): Promise<string[]> {
   const extractPrompt = `Analyse ce contenu de page web et extrait le ou les noms d'établissements touristiques mentionnés (hôtel, restaurant, camping, musée, activité, office de tourisme, etc.).
@@ -222,7 +243,7 @@ Deno.serve(async (req) => {
     }
 
     const useGemini = !!Deno.env.get("GEMINI_API_KEY");
-    let checkedInBatch = 0;
+    let processedInBatch = 0;
     let errorsInBatch = 0;
     const startTime = Date.now();
     const BUDGET_MS = 45_000;
@@ -267,11 +288,15 @@ Deno.serve(async (req) => {
         });
 
         if (!scrapeResp.ok) {
+          const scrapeError = await scrapeResp.json().catch(() => ({}));
+          const errorMessage = getScrapeErrorMessage(scrapeResp.status, scrapeError?.error);
           console.error(`Firecrawl error for ${site.url}`);
           await supabase.from("linking_sites").update({
             last_scraped_at: new Date().toISOString(),
             date_dernier_controle: new Date().toISOString().split("T")[0],
-            last_scrape_result: { error: `Scrape failed: ${scrapeResp.status}` },
+            statut: "erreur_scraping",
+            modifications: null,
+            last_scrape_result: buildScrapeErrorResult(errorMessage, `firecrawl_${scrapeResp.status}`),
           }).eq("id", site.id);
           errorsInBatch++;
           continue;
@@ -284,9 +309,12 @@ Deno.serve(async (req) => {
           await supabase.from("linking_sites").update({
             last_scraped_at: new Date().toISOString(),
             date_dernier_controle: new Date().toISOString().split("T")[0],
-            statut: "a_modifier",
-            modifications: "• Impossible de récupérer le contenu de la page.",
-            last_scrape_result: { error: "No content" },
+            statut: "erreur_scraping",
+            modifications: null,
+            last_scrape_result: buildScrapeErrorResult(
+              "Impossible de récupérer le contenu principal de la page.",
+              "no_content",
+            ),
           }).eq("id", site.id);
           errorsInBatch++;
           continue;
@@ -390,7 +418,8 @@ JSON uniquement :
           !parsed.issues.every((i: string) => i.toLowerCase().includes("vérification manuelle") || i.toLowerCase().includes("impossible"));
 
         const effectiveUpToDate = parsed.is_up_to_date || !hasConcreteIssues;
-        const newStatut = effectiveUpToDate ? "ok" : "a_modifier";
+        const resultType = effectiveUpToDate ? "ok" : "content_mismatch";
+        const newStatut = resultType === "ok" ? "ok" : "a_modifier";
         let modifications: string | null = null;
         if (!effectiveUpToDate && parsed.issues?.length) {
           modifications = "• " + parsed.issues.join("\n• ");
@@ -403,24 +432,39 @@ JSON uniquement :
           date_dernier_controle: new Date().toISOString().split("T")[0],
           last_scrape_result: {
             ...parsed,
+            result_type: resultType,
             suggested_email: parsed.suggested_email || "",
+            error_message: "",
+            error_code: "",
             matched_establishments: establishmentNames,
             matched_apidae_count: matchedFiches.length,
           },
         }).eq("id", site.id);
 
-        checkedInBatch++;
-
         // Rate limiting
         await new Promise(r => setTimeout(r, 1000));
       } catch (siteError) {
         console.error(`Error checking ${site.url}:`, siteError);
+        await supabase.from("linking_sites").update({
+          last_scraped_at: new Date().toISOString(),
+          date_dernier_controle: new Date().toISOString().split("T")[0],
+          statut: "erreur_scraping",
+          modifications: null,
+          last_scrape_result: buildScrapeErrorResult(
+            siteError instanceof Error
+              ? `Erreur lors de la vérification : ${siteError.message}`
+              : "Erreur inconnue lors de la vérification.",
+            "runtime_error",
+          ),
+        }).eq("id", site.id);
         errorsInBatch++;
+      } finally {
+        processedInBatch++;
       }
     }
 
     // Update progress
-    const newChecked = (freshConfig.current_checked || 0) + checkedInBatch;
+    const newChecked = (freshConfig.current_checked || 0) + processedInBatch;
     const newErrors = (freshConfig.current_errors || 0) + errorsInBatch;
 
     await supabase.from("linking_check_config").update({
@@ -460,7 +504,7 @@ JSON uniquement :
     }
 
     return new Response(JSON.stringify({
-      message: `Batch done: ${checkedInBatch} checked, ${errorsInBatch} errors`,
+      message: `Batch done: ${processedInBatch} processed, ${errorsInBatch} errors`,
       checked: newChecked,
       total: freshConfig.current_total,
     }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });

@@ -41,6 +41,7 @@ type SiteWithCommune = Site & { commune_nom: string };
 const statusConfig: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline"; icon: typeof Check }> = {
   ok: { label: "OK", variant: "default", icon: Check },
   a_modifier: { label: "À modifier", variant: "destructive", icon: AlertTriangle },
+  erreur_scraping: { label: "Erreur scraping", variant: "outline", icon: AlertTriangle },
   en_attente: { label: "En attente", variant: "secondary", icon: Clock },
 };
 
@@ -206,7 +207,9 @@ export default function Linking() {
       if (error) throw error;
       logUserAction("linking_check", { url: site.url, commune: site.commune_nom });
 
-      const newStatut = data.is_up_to_date ? "ok" : "a_modifier";
+      const newStatut = data.result_type === "scrape_error"
+        ? "erreur_scraping"
+        : data.is_up_to_date ? "ok" : "a_modifier";
       const issuesText = data.issues?.length
         ? data.issues.join("\n• ")
         : (!data.is_up_to_date ? "Des informations semblent obsolètes ou incorrectes (détails non précisés par l'IA)." : null);
@@ -229,10 +232,18 @@ export default function Linking() {
       setSites(prev => prev.map(s => s.id === site.id ? { ...s, ...updates } : s));
 
       if (!bulkChecking) {
-        toast({
-          title: data.is_up_to_date ? "✅ Site à jour" : "⚠️ Modifications détectées",
-          description: data.issues?.length ? data.issues.slice(0, 2).join(", ") : "Aucun problème détecté",
-        });
+        if (newStatut === "erreur_scraping") {
+          toast({
+            title: "⚠️ Analyse indisponible",
+            description: data.error_message || "La page n'a pas pu être analysée automatiquement.",
+            variant: "destructive",
+          });
+        } else {
+          toast({
+            title: data.is_up_to_date ? "✅ Site à jour" : "⚠️ Modifications détectées",
+            description: data.issues?.length ? data.issues.slice(0, 2).join(", ") : "Aucun problème détecté",
+          });
+        }
       }
     } catch (err) {
       console.error("Check error:", err);
@@ -394,6 +405,7 @@ export default function Linking() {
                   <ul className="list-disc list-inside space-y-1 ml-2">
                     <li><strong className="text-primary">OK</strong> — Les informations sont à jour, rien à signaler.</li>
                     <li><strong className="text-destructive">À modifier</strong> — Des erreurs ou informations obsolètes ont été détectées. Les modifications suggérées sont enregistrées.</li>
+                    <li><strong>Erreur scraping</strong> — La page n'a pas pu être analysée automatiquement (quota, rate limit, blocage du site...). Ce n'est pas un écart de contenu confirmé.</li>
                     <li><strong>En attente</strong> — Le site n'a pas encore été vérifié.</li>
                   </ul>
                 </div>
@@ -425,7 +437,7 @@ export default function Linking() {
                   <span className="text-sm font-medium">
                     {bulkChecking
                       ? `Vérification en cours (${checkConfig.current_checked}/${checkConfig.current_total})`
-                      : `Vérification terminée — ${checkConfig.current_checked} vérifiés, ${checkConfig.current_errors} erreurs`
+                      : `Vérification terminée — ${checkConfig.current_checked} traités, ${checkConfig.current_errors} erreurs`
                     }
                   </span>
                 </div>
@@ -462,6 +474,7 @@ export default function Linking() {
               <SelectItem value="all">Tous les statuts</SelectItem>
               <SelectItem value="ok">OK</SelectItem>
               <SelectItem value="a_modifier">À modifier</SelectItem>
+              <SelectItem value="erreur_scraping">Erreur scraping</SelectItem>
               <SelectItem value="en_attente">En attente</SelectItem>
             </SelectContent>
           </Select>
@@ -472,11 +485,12 @@ export default function Linking() {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
           <Card><CardContent className="pt-4 text-center"><div className="text-xl md:text-2xl font-bold">{communes.length}</div><p className="text-xs text-muted-foreground">Communes</p></CardContent></Card>
           <Card><CardContent className="pt-4 text-center"><div className="text-xl md:text-2xl font-bold">{sites.length}</div><p className="text-xs text-muted-foreground">Sites</p></CardContent></Card>
           <Card><CardContent className="pt-4 text-center"><div className="text-xl md:text-2xl font-bold text-primary">{sites.filter(s => s.statut === "ok").length}</div><p className="text-xs text-muted-foreground">OK</p></CardContent></Card>
           <Card><CardContent className="pt-4 text-center"><div className="text-xl md:text-2xl font-bold text-destructive">{sites.filter(s => s.statut === "a_modifier").length}</div><p className="text-xs text-muted-foreground">À modifier</p></CardContent></Card>
+          <Card><CardContent className="pt-4 text-center"><div className="text-xl md:text-2xl font-bold">{sites.filter(s => s.statut === "erreur_scraping").length}</div><p className="text-xs text-muted-foreground">Erreurs scraping</p></CardContent></Card>
         </div>
 
         {/* Sites list - card layout for better readability */}
@@ -531,6 +545,16 @@ export default function Linking() {
                                 <AlertTriangle className="w-3 h-3" /> Modifications à apporter :
                               </p>
                               <p className="text-xs text-destructive/90 whitespace-pre-line">{site.modifications}</p>
+                            </div>
+                          )}
+                          {site.statut === "erreur_scraping" && (
+                            <div className="mt-2 p-2 rounded-md bg-muted/40 border border-border">
+                              <p className="text-xs font-medium flex items-center gap-1 mb-1">
+                                <AlertTriangle className="w-3 h-3" /> Erreur de scraping :
+                              </p>
+                              <p className="text-xs text-muted-foreground whitespace-pre-line">
+                                {site.last_scrape_result?.error_message || "La page n'a pas pu être analysée automatiquement."}
+                              </p>
                             </div>
                           )}
                           {site.date_dernier_controle && (
@@ -605,25 +629,39 @@ export default function Linking() {
                   <Card>
                     <CardHeader className="pb-2"><CardTitle className="text-sm">Résultat du scraping</CardTitle></CardHeader>
                     <CardContent className="space-y-2 text-sm">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium">À jour :</span>
-                        {selectedSite.last_scrape_result.is_up_to_date ? <Badge variant="default">✅ Oui</Badge> : <Badge variant="destructive">❌ Non</Badge>}
-                      </div>
-                      {selectedSite.last_scrape_result.issues?.length > 0 && (
-                        <div>
-                          <span className="font-medium">Problèmes :</span>
-                          <ul className="list-disc list-inside mt-1 space-y-1">
-                            {selectedSite.last_scrape_result.issues.map((issue: string, i: number) => (
-                              <li key={i} className="text-sm text-destructive/80">{issue}</li>
-                            ))}
-                          </ul>
+                      {selectedSite.last_scrape_result.result_type === "scrape_error" ? (
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium">Analyse :</span>
+                            <Badge variant="outline">⚠️ Indisponible</Badge>
+                          </div>
+                          <p className="text-muted-foreground">
+                            {selectedSite.last_scrape_result.error_message || "La page n'a pas pu être analysée automatiquement."}
+                          </p>
                         </div>
-                      )}
-                      {selectedSite.last_scrape_result.suggested_email && (
-                        <div>
-                          <span className="font-medium">Mail suggéré :</span>
-                          <pre className="mt-1 p-3 bg-muted rounded text-xs whitespace-pre-wrap">{selectedSite.last_scrape_result.suggested_email}</pre>
-                        </div>
+                      ) : (
+                        <>
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium">À jour :</span>
+                            {selectedSite.last_scrape_result.is_up_to_date ? <Badge variant="default">✅ Oui</Badge> : <Badge variant="destructive">❌ Non</Badge>}
+                          </div>
+                          {selectedSite.last_scrape_result.issues?.length > 0 && (
+                            <div>
+                              <span className="font-medium">Problèmes :</span>
+                              <ul className="list-disc list-inside mt-1 space-y-1">
+                                {selectedSite.last_scrape_result.issues.map((issue: string, i: number) => (
+                                  <li key={i} className="text-sm text-destructive/80">{issue}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                          {selectedSite.last_scrape_result.suggested_email && (
+                            <div>
+                              <span className="font-medium">Mail suggéré :</span>
+                              <pre className="mt-1 p-3 bg-muted rounded text-xs whitespace-pre-wrap">{selectedSite.last_scrape_result.suggested_email}</pre>
+                            </div>
+                          )}
+                        </>
                       )}
                     </CardContent>
                   </Card>
@@ -666,6 +704,7 @@ export default function Linking() {
                     <SelectContent>
                       <SelectItem value="ok">OK</SelectItem>
                       <SelectItem value="a_modifier">À modifier</SelectItem>
+                      <SelectItem value="erreur_scraping">Erreur scraping</SelectItem>
                       <SelectItem value="en_attente">En attente</SelectItem>
                     </SelectContent>
                   </Select>

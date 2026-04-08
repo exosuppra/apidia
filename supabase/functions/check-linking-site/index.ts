@@ -40,6 +40,30 @@ function extractApidaeReference(fiches: any[]): string {
   return entries.join("\n\n");
 }
 
+function getScrapeErrorMessage(status: number, apiError?: string): string {
+  if (status === 402) return "Scraping impossible : quota Firecrawl épuisé.";
+  if (status === 429) return "Scraping temporairement limité par Firecrawl.";
+  if (status === 403) return "Scraping refusé par le site cible.";
+
+  return `Scraping impossible (${status}${apiError ? ` : ${apiError}` : ""}).`;
+}
+
+function buildScrapeErrorPayload(message: string, code: string) {
+  return {
+    success: true,
+    result_type: "scrape_error",
+    is_up_to_date: false,
+    issues: [],
+    suggested_email: "",
+    error_message: message,
+    error_code: code,
+    scrape_content: "",
+    matched_establishments: [],
+    matched_apidae_names: [],
+    extracted_emails: [],
+  };
+}
+
 // Quick AI call to extract establishment name from scraped content
 async function extractEstablishmentInfo(content: string, aiKey: string, useGemini: boolean): Promise<{ names: string[]; emails: string[] }> {
   const extractPrompt = `Analyse ce contenu de page web et extrait le ou les noms d'établissements touristiques mentionnés (hôtel, restaurant, camping, musée, activité, office de tourisme, etc.).
@@ -192,8 +216,13 @@ Deno.serve(async (req) => {
     if (!scrapeResponse.ok) {
       console.error('Firecrawl error:', scrapeData);
       return new Response(
-        JSON.stringify({ success: false, error: `Scraping failed: ${scrapeData.error || scrapeResponse.status}` }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify(
+          buildScrapeErrorPayload(
+            getScrapeErrorMessage(scrapeResponse.status, scrapeData.error),
+            `firecrawl_${scrapeResponse.status}`,
+          )
+        ),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -201,13 +230,12 @@ Deno.serve(async (req) => {
 
     if (!pageContent) {
       return new Response(
-        JSON.stringify({
-          success: true,
-          is_up_to_date: false,
-          issues: ['Impossible de récupérer le contenu de la page'],
-          suggested_email: '',
-          scrape_content: ''
-        }),
+        JSON.stringify(
+          buildScrapeErrorPayload(
+            'Impossible de récupérer le contenu principal de la page.',
+            'no_content',
+          )
+        ),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -316,19 +344,35 @@ Réponds en JSON :
     try {
       parsed = JSON.parse(aiResult);
     } catch {
-      parsed = { is_up_to_date: false, issues: ['Erreur lors de l\'analyse IA'], suggested_email: '' };
+      parsed = { is_up_to_date: true, issues: [], suggested_email: '' };
     }
+
+    const normalizedIssues = Array.isArray(parsed.issues)
+      ? parsed.issues.filter((issue: unknown): issue is string => typeof issue === 'string' && issue.trim().length > 0)
+      : [];
+
+    const hasConcreteIssues = normalizedIssues.length > 0
+      && !normalizedIssues.every((issue) => {
+        const normalized = issue.toLowerCase();
+        return normalized.includes('vérification manuelle') || normalized.includes('impossible');
+      });
+
+    const effectiveUpToDate = Boolean(parsed.is_up_to_date) || !hasConcreteIssues;
+    const resultType = effectiveUpToDate ? 'ok' : 'content_mismatch';
 
     return new Response(
       JSON.stringify({
         success: true,
-        is_up_to_date: parsed.is_up_to_date ?? false,
-        issues: parsed.issues || [],
-        suggested_email: parsed.suggested_email || '',
+        result_type: resultType,
+        is_up_to_date: effectiveUpToDate,
+        issues: effectiveUpToDate ? [] : normalizedIssues,
+        suggested_email: effectiveUpToDate ? '' : (parsed.suggested_email || ''),
         scrape_content: truncatedContent.substring(0, 2000),
         matched_establishments: establishmentNames,
         matched_apidae_names: matchedNames,
         extracted_emails: extractedEmails,
+        error_message: '',
+        error_code: '',
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
