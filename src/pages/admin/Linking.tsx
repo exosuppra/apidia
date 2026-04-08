@@ -334,7 +334,7 @@ export default function Linking() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" onClick={() => navigate("/admin")} title="Retour à l'accueil">
+            <Button variant="ghost" size="icon" onClick={() => navigate("/admin/dashboard")} title="Retour au dashboard">
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <div>
