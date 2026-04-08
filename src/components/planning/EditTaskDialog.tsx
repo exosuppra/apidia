@@ -535,6 +535,11 @@ export function EditTaskDialog({
                       <CheckCircle2 className="h-4 w-4 flex-shrink-0" />
                       <span>Validé{getValidationTargetLabel()}</span>
                     </div>
+                    {task.validation_responded_at && (
+                      <span className="text-xs text-muted-foreground px-3">
+                        Le {format(new Date(task.validation_responded_at), "dd/MM/yyyy à HH:mm", { locale: fr })}
+                      </span>
+                    )}
                     {task.validation_comment && (
                       <div className="px-3 py-2 bg-green-50 dark:bg-green-900/10 border border-green-200 dark:border-green-800 rounded-md text-sm text-green-700 dark:text-green-400 italic">
                         💬 {task.validation_comment}
