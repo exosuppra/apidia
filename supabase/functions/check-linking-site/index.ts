@@ -41,7 +41,7 @@ function extractApidaeReference(fiches: any[]): string {
 }
 
 // Quick AI call to extract establishment name from scraped content
-async function extractEstablishmentName(content: string, aiKey: string, useGemini: boolean): Promise<string[]> {
+async function extractEstablishmentInfo(content: string, aiKey: string, useGemini: boolean): Promise<{ names: string[]; emails: string[] }> {
   const extractPrompt = `Analyse ce contenu de page web et extrait le ou les noms d'établissements touristiques mentionnés (hôtel, restaurant, camping, musée, activité, office de tourisme, etc.).
 
 Retourne UNIQUEMENT un JSON : {"names": ["Nom 1", "Nom 2"], "contact_emails": ["email1@example.com"]}
