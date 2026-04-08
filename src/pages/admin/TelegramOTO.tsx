@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import Seo from "@/components/Seo";
 import { Send, Bot, User, RefreshCw, MessageCircle } from "lucide-react";
+import otoAvatar from "@/assets/char-oto.png";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 
@@ -189,7 +190,7 @@ export default function TelegramOTO() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-              <MessageCircle className="h-6 w-6 text-primary" />
+              <img src={otoAvatar} alt="OTO" className="h-8 w-8" />
               OTO - Chat Telegram
             </h1>
             <p className="text-muted-foreground text-sm mt-1">
@@ -300,7 +301,7 @@ export default function TelegramOTO() {
             ) : (
               <div className="flex-1 flex items-center justify-center">
                 <div className="text-center space-y-2">
-                  <Bot className="h-12 w-12 text-muted-foreground/30 mx-auto" />
+                  <img src={otoAvatar} alt="OTO" className="h-16 w-16 mx-auto opacity-30" />
                   <p className="text-sm text-muted-foreground">
                     Sélectionnez une conversation pour commencer
                   </p>
