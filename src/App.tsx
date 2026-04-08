@@ -252,7 +252,7 @@ const App = () => (
                 <RequirePasswordChange>
                   <RequirePermission pageKey="apidia">
                     <AdminLayout>
-                      <ApidiaChatbot />
+                      <ApidiaKnowledge />
                     </AdminLayout>
                   </RequirePermission>
                 </RequirePasswordChange>
