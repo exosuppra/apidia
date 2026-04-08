@@ -113,12 +113,18 @@ export default function ApidiaKnowledge() {
     <>
       <Seo title="Apidia - Base de connaissances" description="Gérer la base de connaissances d'Apidia" />
       <div className="p-6 space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <BookOpen className="w-6 h-6 text-primary" />
-            Apidia : Base de connaissances
-          </h1>
-          <p className="text-muted-foreground">Enrichissez les connaissances d'Apidia pour améliorer ses réponses</p>
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="icon" onClick={() => navigate("/admin/dashboard")}>
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <div>
+            <h1 className="text-2xl font-bold flex items-center gap-2">
+              <BookOpen className="w-6 h-6 text-primary" />
+              Apidia : Base de connaissances
+            </h1>
+            <p className="text-muted-foreground">Enrichissez les connaissances d'Apidia pour améliorer ses réponses</p>
+          </div>
+        </div>
           <Button variant="outline" size="sm" className="mt-2" asChild>
             <a href="/apidia" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
               <ExternalLink className="w-4 h-4" />
