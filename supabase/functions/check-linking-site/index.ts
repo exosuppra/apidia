@@ -215,9 +215,11 @@ Deno.serve(async (req) => {
     const truncatedContent = pageContent.substring(0, 8000);
 
     // Step 2: Extract establishment name from scraped content
-    console.log('Extracting establishment name...');
-    const establishmentNames = await extractEstablishmentName(truncatedContent, apiKey, useGemini);
-    console.log('Found names:', establishmentNames);
+    console.log('Extracting establishment info...');
+    const extractedInfo = await extractEstablishmentInfo(truncatedContent, apiKey, useGemini);
+    const establishmentNames = extractedInfo.names;
+    const extractedEmails = extractedInfo.emails;
+    console.log('Found names:', establishmentNames, 'emails:', extractedEmails);
 
     // Step 3: Find matching Apidae fiches
     let apidaeReference = "";
@@ -326,6 +328,7 @@ Réponds en JSON :
         scrape_content: truncatedContent.substring(0, 2000),
         matched_establishments: establishmentNames,
         matched_apidae_names: matchedNames,
+        extracted_emails: extractedEmails,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
