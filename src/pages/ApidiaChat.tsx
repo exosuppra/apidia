@@ -5,7 +5,7 @@ import Seo from "@/components/Seo";
 import ReactMarkdown from "react-markdown";
 import FichePreviewCard, { FichePreview } from "@/components/chat/FichePreviewCard";
 import { useNavigate } from "react-router-dom";
-import { useSpeechRecognition, useSpeechSynthesis } from "@/hooks/useSpeech";
+import { useSpeechRecognition, useElevenLabsTTS } from "@/hooks/useSpeech";
 
 type Msg = { role: "user" | "assistant"; content: string; fichesPreview?: FichePreview[] };
 
@@ -26,7 +26,7 @@ export default function ApidiaChat() {
   const navigate = useNavigate();
 
   const { isListening, transcript, startListening, stopListening, isSupported: sttSupported } = useSpeechRecognition();
-  const { isSpeaking, speak, stop: stopSpeaking, isSupported: ttsSupported } = useSpeechSynthesis();
+  const { isSpeaking, speak, stop: stopSpeaking, isSupported: ttsSupported } = useElevenLabsTTS();
 
   const scrollToBottom = () => chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   useEffect(() => { scrollToBottom(); }, [messages]);
