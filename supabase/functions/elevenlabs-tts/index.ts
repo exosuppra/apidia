@@ -57,8 +57,9 @@ serve(async (req) => {
 
     if (!response.ok) {
       const errText = await response.text();
-      console.error("ElevenLabs error:", response.status, errText);
-      return new Response(JSON.stringify({ error: "Erreur synthèse vocale" }), {
+      console.error("ElevenLabs error status:", response.status);
+      console.error("ElevenLabs error body:", errText);
+      return new Response(JSON.stringify({ error: "Erreur synthèse vocale", details: errText }), {
         status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
