@@ -325,32 +325,32 @@ export default function Linking() {
     <>
       <Seo title="Linking - Suivi par commune" description="Suivi du linking par commune" />
       <div className="space-y-6 p-6">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold">Linking</h1>
-            <p className="text-muted-foreground">Suivi des sites web par commune</p>
+            <p className="text-muted-foreground text-sm">Suivi des sites web par commune</p>
           </div>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={() => setShowAddDialog(true)}>
-              <Plus className="w-4 h-4 mr-2" />Ajouter
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" size="sm" onClick={() => setShowAddDialog(true)}>
+              <Plus className="w-4 h-4 mr-1" />Ajouter
             </Button>
             <label>
-              <Button variant="outline" asChild disabled={importing}>
+              <Button variant="outline" size="sm" asChild disabled={importing}>
                 <span>
-                  <Upload className="w-4 h-4 mr-2" />{importing ? "Import..." : "Importer Excel"}
+                  <Upload className="w-4 h-4 mr-1" />{importing ? "Import..." : "Excel"}
                 </span>
               </Button>
               <input type="file" accept=".xlsx,.xls" className="hidden" onChange={handleImportExcel} disabled={importing} />
             </label>
-            <Button variant="outline" onClick={handleCheckAll} disabled={checkingIds.size > 0}>
-              <RefreshCw className="w-4 h-4 mr-2" />Vérifier tout
+            <Button variant="outline" size="sm" onClick={handleCheckAll} disabled={checkingIds.size > 0}>
+              <RefreshCw className="w-4 h-4 mr-1" />Vérifier tout
             </Button>
           </div>
         </div>
 
         {/* Filters */}
-        <div className="flex gap-4 flex-wrap">
-          <div className="w-64">
+        <div className="flex flex-col sm:flex-row gap-3">
+          <div className="w-full sm:w-48">
             <Select value={filterCommune} onValueChange={setFilterCommune}>
               <SelectTrigger><SelectValue placeholder="Toutes les communes" /></SelectTrigger>
               <SelectContent>
@@ -361,7 +361,7 @@ export default function Linking() {
               </SelectContent>
             </Select>
           </div>
-          <div className="w-48">
+          <div className="w-full sm:w-40">
             <Select value={filterStatut} onValueChange={setFilterStatut}>
               <SelectTrigger><SelectValue placeholder="Tous les statuts" /></SelectTrigger>
               <SelectContent>
@@ -372,7 +372,7 @@ export default function Linking() {
               </SelectContent>
             </Select>
           </div>
-          <div className="relative flex-1 min-w-[200px]">
+          <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input placeholder="Rechercher..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pl-10" />
           </div>
