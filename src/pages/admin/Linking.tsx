@@ -236,39 +236,24 @@ export default function Linking() {
   };
 
   const handleCheckAll = async () => {
-    const toCheck = filteredSites.filter(s => s.statut !== "ok" || !s.last_scraped_at);
-    if (toCheck.length === 0) {
-      toast({ title: "Rien à vérifier", description: "Tous les sites filtrés sont déjà OK." });
-      return;
+    try {
+      const { data, error } = await supabase.functions.invoke("trigger-linking-check", {
+        body: { batch_size: 5 },
+      });
+      if (error) throw error;
+      toast({ title: "Vérification lancée", description: "La vérification s'exécute en arrière-plan." });
+      fetchCheckConfig();
+    } catch (err) {
+      console.error("Bulk check error:", err);
+      toast({ title: "Erreur", description: "Impossible de lancer la vérification", variant: "destructive" });
     }
+  };
 
-    setBulkChecking(true);
-    bulkAbortRef.current = false;
-    setBulkProgress({ current: 0, total: toCheck.length, currentSite: "" });
-
-    let okCount = 0, issueCount = 0, errorCount = 0;
-
-    for (let i = 0; i < toCheck.length; i++) {
-      if (bulkAbortRef.current) break;
-      const site = toCheck[i];
-      setBulkProgress({ current: i + 1, total: toCheck.length, currentSite: `${site.commune_nom} — ${site.type_contenu || new URL(site.url).hostname}` });
-
-      try {
-        await handleCheckSite(site);
-        // Check updated state
-        const updated = sites.find(s => s.id === site.id);
-        if (updated?.statut === "ok") okCount++; else issueCount++;
-      } catch {
-        errorCount++;
-      }
-    }
-
-    setBulkChecking(false);
-    toast({
-      title: bulkAbortRef.current ? "Vérification interrompue" : "Vérification terminée",
-      description: `${okCount} OK, ${issueCount} à modifier, ${errorCount} erreurs`,
-    });
-    fetchData(); // Final refresh to sync state
+  const handleStopBulkCheck = async () => {
+    if (!checkConfig) return;
+    await supabase.from("linking_check_config").update({ current_status: "interrupted" }).eq("id", checkConfig.id);
+    toast({ title: "Vérification interrompue" });
+    fetchCheckConfig();
   };
 
   const handleSendEmail = async (site: SiteWithCommune) => {
