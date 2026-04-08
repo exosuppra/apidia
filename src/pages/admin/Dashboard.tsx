@@ -420,11 +420,44 @@ export default function AdminDashboard() {
           {hasPermission('logs') && (
             <Card className="mt-8">
               <CardHeader>
-                <CardTitle>Activité récente</CardTitle>
-                <CardDescription>Les dernières actions effectuées sur la plateforme</CardDescription>
+                <CardTitle className="flex items-center gap-2">
+                  <Activity className="h-5 w-5 text-primary" />
+                  Activité récente
+                </CardTitle>
+                <CardDescription>
+                  {isAdmin ? "Toutes les actions de l'équipe" : "Vos dernières actions"}
+                </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="text-sm text-muted-foreground">Aucune activité récente à afficher</div>
+                {activityLogs.length === 0 ? (
+                  <div className="text-sm text-muted-foreground">Aucune activité récente à afficher</div>
+                ) : (
+                  <div className="space-y-3 max-h-96 overflow-y-auto">
+                    {activityLogs.map((log) => (
+                      <div key={log.id} className="flex items-start gap-3 text-sm border-b border-border pb-3 last:border-0">
+                        <div className="mt-0.5">
+                          <ActionIcon actionType={log.action_type} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            {isAdmin && (
+                              <span className="font-medium text-foreground">{log.user_email}</span>
+                            )}
+                            <span className="text-muted-foreground">{actionLabel(log.action_type)}</span>
+                          </div>
+                          {log.action_details && (
+                            <p className="text-xs text-muted-foreground mt-0.5 truncate">
+                              {formatDetails(log.action_details)}
+                            </p>
+                          )}
+                        </div>
+                        <span className="text-xs text-muted-foreground whitespace-nowrap">
+                          {format(new Date(log.created_at), "dd MMM HH:mm", { locale: fr })}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
           )}
