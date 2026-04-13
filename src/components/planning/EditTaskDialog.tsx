@@ -47,6 +47,7 @@ import { TagSelector } from "./TagSelector";
 import { FileUpload } from "./FileUpload";
 import { RichTextEditor } from "./RichTextEditor";
 import type { Task, Tag } from "@/types/planning";
+import { logUserAction } from "@/lib/logUserAction";
 
 const taskSchema = z.object({
   title: z.string().min(1, "Le titre est requis"),
@@ -160,6 +161,7 @@ export function EditTaskDialog({
         title: "Tâche supprimée",
         description: "La tâche a été supprimée avec succès.",
       });
+      logUserAction("delete_task", { task_title: task.title });
 
       setShowDeleteDialog(false);
       onOpenChange(false);
@@ -215,6 +217,7 @@ export function EditTaskDialog({
         title: "Tâche mise à jour",
         description: "La tâche a été mise à jour avec succès.",
       });
+      logUserAction("update_task", { task_title: values.title, status: values.status });
 
       onOpenChange(false);
       onSuccess();

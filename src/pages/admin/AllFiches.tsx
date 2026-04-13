@@ -44,7 +44,7 @@ import {
 import type { Json } from "@/integrations/supabase/types";
 import { isAfter, parseISO } from "date-fns";
 import ApidaeSyncProgressCard from "@/components/sync/ApidaeSyncProgressCard";
-
+import { logUserAction } from "@/lib/logUserAction";
 interface FicheData {
   id: string;
   fiche_type: string;
@@ -541,6 +541,7 @@ export default function AllFiches() {
         title: "Synchronisation terminée",
         description: data.message || `${data.results?.synced || 0} fiches synchronisées`,
       });
+      logUserAction("sync_sheets", { synced: data.results?.synced || 0 });
 
       await loadAllFiches();
     } catch (error: unknown) {
@@ -628,6 +629,7 @@ export default function AllFiches() {
         title: newStatus ? "Fiche publiée" : "Fiche masquée",
         description: `La fiche sera ${newStatus ? 'synchronisée' : 'marquée pour synchronisation'}`,
       });
+      logUserAction("toggle_publish_fiche", { fiche_id: fiche.fiche_id, published: newStatus });
 
       await loadAllFiches();
     } catch (error) {

@@ -187,6 +187,7 @@ export default function Linking() {
       }
 
       toast({ title: "Import terminé", description: `${inserted} sites importés pour ${uniqueCommunes.length} communes.` });
+      logUserAction("linking_import", { inserted, communes: uniqueCommunes.length });
       fetchData();
     } catch (err) {
       console.error("Import error:", err);
@@ -325,6 +326,7 @@ export default function Linking() {
       }
       await supabase.from("linking_sites").insert({ commune_id: communeId, url: newUrl, type_contenu: newType || null, contact_email: newEmail || null, statut: "en_attente" });
       toast({ title: "Site ajouté" });
+      logUserAction("linking_add_site", { url: newUrl, commune: newCommune });
       setShowAddDialog(false);
       setNewCommune(""); setNewUrl(""); setNewType(""); setNewEmail("");
       fetchData();
@@ -342,6 +344,7 @@ export default function Linking() {
         contact_notes: editSite.contact_notes, reponse: editSite.reponse,
       }).eq("id", editSite.id);
       toast({ title: "Site mis à jour" });
+      logUserAction("linking_edit_site", { site_id: editSite.id, url: editSite.url });
       setShowEditDialog(false);
       fetchData();
     } catch {
@@ -354,6 +357,7 @@ export default function Linking() {
     await supabase.from("linking_sites").delete().eq("id", id);
     setSites(prev => prev.filter(s => s.id !== id));
     toast({ title: "Site supprimé" });
+    logUserAction("linking_delete_site", { site_id: id });
   };
 
   const getHostname = (url: string) => {

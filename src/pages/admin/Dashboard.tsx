@@ -135,13 +135,28 @@ export default function AdminDashboard() {
     verify_fiche: "a vérifié une fiche",
     edit_fiche: "a modifié une fiche",
     sync_apidae: "a lancé une synchronisation Apidae",
+    sync_sheets: "a synchronisé vers Google Sheets",
     linking_check: "a vérifié un site Linking",
     linking_send_email: "a envoyé un email Linking",
+    linking_import: "a importé des sites Linking",
+    linking_add_site: "a ajouté un site Linking",
+    linking_edit_site: "a modifié un site Linking",
+    linking_delete_site: "a supprimé un site Linking",
     create_planning: "a créé un planning",
     update_planning: "a mis à jour un planning",
     apidia_knowledge_update: "a mis à jour la base Apidia",
+    apidia_knowledge_add: "a ajouté une connaissance Apidia",
+    apidia_knowledge_delete: "a supprimé une connaissance Apidia",
     import_excel: "a importé un fichier Excel",
     bulk_verification: "a lancé une vérification en masse",
+    toggle_publish_fiche: "a modifié la publication d'une fiche",
+    transfer_fiche: "a transféré une fiche",
+    create_user: "a créé un utilisateur",
+    delete_user: "a supprimé un utilisateur",
+    update_permissions: "a modifié des permissions",
+    reset_password: "a réinitialisé un mot de passe",
+    telegram_poll: "a récupéré des messages Telegram",
+    telegram_send: "a envoyé un message Telegram",
     other: "a effectué une action",
   };
 
@@ -173,13 +188,32 @@ export default function AdminDashboard() {
         return <FileText className={`${iconClass} text-green-500`} />;
       case "verify_fiche":
       case "edit_fiche":
+      case "toggle_publish_fiche":
+      case "transfer_fiche":
         return <Eye className={`${iconClass} text-orange-500`} />;
       case "linking_check":
       case "linking_send_email":
+      case "linking_import":
+      case "linking_add_site":
+      case "linking_edit_site":
+      case "linking_delete_site":
         return <Link2 className={`${iconClass} text-purple-500`} />;
       case "sync_apidae":
+      case "sync_sheets":
       case "bulk_verification":
         return <RefreshCw className={`${iconClass} text-cyan-500`} />;
+      case "create_user":
+      case "delete_user":
+      case "update_permissions":
+      case "reset_password":
+        return <Users className={`${iconClass} text-red-500`} />;
+      case "apidia_knowledge_update":
+      case "apidia_knowledge_add":
+      case "apidia_knowledge_delete":
+        return <Bot className={`${iconClass} text-emerald-500`} />;
+      case "telegram_poll":
+      case "telegram_send":
+        return <MessageCircle className={`${iconClass} text-sky-500`} />;
       default:
         return <Activity className={`${iconClass} text-muted-foreground`} />;
     }

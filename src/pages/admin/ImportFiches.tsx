@@ -8,6 +8,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Upload, FileJson, CheckCircle, XCircle, AlertCircle, Loader2, ArrowLeft } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { logUserAction } from "@/lib/logUserAction";
 
 interface ImportResult {
   fiche_id: string;
@@ -126,6 +127,7 @@ export default function ImportFiches() {
 
     if (aggregatedResults.imported > 0) {
       toast.success(`${aggregatedResults.imported} fiches importées avec succès`);
+      logUserAction("import_fiches", { imported: aggregatedResults.imported, skipped: aggregatedResults.skipped, errors: aggregatedResults.errors.length });
     }
     if (aggregatedResults.errors.length > 0) {
       toast.error(`${aggregatedResults.errors.length} erreurs rencontrées`);

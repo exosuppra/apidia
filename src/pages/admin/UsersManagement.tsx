@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Checkbox } from "@/components/ui/checkbox";
 import { useNavigate } from "react-router-dom";
 import Seo from "@/components/Seo";
+import { logUserAction } from "@/lib/logUserAction";
 
 interface AdminUser {
   id: string;
@@ -101,6 +102,7 @@ export default function UsersManagement() {
         title: "Succès",
         description: "Utilisateur créé avec succès",
       });
+      logUserAction("create_user", { email: newUserEmail });
 
       setNewUserEmail("");
       setNewUserPassword("");
@@ -136,6 +138,7 @@ export default function UsersManagement() {
         title: "Succès",
         description: "Utilisateur supprimé",
       });
+      logUserAction("delete_user", { email });
 
       fetchAdminUsers();
     } catch (error: any) {
@@ -164,6 +167,7 @@ export default function UsersManagement() {
         description: `Nouveau mot de passe temporaire : ${data.temporaryPassword}`,
         duration: 10000,
       });
+      logUserAction("reset_password", { email });
     } catch (error: any) {
       toast({
         title: "Erreur",
@@ -199,6 +203,7 @@ export default function UsersManagement() {
         title: "Succès",
         description: "Permission mise à jour",
       });
+      logUserAction("update_permissions", { user_id: userId, page_key: pageKey, added: !hasPermission });
     } catch (error: any) {
       toast({
         title: "Erreur",

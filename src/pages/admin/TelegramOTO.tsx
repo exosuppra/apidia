@@ -11,6 +11,7 @@ import { Send, Bot, User, RefreshCw, MessageCircle } from "lucide-react";
 import otoAvatar from "@/assets/char-oto.png";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import { logUserAction } from "@/lib/logUserAction";
 
 type TelegramMessage = {
   id: string;
@@ -135,6 +136,7 @@ export default function TelegramOTO() {
       const data = await resp.json();
       if (data.processed > 0) {
         toast({ title: `${data.processed} nouveau(x) message(s) récupéré(s)` });
+        logUserAction("telegram_poll", { processed: data.processed });
         loadThreads();
       } else {
         toast({ title: "Aucun nouveau message" });
@@ -164,6 +166,7 @@ export default function TelegramOTO() {
       );
       const data = await resp.json();
       if (!resp.ok) throw new Error(data.error);
+      logUserAction("telegram_send", { chat_id: selectedChat });
       setInput("");
       // Reload messages
       const { data: msgs } = await supabase
