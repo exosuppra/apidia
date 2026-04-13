@@ -187,6 +187,7 @@ export default function Linking() {
       }
 
       toast({ title: "Import terminé", description: `${inserted} sites importés pour ${uniqueCommunes.length} communes.` });
+      logUserAction("linking_import", { inserted, communes: uniqueCommunes.length });
       fetchData();
     } catch (err) {
       console.error("Import error:", err);
