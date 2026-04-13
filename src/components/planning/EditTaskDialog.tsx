@@ -47,6 +47,7 @@ import { TagSelector } from "./TagSelector";
 import { FileUpload } from "./FileUpload";
 import { RichTextEditor } from "./RichTextEditor";
 import type { Task, Tag } from "@/types/planning";
+import { logUserAction } from "@/lib/logUserAction";
 
 const taskSchema = z.object({
   title: z.string().min(1, "Le titre est requis"),

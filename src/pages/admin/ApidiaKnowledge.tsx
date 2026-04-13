@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Plus, Trash2, Edit2, BookOpen, Loader2, ExternalLink, ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import Seo from "@/components/Seo";
+import { logUserAction } from "@/lib/logUserAction";
 
 type KnowledgeEntry = {
   id: string;

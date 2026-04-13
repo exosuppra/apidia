@@ -11,6 +11,7 @@ import { Send, Bot, User, RefreshCw, MessageCircle } from "lucide-react";
 import otoAvatar from "@/assets/char-oto.png";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import { logUserAction } from "@/lib/logUserAction";
 
 type TelegramMessage = {
   id: string;

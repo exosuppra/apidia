@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Checkbox } from "@/components/ui/checkbox";
 import { useNavigate } from "react-router-dom";
 import Seo from "@/components/Seo";
+import { logUserAction } from "@/lib/logUserAction";
 
 interface AdminUser {
   id: string;

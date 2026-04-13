@@ -44,7 +44,7 @@ import {
 import type { Json } from "@/integrations/supabase/types";
 import { isAfter, parseISO } from "date-fns";
 import ApidaeSyncProgressCard from "@/components/sync/ApidaeSyncProgressCard";
-
+import { logUserAction } from "@/lib/logUserAction";
 interface FicheData {
   id: string;
   fiche_type: string;

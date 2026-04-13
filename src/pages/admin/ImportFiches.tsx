@@ -8,6 +8,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Upload, FileJson, CheckCircle, XCircle, AlertCircle, Loader2, ArrowLeft } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { logUserAction } from "@/lib/logUserAction";
 
 interface ImportResult {
   fiche_id: string;
