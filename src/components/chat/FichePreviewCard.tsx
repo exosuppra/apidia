@@ -26,6 +26,7 @@ export interface FichePreview {
 
 interface FichePreviewCardProps {
   fiche: FichePreview;
+  compact?: boolean;
 }
 
 const TYPE_ICONS: Record<string, string> = {
@@ -105,7 +106,7 @@ function buildFullAddress(fiche: FichePreview): string | null {
   return parts.length > 0 ? parts.join(", ") : null;
 }
 
-export default function FichePreviewCard({ fiche }: FichePreviewCardProps) {
+export default function FichePreviewCard({ fiche, compact = false }: FichePreviewCardProps) {
   const [open, setOpen] = useState(false);
   const icon = TYPE_ICONS[fiche.type] || "📌";
   const label = TYPE_LABELS[fiche.type] || fiche.type;
@@ -119,7 +120,7 @@ export default function FichePreviewCard({ fiche }: FichePreviewCardProps) {
     <>
       <button
         type="button"
-        className="group flex h-full w-[260px] shrink-0 snap-start flex-col overflow-hidden rounded-2xl border border-border/60 bg-background text-left shadow-sm transition-all duration-200 hover:-translate-y-1 hover:bg-muted/20 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:w-72"
+        className={`group flex h-full shrink-0 snap-start flex-col overflow-hidden rounded-2xl border border-border/60 bg-background text-left shadow-sm transition-all duration-200 hover:-translate-y-1 hover:bg-muted/20 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${compact ? "w-[228px]" : "w-[260px] sm:w-72"}`}
         onClick={() => setOpen(true)}
       >
         <FichePreviewImage
@@ -174,11 +175,14 @@ export default function FichePreviewCard({ fiche }: FichePreviewCardProps) {
             )}
           </div>
 
-          <div className="mt-auto flex items-center justify-between gap-2 pt-3">
-            <span className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-[10px] font-medium ${badgeColor}`}>
-              {label}
-            </span>
-            <span className="text-[11px] font-medium text-primary">Voir le détail</span>
+          <div className="mt-auto space-y-1.5 pt-3">
+            <div className="flex items-center justify-between gap-2">
+              <span className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-[10px] font-medium ${badgeColor}`}>
+                {label}
+              </span>
+              <span className="text-[11px] font-medium text-primary">Voir le détail</span>
+            </div>
+            <p className="text-[10px] text-muted-foreground/50 font-mono truncate">Apidae #{fiche.fiche_id}</p>
           </div>
         </div>
       </button>
