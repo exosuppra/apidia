@@ -224,14 +224,18 @@ Deno.serve(async (req) => {
     }
 
     if (!scrapeResponse || !scrapeResponse.ok) {
+      const errorStatus = scrapeResponse?.status || 500;
+      const isCreditError = errorStatus === 402 || errorStatus === 429;
+      
       console.error('Firecrawl error:', scrapeData);
       return new Response(
-        JSON.stringify(
-          buildScrapeErrorPayload(
-            getScrapeErrorMessage(scrapeResponse?.status || 500, scrapeData?.error),
-            `firecrawl_${scrapeResponse?.status || 500}`,
-          )
-        ),
+        JSON.stringify({
+          ...buildScrapeErrorPayload(
+            getScrapeErrorMessage(errorStatus, scrapeData?.error),
+            `firecrawl_${errorStatus}`,
+          ),
+          preserve_previous: isCreditError,
+        }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
