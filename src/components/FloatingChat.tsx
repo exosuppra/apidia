@@ -8,7 +8,8 @@ import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import MessageContent from "@/components/chat/MessageContent";
-import FichePreviewCard, { FichePreview } from "@/components/chat/FichePreviewCard";
+import { FichePreview } from "@/components/chat/FichePreviewCard";
+import FicheCarousel from "@/components/chat/FicheCarousel";
 import { useChatContext } from "@/context/ChatContext";
 
 // Web Speech API types
@@ -548,12 +549,8 @@ export default function FloatingChat() {
                           <MessageContent content={msg.content} isUser={msg.role === "user"} />
                         </div>
                         {msg.fichesPreview && msg.fichesPreview.length > 0 && (
-                          <div className="mt-2 w-full overflow-x-auto overscroll-x-contain pb-2 scroll-smooth">
-                            <div className="flex w-max gap-3 snap-x snap-mandatory pr-3">
-                              {msg.fichesPreview.map((fiche) => (
-                                <FichePreviewCard key={fiche.fiche_id} fiche={fiche} />
-                              ))}
-                            </div>
+                          <div className="mt-2 w-full">
+                            <FicheCarousel fiches={msg.fichesPreview} compact />
                           </div>
                         )}
                       </div>

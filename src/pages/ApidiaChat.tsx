@@ -3,7 +3,8 @@ import { Button } from "@/components/ui/button";
 import { Send, Bot, Loader2, ArrowLeft, Sparkles, Mic, MicOff, Volume2, VolumeX } from "lucide-react";
 import Seo from "@/components/Seo";
 import ReactMarkdown from "react-markdown";
-import FichePreviewCard, { FichePreview } from "@/components/chat/FichePreviewCard";
+import { FichePreview } from "@/components/chat/FichePreviewCard";
+import FicheCarousel from "@/components/chat/FicheCarousel";
 import { useNavigate } from "react-router-dom";
 import { useSpeechRecognition, useElevenLabsTTS } from "@/hooks/useSpeech";
 
@@ -267,17 +268,8 @@ export default function ApidiaChat() {
                 )}
 
                 {msg.fichesPreview && msg.fichesPreview.length > 0 && (
-                  <div className="mt-3 space-y-2">
-                    {msg.fichesPreview.length > 1 && (
-                      <p className="px-1 text-xs text-muted-foreground">Faites défiler pour voir les suggestions</p>
-                    )}
-                    <div className="-mx-1 overflow-x-auto overscroll-x-contain pb-3 scroll-smooth">
-                      <div className="flex w-max gap-3 px-1 pr-4 snap-x snap-mandatory">
-                      {msg.fichesPreview.map((fiche) => (
-                        <FichePreviewCard key={fiche.fiche_id} fiche={fiche} />
-                      ))}
-                      </div>
-                    </div>
+                  <div className="mt-3">
+                    <FicheCarousel fiches={msg.fichesPreview} />
                   </div>
                 )}
               </div>
