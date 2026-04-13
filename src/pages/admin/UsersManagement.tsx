@@ -204,7 +204,6 @@ export default function UsersManagement() {
         description: "Permission mise à jour",
       });
       logUserAction("update_permissions", { user_id: userId, page_key: pageKey, added: !hasPermission });
-      });
     } catch (error: any) {
       toast({
         title: "Erreur",
