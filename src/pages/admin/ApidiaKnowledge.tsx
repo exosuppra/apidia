@@ -65,12 +65,14 @@ export default function ApidiaKnowledge() {
       }).eq("id", editEntry.id);
       if (error) { toast({ title: "Erreur", description: error.message, variant: "destructive" }); return; }
       toast({ title: "Modifié", description: "Entrée mise à jour" });
+      logUserAction("apidia_knowledge_update", { entry_id: editEntry.id, title: formTitle });
     } else {
       const { error } = await supabase.from("apidia_knowledge").insert({
         category: formCategory, title: formTitle, content: formContent,
       });
       if (error) { toast({ title: "Erreur", description: error.message, variant: "destructive" }); return; }
       toast({ title: "Ajouté", description: "Nouvelle connaissance ajoutée" });
+      logUserAction("apidia_knowledge_add", { title: formTitle, category: formCategory });
     }
 
     setShowAddDialog(false);
@@ -83,7 +85,7 @@ export default function ApidiaKnowledge() {
 
   const handleDelete = async (id: string) => {
     const { error } = await supabase.from("apidia_knowledge").delete().eq("id", id);
-    if (!error) { fetchKnowledge(); toast({ title: "Supprimé" }); }
+    if (!error) { fetchKnowledge(); toast({ title: "Supprimé" }); logUserAction("apidia_knowledge_delete", { entry_id: id }); }
   };
 
   const toggleActive = async (entry: KnowledgeEntry) => {

@@ -161,6 +161,7 @@ export function EditTaskDialog({
         title: "Tâche supprimée",
         description: "La tâche a été supprimée avec succès.",
       });
+      logUserAction("delete_task", { task_title: task.title });
 
       setShowDeleteDialog(false);
       onOpenChange(false);
@@ -216,6 +217,7 @@ export function EditTaskDialog({
         title: "Tâche mise à jour",
         description: "La tâche a été mise à jour avec succès.",
       });
+      logUserAction("update_task", { task_title: values.title, status: values.status });
 
       onOpenChange(false);
       onSuccess();

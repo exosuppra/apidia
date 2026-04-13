@@ -127,6 +127,7 @@ export default function ImportFiches() {
 
     if (aggregatedResults.imported > 0) {
       toast.success(`${aggregatedResults.imported} fiches importées avec succès`);
+      logUserAction("import_fiches", { imported: aggregatedResults.imported, skipped: aggregatedResults.skipped, errors: aggregatedResults.errors.length });
     }
     if (aggregatedResults.errors.length > 0) {
       toast.error(`${aggregatedResults.errors.length} erreurs rencontrées`);
