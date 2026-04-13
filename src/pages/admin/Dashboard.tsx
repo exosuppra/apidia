@@ -188,13 +188,32 @@ export default function AdminDashboard() {
         return <FileText className={`${iconClass} text-green-500`} />;
       case "verify_fiche":
       case "edit_fiche":
+      case "toggle_publish_fiche":
+      case "transfer_fiche":
         return <Eye className={`${iconClass} text-orange-500`} />;
       case "linking_check":
       case "linking_send_email":
+      case "linking_import":
+      case "linking_add_site":
+      case "linking_edit_site":
+      case "linking_delete_site":
         return <Link2 className={`${iconClass} text-purple-500`} />;
       case "sync_apidae":
+      case "sync_sheets":
       case "bulk_verification":
         return <RefreshCw className={`${iconClass} text-cyan-500`} />;
+      case "create_user":
+      case "delete_user":
+      case "update_permissions":
+      case "reset_password":
+        return <Users className={`${iconClass} text-red-500`} />;
+      case "apidia_knowledge_update":
+      case "apidia_knowledge_add":
+      case "apidia_knowledge_delete":
+        return <Bot className={`${iconClass} text-emerald-500`} />;
+      case "telegram_poll":
+      case "telegram_send":
+        return <MessageCircle className={`${iconClass} text-sky-500`} />;
       default:
         return <Activity className={`${iconClass} text-muted-foreground`} />;
     }
