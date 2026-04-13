@@ -232,9 +232,10 @@ Deno.serve(async (req) => {
     }
 
     const FIRECRAWL_API_KEY = Deno.env.get("FIRECRAWL_API_KEY");
+    const FIRECRAWL_API_KEY_1 = Deno.env.get("FIRECRAWL_API_KEY_1");
     const AI_KEY = Deno.env.get("GEMINI_API_KEY") || Deno.env.get("LOVABLE_API_KEY");
 
-    if (!FIRECRAWL_API_KEY || !AI_KEY) {
+    if ((!FIRECRAWL_API_KEY && !FIRECRAWL_API_KEY_1) || !AI_KEY) {
       await supabase.from("linking_check_config").update({
         current_status: "error",
         current_site_url: "Missing API keys",
@@ -273,30 +274,38 @@ Deno.serve(async (req) => {
 
         const communeName = commune?.nom || "inconnue";
 
-        // Scrape
-        const scrapeResp = await fetch("https://api.firecrawl.dev/v1/scrape", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${FIRECRAWL_API_KEY}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            url: site.url,
-            formats: ["markdown"],
-            onlyMainContent: true,
-          }),
-        });
+        // Scrape with fallback key
+        const firecrawlKeys = [FIRECRAWL_API_KEY, FIRECRAWL_API_KEY_1].filter(Boolean) as string[];
+        let scrapeResp: Response | null = null;
 
-        if (!scrapeResp.ok) {
-          const scrapeError = await scrapeResp.json().catch(() => ({}));
-          const errorMessage = getScrapeErrorMessage(scrapeResp.status, scrapeError?.error);
+        for (const fcKey of firecrawlKeys) {
+          scrapeResp = await fetch("https://api.firecrawl.dev/v1/scrape", {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${fcKey}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              url: site.url,
+              formats: ["markdown"],
+              onlyMainContent: true,
+            }),
+          });
+
+          if (scrapeResp.ok || (scrapeResp.status !== 402 && scrapeResp.status !== 429)) break;
+          console.warn(`Firecrawl key exhausted (${scrapeResp.status}), trying fallback...`);
+        }
+
+        if (!scrapeResp || !scrapeResp.ok) {
+          const scrapeError = await scrapeResp?.json().catch(() => ({}));
+          const errorMessage = getScrapeErrorMessage(scrapeResp?.status || 500, scrapeError?.error);
           console.error(`Firecrawl error for ${site.url}`);
           await supabase.from("linking_sites").update({
             last_scraped_at: new Date().toISOString(),
             date_dernier_controle: new Date().toISOString().split("T")[0],
             statut: "erreur_scraping",
             modifications: null,
-            last_scrape_result: buildScrapeErrorResult(errorMessage, `firecrawl_${scrapeResp.status}`),
+            last_scrape_result: buildScrapeErrorResult(errorMessage, `firecrawl_${scrapeResp?.status || 500}`),
           }).eq("id", site.id);
           errorsInBatch++;
           continue;

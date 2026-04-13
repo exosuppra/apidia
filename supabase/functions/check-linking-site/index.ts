@@ -179,7 +179,8 @@ Deno.serve(async (req) => {
     }
 
     const firecrawlKey = Deno.env.get('FIRECRAWL_API_KEY');
-    if (!firecrawlKey) {
+    const firecrawlKeyFallback = Deno.env.get('FIRECRAWL_API_KEY_1');
+    if (!firecrawlKey && !firecrawlKeyFallback) {
       return new Response(
         JSON.stringify({ success: false, error: 'Firecrawl not configured' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
