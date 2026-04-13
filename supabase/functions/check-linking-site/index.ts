@@ -197,30 +197,39 @@ Deno.serve(async (req) => {
 
     const useGemini = !!Deno.env.get('GEMINI_API_KEY');
 
-    // Step 1: Scrape the URL
+    // Step 1: Scrape the URL with fallback key
     console.log('Scraping URL:', url);
-    const scrapeResponse = await fetch('https://api.firecrawl.dev/v1/scrape', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${firecrawlKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        url: url.trim(),
-        formats: ['markdown'],
-        onlyMainContent: true,
-      }),
-    });
+    const firecrawlKeys = [firecrawlKey, firecrawlKeyFallback].filter(Boolean) as string[];
+    let scrapeResponse: Response | null = null;
+    let scrapeData: any = null;
 
-    const scrapeData = await scrapeResponse.json();
+    for (const fcKey of firecrawlKeys) {
+      scrapeResponse = await fetch('https://api.firecrawl.dev/v1/scrape', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${fcKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          url: url.trim(),
+          formats: ['markdown'],
+          onlyMainContent: true,
+        }),
+      });
 
-    if (!scrapeResponse.ok) {
+      scrapeData = await scrapeResponse.json();
+
+      if (scrapeResponse.ok || (scrapeResponse.status !== 402 && scrapeResponse.status !== 429)) break;
+      console.warn(`Firecrawl key exhausted (${scrapeResponse.status}), trying fallback...`);
+    }
+
+    if (!scrapeResponse || !scrapeResponse.ok) {
       console.error('Firecrawl error:', scrapeData);
       return new Response(
         JSON.stringify(
           buildScrapeErrorPayload(
-            getScrapeErrorMessage(scrapeResponse.status, scrapeData.error),
-            `firecrawl_${scrapeResponse.status}`,
+            getScrapeErrorMessage(scrapeResponse?.status || 500, scrapeData?.error),
+            `firecrawl_${scrapeResponse?.status || 500}`,
           )
         ),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
