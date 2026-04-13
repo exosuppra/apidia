@@ -25,6 +25,24 @@ serve(async (req) => {
   const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const supabase = createClient(supabaseUrl, supabaseKey);
 
+  // Delete any active webhook before polling
+  const delWh = await fetch(`${GATEWAY_URL}/deleteWebhook`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${LOVABLE_API_KEY}`,
+      "X-Connection-Api-Key": TELEGRAM_API_KEY,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ drop_pending_updates: false }),
+  });
+  try {
+    const delWhData = await delWh.json();
+    if (!delWh.ok) console.error("deleteWebhook failed:", delWhData);
+  } catch {
+    const delWhText = await delWh.text().catch(() => "");
+    if (!delWh.ok) console.error("deleteWebhook failed (non-JSON):", delWhText);
+  }
+
   let totalProcessed = 0;
 
   const { data: state, error: stateErr } = await supabase
