@@ -207,6 +207,19 @@ export default function Linking() {
       if (error) throw error;
       logUserAction("linking_check", { url: site.url, commune: site.commune_nom });
 
+      // If credit/rate-limit error, preserve previous valid data
+      if (data.preserve_previous) {
+        if (!bulkChecking) {
+          toast({
+            title: "⚠️ Crédits Firecrawl épuisés",
+            description: "Les données précédentes sont conservées.",
+            variant: "destructive",
+          });
+        }
+        setCheckingIds(prev => { const n = new Set(prev); n.delete(site.id); return n; });
+        return;
+      }
+
       const newStatut = data.result_type === "scrape_error"
         ? "erreur_scraping"
         : data.is_up_to_date ? "ok" : "a_modifier";

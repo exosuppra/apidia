@@ -298,14 +298,25 @@ Deno.serve(async (req) => {
 
         if (!scrapeResp || !scrapeResp.ok) {
           const scrapeError = await scrapeResp?.json().catch(() => ({}));
-          const errorMessage = getScrapeErrorMessage(scrapeResp?.status || 500, scrapeError?.error);
-          console.error(`Firecrawl error for ${site.url}`);
+          const errorStatus = scrapeResp?.status || 500;
+          const errorMessage = getScrapeErrorMessage(errorStatus, scrapeError?.error);
+          console.error(`Firecrawl error for ${site.url} (${errorStatus})`);
+
+          // For credit/rate-limit errors (402, 429), preserve the previous valid result
+          const isCreditError = errorStatus === 402 || errorStatus === 429;
+          if (isCreditError) {
+            console.warn(`Credit/rate-limit error for ${site.url}, preserving previous valid data`);
+            // Don't update statut, modifications, or last_scrape_result — keep the last valid check
+            errorsInBatch++;
+            continue;
+          }
+
           await supabase.from("linking_sites").update({
             last_scraped_at: new Date().toISOString(),
             date_dernier_controle: new Date().toISOString().split("T")[0],
             statut: "erreur_scraping",
             modifications: null,
-            last_scrape_result: buildScrapeErrorResult(errorMessage, `firecrawl_${scrapeResp?.status || 500}`),
+            last_scrape_result: buildScrapeErrorResult(errorMessage, `firecrawl_${errorStatus}`),
           }).eq("id", site.id);
           errorsInBatch++;
           continue;
