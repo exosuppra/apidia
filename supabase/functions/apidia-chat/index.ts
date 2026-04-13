@@ -6,6 +6,41 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+function normalizeMediaUrl(url?: string) {
+  if (!url || typeof url !== "string") return "";
+
+  const trimmed = url.trim();
+  if (!trimmed) return "";
+  if (trimmed.startsWith("//")) return `https:${trimmed}`;
+
+  return trimmed.replace(/^http:\/\//i, "https://");
+}
+
+function extractFirstImageUrl(data: any) {
+  const medias = [
+    ...(Array.isArray(data?.illustrations) ? data.illustrations : []),
+    ...(Array.isArray(data?.multimedias) ? data.multimedias : []),
+  ];
+
+  for (const media of medias) {
+    const files = Array.isArray(media?.traductionFichiers) ? media.traductionFichiers : [];
+    const candidates = [
+      ...files.map((file: any) => file?.url),
+      media?.url,
+      media?.urlImage,
+    ];
+
+    for (const candidate of candidates) {
+      const normalized = normalizeMediaUrl(candidate);
+      if (normalized.startsWith("http")) {
+        return normalized;
+      }
+    }
+  }
+
+  return "";
+}
+
 function extractFichePreview(ficheId: string, ficheType: string, data: any) {
   const nom = data?.nom?.libelleFr || data?.nom?.libelleEn || "Sans nom";
   const commune = data?.localisation?.adresse?.commune?.nom || "";
@@ -20,17 +55,7 @@ function extractFichePreview(ficheId: string, ficheType: string, data: any) {
   const description = descCourte || (descDetaillee ? descDetaillee.substring(0, 300) : "");
 
   // Image
-  let imageUrl = "";
-  const illustrations = data?.illustrations;
-  if (Array.isArray(illustrations) && illustrations.length > 0) {
-    const traductionFichiers = illustrations[0]?.traductionFichiers;
-    if (Array.isArray(traductionFichiers) && traductionFichiers.length > 0) {
-      imageUrl = traductionFichiers[0]?.url || "";
-      if (imageUrl && !imageUrl.includes("apidata.atout-france")) {
-        imageUrl = imageUrl.replace(/\/[^\/]*$/, "/300x200.jpg");
-      }
-    }
-  }
+  const imageUrl = extractFirstImageUrl(data);
 
   // Contact
   let telephone = "";

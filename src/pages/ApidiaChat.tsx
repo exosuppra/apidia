@@ -267,11 +267,16 @@ export default function ApidiaChat() {
                 )}
 
                 {msg.fichesPreview && msg.fichesPreview.length > 0 && (
-                  <div className="overflow-x-auto pb-2 -mx-1 mt-2">
-                    <div className="flex gap-2.5 px-1" style={{ minWidth: "min-content" }}>
+                  <div className="mt-3 space-y-2">
+                    {msg.fichesPreview.length > 1 && (
+                      <p className="px-1 text-xs text-muted-foreground">Faites défiler pour voir les suggestions</p>
+                    )}
+                    <div className="-mx-1 overflow-x-auto overscroll-x-contain pb-3 scroll-smooth">
+                      <div className="flex w-max gap-3 px-1 pr-4 snap-x snap-mandatory">
                       {msg.fichesPreview.map((fiche) => (
                         <FichePreviewCard key={fiche.fiche_id} fiche={fiche} />
                       ))}
+                      </div>
                     </div>
                   </div>
                 )}

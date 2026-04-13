@@ -548,8 +548,8 @@ export default function FloatingChat() {
                           <MessageContent content={msg.content} isUser={msg.role === "user"} />
                         </div>
                         {msg.fichesPreview && msg.fichesPreview.length > 0 && (
-                          <div className="mt-2 w-full overflow-x-auto pb-1">
-                            <div className="flex gap-2" style={{ width: "max-content" }}>
+                          <div className="mt-2 w-full overflow-x-auto overscroll-x-contain pb-2 scroll-smooth">
+                            <div className="flex w-max gap-3 snap-x snap-mandatory pr-3">
                               {msg.fichesPreview.map((fiche) => (
                                 <FichePreviewCard key={fiche.fiche_id} fiche={fiche} />
                               ))}

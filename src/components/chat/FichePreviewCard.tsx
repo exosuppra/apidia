@@ -3,6 +3,7 @@ import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { MapPin, Calendar, Clock, Info, Phone, Mail, Globe, Euro } from "lucide-react";
+import FichePreviewImage from "./FichePreviewImage";
 
 export interface FichePreview {
   fiche_id: string;
@@ -112,71 +113,79 @@ export default function FichePreviewCard({ fiche }: FichePreviewCardProps) {
   const gradient = TYPE_GRADIENTS[fiche.type] || "from-primary to-primary/60";
   const badgeColor = TYPE_COLORS[fiche.type] || "bg-muted text-muted-foreground";
   const fullAddress = buildFullAddress(fiche);
+  const compactContact = fiche.telephone || fiche.email;
 
   return (
     <>
-      <div
-        className="flex-shrink-0 w-52 rounded-lg border bg-background hover:bg-muted/50 transition-all cursor-pointer shadow-sm hover:shadow-md overflow-hidden group"
+      <button
+        type="button"
+        className="group flex h-full w-[260px] shrink-0 snap-start flex-col overflow-hidden rounded-2xl border border-border/60 bg-background text-left shadow-sm transition-all duration-200 hover:-translate-y-1 hover:bg-muted/20 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:w-72"
         onClick={() => setOpen(true)}
       >
-        {/* Image / placeholder */}
-        {fiche.image_url ? (
-          <div className="h-28 w-full overflow-hidden">
-            <img
-              src={fiche.image_url}
-              alt={fiche.nom}
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-            />
-          </div>
-        ) : (
-          <div className={`h-28 w-full bg-gradient-to-br ${gradient} flex items-center justify-center`}>
-            <span className="text-4xl drop-shadow">{icon}</span>
-          </div>
-        )}
+        <FichePreviewImage
+          src={fiche.image_url}
+          alt={fiche.nom}
+          gradient={gradient}
+          icon={icon}
+          containerClassName="h-36 w-full"
+          imageClassName="transition-transform duration-300 group-hover:scale-105"
+          iconClassName="text-4xl"
+        />
 
-        {/* Content */}
-        <div className="p-2.5">
-          <div className="flex items-start justify-between gap-1 mb-1.5">
-            <p className="font-semibold text-xs leading-tight line-clamp-2 text-foreground flex-1">
+        <div className="flex min-h-[182px] flex-1 flex-col p-3">
+          <div className="mb-2 flex items-start justify-between gap-2">
+            <p className="flex-1 text-sm font-semibold leading-snug text-foreground line-clamp-2">
               {fiche.nom}
             </p>
             {fiche.verified_opening && (
-              <span className="text-[10px] shrink-0 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 px-1 py-0.5 rounded font-medium">✅</span>
+              <span className="shrink-0 rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary">✅</span>
             )}
           </div>
-          <div className="flex items-center gap-1 text-xs text-muted-foreground mb-1">
-            <MapPin className="h-3 w-3 shrink-0" />
-            <span className="truncate">{fiche.commune}</span>
+
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <MapPin className="h-3.5 w-3.5 shrink-0" />
+              <span className="truncate">{fiche.commune}</span>
+            </div>
+
+            {dateStr && (
+              <div className="flex items-start gap-1.5 text-xs font-medium text-primary">
+                <Calendar className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                <span className="line-clamp-2 text-left">{dateStr}</span>
+              </div>
+            )}
+
+            {fiche.tarif && (
+              <div className="flex items-center gap-1.5 text-xs font-medium text-foreground">
+                <Euro className="h-3.5 w-3.5 shrink-0 text-primary" />
+                <span className="truncate">{fiche.tarif}</span>
+              </div>
+            )}
+
+            {compactContact && (
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                {fiche.telephone ? (
+                  <Phone className="h-3.5 w-3.5 shrink-0" />
+                ) : (
+                  <Mail className="h-3.5 w-3.5 shrink-0" />
+                )}
+                <span className="truncate">{compactContact}</span>
+              </div>
+            )}
           </div>
-          {dateStr && (
-            <div className="flex items-center gap-1 text-xs text-primary font-medium mb-1">
-              <Calendar className="h-3 w-3 shrink-0" />
-              <span className="truncate">{dateStr}</span>
-            </div>
-          )}
-          {fiche.tarif && (
-            <div className="flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400 font-medium mb-1">
-              <Euro className="h-3 w-3 shrink-0" />
-              <span className="truncate">{fiche.tarif}</span>
-            </div>
-          )}
-          {(fiche.telephone || fiche.email) && (
-            <div className="flex items-center gap-1 text-xs text-muted-foreground">
-              {fiche.telephone && <Phone className="h-3 w-3 shrink-0" />}
-              {fiche.telephone && <span className="truncate">{fiche.telephone}</span>}
-            </div>
-          )}
-          <div className="mt-1.5">
-            <span className={`inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-full ${badgeColor}`}>
+
+          <div className="mt-auto flex items-center justify-between gap-2 pt-3">
+            <span className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-[10px] font-medium ${badgeColor}`}>
               {label}
             </span>
+            <span className="text-[11px] font-medium text-primary">Voir le détail</span>
           </div>
         </div>
-      </div>
+      </button>
 
       {/* Detail Dialog */}
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-md max-h-[85vh] overflow-y-auto">
+        <DialogContent className="max-h-[85vh] max-w-lg overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 pr-6">
               <span className="text-xl">{icon}</span>
@@ -184,16 +193,14 @@ export default function FichePreviewCard({ fiche }: FichePreviewCardProps) {
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            {/* Image */}
-            {fiche.image_url ? (
-              <div className="rounded-lg overflow-hidden h-48">
-                <img src={fiche.image_url} alt={fiche.nom} className="w-full h-full object-cover" />
-              </div>
-            ) : (
-              <div className={`rounded-lg h-32 bg-gradient-to-br ${gradient} flex items-center justify-center`}>
-                <span className="text-5xl drop-shadow">{icon}</span>
-              </div>
-            )}
+            <FichePreviewImage
+              src={fiche.image_url}
+              alt={fiche.nom}
+              gradient={gradient}
+              icon={icon}
+              containerClassName="h-52 rounded-xl"
+              iconClassName="text-5xl"
+            />
 
             {/* Type badge */}
             <span className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-full ${badgeColor}`}>
@@ -227,8 +234,8 @@ export default function FichePreviewCard({ fiche }: FichePreviewCardProps) {
               {/* Tarif */}
               {fiche.tarif && (
                 <div className="flex items-start gap-2 text-sm">
-                  <Euro className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
-                  <span className="text-emerald-700 dark:text-emerald-300 font-medium">{fiche.tarif}</span>
+                  <Euro className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                  <span className="font-medium text-foreground">{fiche.tarif}</span>
                 </div>
               )}
 
