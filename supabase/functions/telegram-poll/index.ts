@@ -35,9 +35,12 @@ serve(async (req) => {
     },
     body: JSON.stringify({ drop_pending_updates: false }),
   });
-  const delWhData = await delWh.json();
-  if (!delWh.ok) {
-    console.error("deleteWebhook failed:", delWhData);
+  try {
+    const delWhData = await delWh.json();
+    if (!delWh.ok) console.error("deleteWebhook failed:", delWhData);
+  } catch {
+    const delWhText = await delWh.text().catch(() => "");
+    if (!delWh.ok) console.error("deleteWebhook failed (non-JSON):", delWhText);
   }
 
   let totalProcessed = 0;
