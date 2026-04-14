@@ -59,6 +59,27 @@ serve(async (req) => {
       sender_name: "OTO Bot",
     });
 
+    // Notify Make webhook so it receives outgoing admin messages
+    const makeWebhookUrl = Deno.env.get("MAKE_OTO_WEBHOOK_URL");
+    if (makeWebhookUrl) {
+      try {
+        await fetch(makeWebhookUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            chat_id,
+            text,
+            direction: "outgoing",
+            sender_name: "OTO Admin",
+            message_id: data.result?.message_id,
+            timestamp: new Date().toISOString(),
+          }),
+        });
+      } catch (webhookErr) {
+        console.error("Failed to notify Make webhook:", webhookErr);
+      }
+    }
+
     return new Response(JSON.stringify({ ok: true, message_id: data.result?.message_id }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
