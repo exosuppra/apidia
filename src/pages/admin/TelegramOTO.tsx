@@ -168,6 +168,14 @@ export default function TelegramOTO() {
       if (!resp.ok) throw new Error(data.error);
       logUserAction("telegram_send", { chat_id: selectedChat });
       setInput("");
+      // Warn if Make webhook failed
+      if (data.telegram_sent && !data.make_notified && data.make_status !== "no_webhook") {
+        toast({
+          title: "Message envoyé sur Telegram",
+          description: `⚠️ Le webhook Make n'a pas pu être notifié (${data.make_status})`,
+          variant: "destructive",
+        });
+      }
       // Reload messages
       const { data: msgs } = await supabase
         .from("telegram_messages")

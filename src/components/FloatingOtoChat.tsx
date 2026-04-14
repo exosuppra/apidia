@@ -125,6 +125,14 @@ export default function FloatingOtoChat() {
       if (!resp.ok) throw new Error(data.error);
       setInput("");
       loadMessages();
+      // Warn if Make webhook failed
+      if (data.telegram_sent && !data.make_notified && data.make_status !== "no_webhook") {
+        toast({
+          title: "⚠️ Webhook Make non notifié",
+          description: `Statut: ${data.make_status}`,
+          variant: "destructive",
+        });
+      }
     } catch (e: any) {
       toast({
         title: "Erreur d'envoi",
