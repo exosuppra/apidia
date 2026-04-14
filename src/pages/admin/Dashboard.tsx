@@ -224,7 +224,7 @@ export default function AdminDashboard() {
     "rh-admin": hasPermission('users') || hasPermission('rh') || hasPermission('missions') || hasPermission('planning-santons'),
     "donnees-touristiques": hasPermission('requests') || hasPermission('fiches') || hasPermission('logs') || hasPermission('apidia') || hasPermission('telegram-oto'),
     "reseaux-sociaux": hasPermission('planning'),
-    "projet-web": hasPermission('intense-verdon') || hasPermission('stats-web') || hasPermission('stats-ereputation') || hasPermission('linking'),
+    "projet-web": hasPermission('intense-verdon') || hasPermission('stats-web') || hasPermission('stats-ereputation') || hasPermission('linking') || hasPermission('widget-apidia'),
   };
 
   const sectionLabels: Record<SectionKey, string> = {
@@ -420,6 +420,18 @@ export default function AdminDashboard() {
                 <CardContent>
                   <CardDescription>Suivi du linking par commune et vérification des sites</CardDescription>
                   <Button className="w-full mt-4" variant="outline" onClick={() => navigate("/admin/linking")}>Accéder au linking</Button>
+                </CardContent>
+              </Card>
+            )}
+            {hasPermission('widget-apidia') && (
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Widget Apidia</CardTitle>
+                  <Globe className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <CardDescription>Créer des widgets d'intégration de fiches touristiques</CardDescription>
+                  <Button className="w-full mt-4" variant="outline" onClick={() => navigate("/admin/widget-apidia")}>Gérer les widgets</Button>
                 </CardContent>
               </Card>
             )}
