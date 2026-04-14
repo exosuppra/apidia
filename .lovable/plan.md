@@ -1,40 +1,44 @@
 
-J’ai vérifié le flux actuel et le problème semble bien identifié :
 
-- `telegram-poll` ne retransforme pas vos messages admin en faux messages entrants. En base, les messages envoyés depuis l’admin sont stockés en `direction = "outgoing"` avec `update_id = null`, alors que les vrais messages reçus ont un `raw_update` Telegram et `from.is_bot = false`.
-- Le point faible est `telegram-send` : après l’envoi à Telegram, il appelle Make avec un JSON simplifié (`chat_id`, `text`, `direction`, etc.), pas avec une structure de mise à jour Telegram.
-- Comme Make “reçoit quelque chose mais l’interprète mal”, votre scénario attend très probablement un payload de type Telegram natif (`message.text`, `message.chat.id`, `message.from`, etc.).
-- Et visuellement, si vous testez avec votre propre compte Telegram, voir le message “comme reçu” dans la conversation est normal : c’est le bot qui vous écrit. Le vrai bug est surtout côté transmission/interprétation vers Make.
+## Problème identifié
 
-Plan de correction
+Make utilise un module **Telegram Bot** qui parse les updates selon le schéma exact de l'API Telegram. Notre payload synthétique échoue car :
+1. `update_id: null` — Make attend un **entier**, pas null
+2. Les sous-objets (`chat`, `from`) peuvent manquer des champs obligatoires que Make vérifie
 
-1. Corriger le payload envoyé à Make
-- Modifier `supabase/functions/telegram-send/index.ts` pour envoyer à Make un objet au format “Telegram-like”.
-- Inclure au minimum : `update_id`, `message.message_id`, `message.date`, `message.chat.id`, `message.chat.type`, `message.from.is_bot = true`, `message.text`.
-- Ajouter en plus une clé séparée de compatibilité, par exemple `lovable_meta`, avec `direction: "outgoing"`, `source: "admin_panel"`, `synthetic: true`.
+## Correction
 
-2. Rendre l’appel Make contrôlé
-- Vérifier `response.ok` sur le webhook Make.
-- Logger le code retour et la réponse de Make si elle échoue.
-- Retourner au frontend un statut clair du type : `telegram_sent`, `make_notified`, `make_status`.
+Modifier `supabase/functions/telegram-send/index.ts` pour envoyer un payload **strictement identique** à une vraie update Telegram :
 
-3. Corriger le retour visuel côté admin
-- Mettre à jour `src/pages/admin/TelegramOTO.tsx` et `src/components/FloatingOtoChat.tsx`.
-- Si Telegram envoie bien le message mais que Make refuse/mal traite le webhook, afficher un avertissement au lieu d’un succès silencieux.
+```typescript
+const syntheticUpdate = {
+  update_id: messageId || Math.floor(Date.now() / 1000),  // entier, jamais null
+  message: {
+    message_id: messageId,
+    date: messageDate,
+    chat: {
+      id: chat_id,
+      first_name: "User",
+      type: "private",
+    },
+    from: {
+      id: chat_id,        // utiliser le vrai chat_id
+      is_bot: false,       // Make filtre peut-être is_bot=true
+      first_name: "OTO Admin",
+      username: "oto_admin",
+    },
+    text: text,
+  },
+};
+```
 
-4. Clarifier la sémantique locale des messages
-- Uniformiser les métadonnées des messages sortants pour qu’il soit clair, côté admin et côté automatisation, qu’il s’agit d’un message envoyé par l’admin via le bot, pas d’un message entrant utilisateur.
+### Changements clés
+- **`update_id`** : entier basé sur `message_id` ou timestamp, jamais `null`
+- **`from.is_bot`** : `false` — le module Telegram de Make ignore probablement les messages de bots
+- **`from.id`** : le vrai `chat_id` au lieu de `0`
+- **`chat.first_name`** : ajouté car Make peut l'attendre
+- **Suppression de `lovable_meta`** au niveau racine — ne pas polluer le schéma Telegram attendu par Make (on peut le garder dans un champ séparé si besoin)
 
-5. Vérification de bout en bout
-- Envoyer un message test depuis l’admin.
-- Vérifier qu’il apparaît dans Telegram comme message du bot.
-- Vérifier que Make reçoit un payload compatible avec son scénario.
-- Vérifier qu’aucune nouvelle ligne `incoming` parasite n’est créée par `telegram-poll`.
+### Fichier modifié
+- `supabase/functions/telegram-send/index.ts` — section webhook Make uniquement
 
-Détails techniques
-- Fichiers concernés :
-  - `supabase/functions/telegram-send/index.ts`
-  - `src/pages/admin/TelegramOTO.tsx`
-  - `src/components/FloatingOtoChat.tsx`
-- Aucune migration base n’est nécessaire pour ce correctif initial.
-- Si besoin, je peux aussi rendre le payload Make quasi identique à une vraie update Telegram pour éviter toute modification de votre scénario côté Make.
