@@ -95,9 +95,9 @@ export default function WidgetApidia() {
     }
 
     const filters: any = {};
-    if (ficheType) filters.fiche_type = ficheType;
-    if (commune) filters.commune = commune;
-    if (source) filters.source = source;
+    if (ficheType && ficheType !== "all") filters.fiche_type = ficheType;
+    if (commune && commune !== "all") filters.commune = commune;
+    if (source && source !== "all") filters.source = source;
 
     const selectedIds = manualIds.trim()
       ? manualIds.split(",").map((s) => s.trim()).filter(Boolean)
