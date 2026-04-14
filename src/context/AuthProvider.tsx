@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import { logUserAction } from "@/lib/logUserAction";
 
 interface GoogleSheetsSession {
   id: string;
@@ -42,11 +43,23 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
     };
 
     // Set up auth state listener for Lovable Cloud users
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, newSession) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, newSession) => {
       if (newSession) {
         setSession(newSession);
         setUser(newSession.user);
         setIsGoogleSheetsUser(false);
+        
+        // Log login on SIGNED_IN and TOKEN_REFRESHED (returning user)
+        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+          // Debounce: only log once per session (avoid duplicate logs on rapid refreshes)
+          const lastLogKey = `last_login_log_${newSession.user.id}`;
+          const lastLog = sessionStorage.getItem(lastLogKey);
+          const now = Date.now();
+          if (!lastLog || now - parseInt(lastLog) > 30 * 60 * 1000) { // 30 min debounce
+            sessionStorage.setItem(lastLogKey, now.toString());
+            logUserAction("login", { method: event === 'TOKEN_REFRESHED' ? 'token_refresh' : 'direct' });
+          }
+        }
       } else {
         // If no Lovable Cloud session, check for Google Sheets session
         if (!checkGoogleSheetsSession()) {
