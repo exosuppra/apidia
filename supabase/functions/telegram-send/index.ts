@@ -72,27 +72,22 @@ serve(async (req) => {
       try {
         // Build a Telegram-like update structure so Make can parse it
         const syntheticUpdate = {
-          update_id: null,
+          update_id: messageId || Math.floor(Date.now() / 1000),
           message: {
             message_id: messageId,
             date: messageDate,
             chat: {
               id: chat_id,
+              first_name: "User",
               type: "private",
             },
             from: {
-              id: 0,
-              is_bot: true,
-              first_name: "OTO Bot",
-              username: "oto_admin_bot",
+              id: chat_id,
+              is_bot: false,
+              first_name: "OTO Admin",
+              username: "oto_admin",
             },
             text: text,
-          },
-          lovable_meta: {
-            direction: "outgoing",
-            source: "admin_panel",
-            synthetic: true,
-            timestamp: new Date().toISOString(),
           },
         };
 
