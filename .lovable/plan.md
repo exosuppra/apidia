@@ -1,63 +1,40 @@
 
+J’ai vérifié le flux actuel et le problème semble bien identifié :
 
-# Apidia Chat - UX ergonomique + affichage des fiches Apidae
+- `telegram-poll` ne retransforme pas vos messages admin en faux messages entrants. En base, les messages envoyés depuis l’admin sont stockés en `direction = "outgoing"` avec `update_id = null`, alors que les vrais messages reçus ont un `raw_update` Telegram et `from.is_bot = false`.
+- Le point faible est `telegram-send` : après l’envoi à Telegram, il appelle Make avec un JSON simplifié (`chat_id`, `text`, `direction`, etc.), pas avec une structure de mise à jour Telegram.
+- Comme Make “reçoit quelque chose mais l’interprète mal”, votre scénario attend très probablement un payload de type Telegram natif (`message.text`, `message.chat.id`, `message.from`, etc.).
+- Et visuellement, si vous testez avec votre propre compte Telegram, voir le message “comme reçu” dans la conversation est normal : c’est le bot qui vous écrit. Le vrai bug est surtout côté transmission/interprétation vers Make.
 
-## Probleme actuel
-La page publique `/apidia` (ApidiaChat) est basique : pas de streaming fluide avec fiches, pas de cartes de previsualisation Apidae. Les fiches sont envoyees en contexte a l'IA mais jamais renvoyees au client pour affichage visuel.
+Plan de correction
 
-## Architecture de la solution
+1. Corriger le payload envoyé à Make
+- Modifier `supabase/functions/telegram-send/index.ts` pour envoyer à Make un objet au format “Telegram-like”.
+- Inclure au minimum : `update_id`, `message.message_id`, `message.date`, `message.chat.id`, `message.chat.type`, `message.from.is_bot = true`, `message.text`.
+- Ajouter en plus une clé séparée de compatibilité, par exemple `lovable_meta`, avec `direction: "outgoing"`, `source: "admin_panel"`, `synthetic: true`.
 
-Le flux sera en deux etapes :
-1. L'edge function `apidia-chat` envoie d'abord un event SSE special `data: {"fiches_previews": [...]}` contenant les fiches Apidae trouvees, AVANT le stream IA
-2. Le frontend parse cet event initial, stocke les fiches, puis affiche le stream texte normalement avec les cartes de fiches en dessous de la reponse
+2. Rendre l’appel Make contrôlé
+- Vérifier `response.ok` sur le webhook Make.
+- Logger le code retour et la réponse de Make si elle échoue.
+- Retourner au frontend un statut clair du type : `telegram_sent`, `make_notified`, `make_status`.
 
-## Modifications prevues
+3. Corriger le retour visuel côté admin
+- Mettre à jour `src/pages/admin/TelegramOTO.tsx` et `src/components/FloatingOtoChat.tsx`.
+- Si Telegram envoie bien le message mais que Make refuse/mal traite le webhook, afficher un avertissement au lieu d’un succès silencieux.
 
-### 1. Edge function `apidia-chat/index.ts`
-- Apres la recherche Apidae, construire un tableau `fiches_previews` avec les donnees enrichies (nom, type, commune, image, telephone, etc.) en extrayant les infos du JSON Apidae complet (pas juste les champs aplatis de la RPC)
-- Faire une requete supplementaire pour recuperer les donnees completes (`data` JSONB) des fiches trouvees par la RPC
-- Creer un ReadableStream custom qui :
-  - Emet d'abord un SSE `data: {"fiches_previews": [...]}` 
-  - Puis pipe le stream de l'IA tel quel
-- Ajouter dans le system prompt une instruction pour que l'IA mentionne les noms exacts des fiches dans sa reponse (pour coherence avec les cartes)
+4. Clarifier la sémantique locale des messages
+- Uniformiser les métadonnées des messages sortants pour qu’il soit clair, côté admin et côté automatisation, qu’il s’agit d’un message envoyé par l’admin via le bot, pas d’un message entrant utilisateur.
 
-### 2. Page `ApidiaChat.tsx` - Refonte complete
-- Ajouter le type `FichePreview` et importer `FichePreviewCard`
-- Etendre le type `Msg` avec `fichesPreview?: FichePreview[]`
-- Dans le parsing SSE : detecter l'event special `fiches_previews` et le stocker sur le message assistant
-- Afficher les cartes de fiches en carrousel horizontal sous chaque reponse assistant qui en contient
-- Ameliorations ergonomiques :
-  - Suggestions de questions rapides au demarrage (chips cliquables)
-  - Animation de typing plus fluide
-  - Meilleur espacement et design des bulles
-  - Scroll automatique plus naturel
-  - Input avec bouton micro (reutiliser le pattern du FloatingChat)
-  - Responsive : pleine hauteur sur mobile
+5. Vérification de bout en bout
+- Envoyer un message test depuis l’admin.
+- Vérifier qu’il apparaît dans Telegram comme message du bot.
+- Vérifier que Make reçoit un payload compatible avec son scénario.
+- Vérifier qu’aucune nouvelle ligne `incoming` parasite n’est créée par `telegram-poll`.
 
-### 3. Aucune migration DB necessaire
-Les donnees viennent de `fiches_data` existant, enrichies a la volee.
-
-## Details techniques
-
-```text
-Client                    Edge Function              AI Gateway
-  |                           |                          |
-  |-- POST messages --------->|                          |
-  |                           |-- search_fiches_apidae ->|
-  |                           |-- SELECT fiches_data --->|
-  |                           |                          |
-  |<-- SSE: fiches_previews --|                          |
-  |                           |-- stream request ------->|
-  |<-- SSE: AI tokens --------|<-- SSE: AI tokens -------|
-  |                           |                          |
-  [parse fiches -> cards]     |                          |
-  [parse tokens -> markdown]  |                          |
-```
-
-Le premier event SSE aura le format :
-```json
-data: {"fiches_previews":[{"fiche_id":"123","nom":"...","type":"RESTAURATION","commune":"Manosque","image_url":"..."}]}
-```
-
-Les events suivants sont le stream IA standard OpenAI-compatible.
-
+Détails techniques
+- Fichiers concernés :
+  - `supabase/functions/telegram-send/index.ts`
+  - `src/pages/admin/TelegramOTO.tsx`
+  - `src/components/FloatingOtoChat.tsx`
+- Aucune migration base n’est nécessaire pour ce correctif initial.
+- Si besoin, je peux aussi rendre le payload Make quasi identique à une vraie update Telegram pour éviter toute modification de votre scénario côté Make.
