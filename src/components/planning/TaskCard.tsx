@@ -138,6 +138,7 @@ export function TaskCard({ task, onRefresh, allTags }: TaskCardProps) {
 
       if (error) throw error;
 
+      logUserAction("delete_task", { task_id: task.id, task_title: task.title });
       toast({
         title: "Tâche supprimée",
         description: "La tâche a été supprimée avec succès.",
@@ -162,6 +163,7 @@ export function TaskCard({ task, onRefresh, allTags }: TaskCardProps) {
 
       if (error) throw error;
 
+      logUserAction("update_task", { task_id: task.id, task_title: task.title, action: "marked_done" });
       toast({
         title: "Tâche terminée",
         description: "La tâche a été marquée comme terminée.",
