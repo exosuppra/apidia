@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
+import { logUserAction } from "@/lib/logUserAction";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Calendar, MoreVertical, Trash2, Edit2, Paperclip, Check, Clock, CheckCircle2, XCircle } from "lucide-react";
