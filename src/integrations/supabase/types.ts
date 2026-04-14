@@ -194,6 +194,48 @@ export type Database = {
         }
         Relationships: []
       }
+      apidia_widgets: {
+        Row: {
+          created_at: string
+          created_by: string
+          filters: Json
+          id: string
+          is_active: boolean
+          name: string
+          selected_fiche_ids: string[] | null
+          settings: Json
+          share_token: string
+          updated_at: string
+          widget_type: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          filters?: Json
+          id?: string
+          is_active?: boolean
+          name: string
+          selected_fiche_ids?: string[] | null
+          settings?: Json
+          share_token?: string
+          updated_at?: string
+          widget_type?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          filters?: Json
+          id?: string
+          is_active?: boolean
+          name?: string
+          selected_fiche_ids?: string[] | null
+          settings?: Json
+          share_token?: string
+          updated_at?: string
+          widget_type?: string
+        }
+        Relationships: []
+      }
       chat_conversations: {
         Row: {
           created_at: string
