@@ -157,6 +157,8 @@ export default function AdminDashboard() {
     reset_password: "a réinitialisé un mot de passe",
     telegram_poll: "a récupéré des messages Telegram",
     telegram_send: "a envoyé un message Telegram",
+    widget_create: "a créé un widget Apidia",
+    widget_delete: "a supprimé un widget Apidia",
     other: "a effectué une action",
   };
 
