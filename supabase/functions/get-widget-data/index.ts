@@ -50,16 +50,16 @@ serve(async (req) => {
       .select("fiche_id, fiche_type, source, data, is_published")
       .eq("is_published", true);
 
-    if (filters.fiche_type) {
-      query = query.eq("fiche_type", filters.fiche_type);
-    }
-    if (filters.source) {
-      query = query.eq("source", filters.source);
-    }
-
-    // If specific IDs selected, filter by them
+    // If specific IDs are selected, they take priority over category filters
     if (selectedIds.length > 0) {
       query = query.in("fiche_id", selectedIds);
+    } else {
+      if (filters.fiche_type) {
+        query = query.eq("fiche_type", filters.fiche_type);
+      }
+      if (filters.source) {
+        query = query.eq("source", filters.source);
+      }
     }
 
     const { data: fiches, error: fichesErr } = await query.limit(maxFiches);
