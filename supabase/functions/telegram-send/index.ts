@@ -47,6 +47,9 @@ serve(async (req) => {
       throw new Error(`Telegram API error [${response.status}]: ${JSON.stringify(data)}`);
     }
 
+    const messageId = data.result?.message_id;
+    const messageDate = data.result?.date || Math.floor(Date.now() / 1000);
+
     // Store outgoing message
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -59,28 +62,69 @@ serve(async (req) => {
       sender_name: "OTO Bot",
     });
 
-    // Notify Make webhook so it receives outgoing admin messages
+    // Notify Make webhook with Telegram-like payload
     const makeWebhookUrl = Deno.env.get("MAKE_OTO_WEBHOOK_URL");
+    let makeNotified = false;
+    let makeStatus = "no_webhook";
+    let makeError: string | null = null;
+
     if (makeWebhookUrl) {
       try {
-        await fetch(makeWebhookUrl, {
+        // Build a Telegram-like update structure so Make can parse it
+        const syntheticUpdate = {
+          update_id: null,
+          message: {
+            message_id: messageId,
+            date: messageDate,
+            chat: {
+              id: chat_id,
+              type: "private",
+            },
+            from: {
+              id: 0,
+              is_bot: true,
+              first_name: "OTO Bot",
+              username: "oto_admin_bot",
+            },
+            text: text,
+          },
+          lovable_meta: {
+            direction: "outgoing",
+            source: "admin_panel",
+            synthetic: true,
+            timestamp: new Date().toISOString(),
+          },
+        };
+
+        const makeResp = await fetch(makeWebhookUrl, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            chat_id,
-            text,
-            direction: "outgoing",
-            sender_name: "OTO Admin",
-            message_id: data.result?.message_id,
-            timestamp: new Date().toISOString(),
-          }),
+          body: JSON.stringify(syntheticUpdate),
         });
+
+        makeStatus = String(makeResp.status);
+        makeNotified = makeResp.ok;
+
+        if (!makeResp.ok) {
+          const makeBody = await makeResp.text();
+          makeError = `Make webhook returned ${makeResp.status}: ${makeBody.substring(0, 200)}`;
+          console.error("Make webhook error:", makeError);
+        }
       } catch (webhookErr) {
+        makeStatus = "fetch_error";
+        makeError = webhookErr instanceof Error ? webhookErr.message : "Unknown error";
         console.error("Failed to notify Make webhook:", webhookErr);
       }
     }
 
-    return new Response(JSON.stringify({ ok: true, message_id: data.result?.message_id }), {
+    return new Response(JSON.stringify({
+      ok: true,
+      message_id: messageId,
+      telegram_sent: true,
+      make_notified: makeNotified,
+      make_status: makeStatus,
+      make_error: makeError,
+    }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
