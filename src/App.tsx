@@ -51,6 +51,8 @@ import Linking from "./pages/admin/Linking";
 import ApidiaKnowledge from "./pages/admin/ApidiaKnowledge";
 import ApidiaChat from "./pages/ApidiaChat";
 import TelegramOTO from "./pages/admin/TelegramOTO";
+import WidgetApidia from "./pages/admin/WidgetApidia";
+import WidgetEmbed from "./pages/WidgetEmbed";
 
 const queryClient = new QueryClient();
 
@@ -271,6 +273,21 @@ const App = () => (
                 </RequirePasswordChange>
               </RequireAdminAuth>
             } />
+            
+            <Route path="/admin/widget-apidia" element={
+              <RequireAdminAuth>
+                <RequirePasswordChange>
+                  <RequirePermission pageKey="widget-apidia">
+                    <AdminLayout>
+                      <WidgetApidia />
+                    </AdminLayout>
+                  </RequirePermission>
+                </RequirePasswordChange>
+              </RequireAdminAuth>
+            } />
+            
+            {/* Public widget embed */}
+            <Route path="/widget/:token" element={<WidgetEmbed />} />
             
             {/* Main business dashboard */}
             <Route path="/avis" element={

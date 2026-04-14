@@ -36,6 +36,8 @@ type ActionType =
   | "reset_password"
   | "telegram_poll"
   | "telegram_send"
+  | "widget_create"
+  | "widget_delete"
   | "other";
 
 export async function logUserAction(
