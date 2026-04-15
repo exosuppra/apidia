@@ -25,6 +25,8 @@ serve(async (req) => {
   const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const supabase = createClient(supabaseUrl, supabaseKey);
 
+  const makeWebhookUrl = Deno.env.get("MAKE_OTO_WEBHOOK_URL");
+
   // Delete any active webhook before polling
   const delWh = await fetch(`${GATEWAY_URL}/deleteWebhook`, {
     method: "POST",
@@ -94,16 +96,54 @@ serve(async (req) => {
     const updates = data.result ?? [];
     if (updates.length === 0) continue;
 
-    const rows = updates
-      .filter((u: any) => u.message)
-      .map((u: any) => ({
-        update_id: u.update_id,
-        chat_id: u.message.chat.id,
-        text: u.message.text ?? null,
-        direction: "incoming",
-        sender_name: [u.message.from?.first_name, u.message.from?.last_name].filter(Boolean).join(" ") || "Inconnu",
-        raw_update: u,
-      }));
+    // Separate bot messages (outgoing) from user messages (incoming)
+    const rows = [];
+    const userUpdates = []; // real user messages to forward to Make
+
+    for (const u of updates) {
+      if (!u.message) continue;
+
+      const isBot = u.message.from?.is_bot === true;
+
+      if (isBot) {
+        // Bot's own replies — store as outgoing, skip if already stored by telegram-send
+        // Check if we already have a recent outgoing message with same chat_id + text (from telegram-send)
+        const { data: existing } = await supabase
+          .from("telegram_messages")
+          .select("id")
+          .eq("chat_id", u.message.chat.id)
+          .eq("direction", "outgoing")
+          .eq("text", u.message.text ?? "")
+          .gte("created_at", new Date(Date.now() - 60_000).toISOString()) // within last 60s
+          .limit(1);
+
+        if (existing && existing.length > 0) {
+          // Already stored by telegram-send, skip duplicate
+          console.log(`Skipping duplicate bot message in chat ${u.message.chat.id}`);
+          continue;
+        }
+
+        rows.push({
+          update_id: u.update_id,
+          chat_id: u.message.chat.id,
+          text: u.message.text ?? null,
+          direction: "outgoing",
+          sender_name: "OTO Bot",
+          raw_update: u,
+        });
+      } else {
+        // Real user message — store as incoming
+        rows.push({
+          update_id: u.update_id,
+          chat_id: u.message.chat.id,
+          text: u.message.text ?? null,
+          direction: "incoming",
+          sender_name: [u.message.from?.first_name, u.message.from?.last_name].filter(Boolean).join(" ") || "Inconnu",
+          raw_update: u,
+        });
+        userUpdates.push(u);
+      }
+    }
 
     if (rows.length > 0) {
       const { error: insertErr } = await supabase
@@ -119,6 +159,28 @@ serve(async (req) => {
       }
 
       totalProcessed += rows.length;
+    }
+
+    // Notify Make webhook for each real user message
+    if (makeWebhookUrl && userUpdates.length > 0) {
+      for (const u of userUpdates) {
+        try {
+          const makeResp = await fetch(makeWebhookUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(u),
+          });
+          if (!makeResp.ok) {
+            const body = await makeResp.text();
+            console.error(`Make webhook error for update ${u.update_id}: ${makeResp.status} - ${body.substring(0, 200)}`);
+          } else {
+            await makeResp.text(); // consume body
+            console.log(`Make notified for user message update_id=${u.update_id}`);
+          }
+        } catch (err) {
+          console.error(`Make webhook fetch error for update ${u.update_id}:`, err);
+        }
+      }
     }
 
     const newOffset = Math.max(...updates.map((u: any) => u.update_id)) + 1;
