@@ -40,6 +40,7 @@ const WIDGET_TYPES = [
 ];
 
 export default function WidgetApidia() {
+  const navigate = useNavigate();
   const [widgets, setWidgets] = useState<Widget[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
