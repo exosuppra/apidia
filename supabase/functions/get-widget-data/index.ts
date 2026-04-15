@@ -82,47 +82,14 @@ serve(async (req) => {
       const d = f.data || {};
       const nom = d.nom?.libelleFr || d.nom?.libelleEn || "Sans nom";
       const commune = d.localisation?.adresse?.commune?.nom || "";
-      const codePostal = d.localisation?.adresse?.codePostal || "";
-      const descCourte = d.presentation?.descriptifCourt?.libelleFr || "";
-      const descDetaillee = (d.presentation?.descriptifDetaille?.libelleFr || "").substring(0, 300);
-      
-      // Get first image
-      let image = null;
-      const illustrations = d.illustrations;
-      if (Array.isArray(illustrations) && illustrations.length > 0) {
-        const traductionFichiers = illustrations[0]?.traductionFichiers;
-        if (Array.isArray(traductionFichiers) && traductionFichiers.length > 0) {
-          image = traductionFichiers[0]?.url || null;
-        }
-      }
-      if (image && image.startsWith("http://")) {
-        image = image.replace("http://", "https://");
-      }
-
-      // Get coordinates for map
-      const geoloc = d.localisation?.geolocalisation?.geoJson?.coordinates;
-      const lat = geoloc ? geoloc[1] : null;
-      const lng = geoloc ? geoloc[0] : null;
-
-      // Get contact info
-      const telephone = d.informations?.moyensCommunication?.find?.((m: any) => m.type?.id === 201)?.coordonnees?.fr;
-      const email = d.informations?.moyensCommunication?.find?.((m: any) => m.type?.id === 204)?.coordonnees?.fr;
-      const siteWeb = d.informations?.moyensCommunication?.find?.((m: any) => m.type?.id === 205)?.coordonnees?.fr;
+      const horaires = d.ouverture?.periodeEnClair?.libelleFr || null;
 
       return {
         fiche_id: f.fiche_id,
         fiche_type: f.fiche_type,
         nom,
         commune,
-        code_postal: codePostal,
-        description_courte: descCourte,
-        description_detaillee: descDetaillee,
-        image,
-        lat,
-        lng,
-        telephone: telephone || null,
-        email: email || null,
-        site_web: siteWeb || null,
+        horaires,
       };
     });
 
