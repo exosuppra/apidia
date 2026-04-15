@@ -192,7 +192,8 @@ export default function WidgetApidia() {
   return (
     <>
       <Seo title="Widget Apidia" description="Créer et gérer les widgets d'intégration Apidia" />
-      <div className="space-y-6">
+      <Card className="p-6">
+        <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
