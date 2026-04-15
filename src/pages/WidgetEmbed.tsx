@@ -7,6 +7,7 @@ type WidgetFiche = {
   nom: string;
   commune: string;
   horaires: string | null;
+  image_url: string | null;
 };
 
 type WidgetData = {
@@ -43,32 +44,72 @@ export default function WidgetEmbed() {
     fetchData();
   }, [token]);
 
-  if (loading) return <div className="flex items-center justify-center p-8 text-sm text-gray-500">Chargement...</div>;
-  if (error) return <div className="flex items-center justify-center p-8 text-sm text-red-500">{error}</div>;
-  if (!data || data.fiches.length === 0) return <div className="flex items-center justify-center p-8 text-sm text-gray-500">Aucune fiche à afficher</div>;
+  if (loading) return <div style={{ padding: 32, textAlign: "center", color: "#888", fontFamily: "system-ui, sans-serif" }}>Chargement...</div>;
+  if (error) return <div style={{ padding: 32, textAlign: "center", color: "#e53e3e", fontFamily: "system-ui, sans-serif" }}>{error}</div>;
+  if (!data || data.fiches.length === 0) return <div style={{ padding: 32, textAlign: "center", color: "#888", fontFamily: "system-ui, sans-serif" }}>Aucune fiche à afficher</div>;
 
-  const { widget, fiches } = data;
-  const theme = widget.settings?.theme || "light";
-  const isDark = theme === "dark";
-  const bgClass = isDark ? "bg-gray-900 text-white" : "bg-white text-gray-900";
-  const cardClass = isDark ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200";
+  const { fiches } = data;
 
   return (
-    <div className={`p-4 ${bgClass}`} style={{ fontFamily: "system-ui, -apple-system, sans-serif" }}>
-      <div className="space-y-4">
+    <div style={{ fontFamily: "system-ui, -apple-system, sans-serif", padding: 0, margin: 0 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 16 }}>
         {fiches.map((f) => (
-          <div key={f.fiche_id} className={`rounded-lg border p-4 ${cardClass}`}>
-            <h3 className="font-semibold text-sm mb-1">{f.nom}</h3>
-            {f.commune && (
-              <p className={`text-xs mb-2 ${isDark ? "text-gray-400" : "text-gray-500"}`}>{f.commune}</p>
-            )}
-            {f.horaires ? (
-              <pre className={`text-xs whitespace-pre-wrap font-sans leading-relaxed ${isDark ? "text-gray-300" : "text-gray-700"}`}>
-                {f.horaires}
-              </pre>
-            ) : (
-              <p className={`text-xs italic ${isDark ? "text-gray-500" : "text-gray-400"}`}>Horaires non renseignés</p>
-            )}
+          <div
+            key={f.fiche_id}
+            style={{
+              borderRadius: 12,
+              border: "1px solid #e5e7eb",
+              overflow: "hidden",
+              background: "#fff",
+              boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
+            }}
+          >
+            {/* Image */}
+            <div style={{ width: "100%", height: 160, overflow: "hidden", background: "#f3f4f6" }}>
+              {f.image_url ? (
+                <img
+                  src={f.image_url}
+                  alt={f.nom}
+                  style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+                  loading="lazy"
+                />
+              ) : (
+                <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: "#9ca3af", fontSize: 14 }}>
+                  📍
+                </div>
+              )}
+            </div>
+
+            {/* Content */}
+            <div style={{ padding: "12px 16px 16px" }}>
+              <h3 style={{ margin: "0 0 4px", fontSize: 15, fontWeight: 600, color: "#111827", lineHeight: 1.3 }}>
+                {f.nom}
+              </h3>
+              {f.commune && (
+                <p style={{ margin: "0 0 8px", fontSize: 12, color: "#6b7280" }}>
+                  📍 {f.commune}
+                </p>
+              )}
+              {f.horaires ? (
+                <pre style={{
+                  margin: 0,
+                  fontSize: 12,
+                  whiteSpace: "pre-wrap",
+                  fontFamily: "system-ui, sans-serif",
+                  lineHeight: 1.5,
+                  color: "#374151",
+                  background: "#f9fafb",
+                  borderRadius: 8,
+                  padding: "8px 10px",
+                }}>
+                  {f.horaires}
+                </pre>
+              ) : (
+                <p style={{ margin: 0, fontSize: 12, fontStyle: "italic", color: "#9ca3af" }}>
+                  Horaires non renseignés
+                </p>
+              )}
+            </div>
           </div>
         ))}
       </div>
