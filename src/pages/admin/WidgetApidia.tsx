@@ -442,7 +442,8 @@ export default function WidgetApidia() {
             ))}
           </div>
         )}
-      </div>
+        </div>
+      </Card>
     </>
   );
 }
