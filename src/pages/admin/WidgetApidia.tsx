@@ -197,10 +197,20 @@ export default function WidgetApidia() {
       <Card className="p-6">
         <div className="space-y-6">
         <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-              <Code className="h-6 w-6" />
-              Widget Apidia
+          <div className="flex items-center gap-3">
+            <Button variant="ghost" size="icon" onClick={() => navigate("/admin/dashboard")}>
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+                <Code className="h-6 w-6" />
+                Widget Apidia
+              </h1>
+              <p className="text-muted-foreground text-sm mt-1">
+                Créez des widgets pour intégrer les fiches touristiques sur des sites externes
+              </p>
+            </div>
+          </div>
             </h1>
             <p className="text-muted-foreground text-sm mt-1">
               Créez des widgets pour intégrer les fiches touristiques sur des sites externes
