@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import Seo from "@/components/Seo";
-import { Code, Copy, Plus, Trash2, Eye, LayoutGrid, Map, Layers, Settings } from "lucide-react";
+import { ArrowLeft, Code, Copy, Plus, Trash2, Eye, LayoutGrid, Map, Layers, Settings } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { logUserAction } from "@/lib/logUserAction";
 
