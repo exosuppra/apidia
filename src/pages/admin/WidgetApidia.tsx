@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import Seo from "@/components/Seo";
-import { Code, Copy, Plus, Trash2, Eye, LayoutGrid, Map, Layers, Settings } from "lucide-react";
+import { ArrowLeft, Code, Copy, Plus, Trash2, Eye, LayoutGrid, Map, Layers, Settings } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { logUserAction } from "@/lib/logUserAction";
 
@@ -39,6 +40,7 @@ const WIDGET_TYPES = [
 ];
 
 export default function WidgetApidia() {
+  const navigate = useNavigate();
   const [widgets, setWidgets] = useState<Widget[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
@@ -195,14 +197,19 @@ export default function WidgetApidia() {
       <Card className="p-6">
         <div className="space-y-6">
         <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-              <Code className="h-6 w-6" />
-              Widget Apidia
-            </h1>
-            <p className="text-muted-foreground text-sm mt-1">
-              Créez des widgets pour intégrer les fiches touristiques sur des sites externes
-            </p>
+          <div className="flex items-center gap-3">
+            <Button variant="ghost" size="icon" onClick={() => navigate("/admin/dashboard")}>
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+                <Code className="h-6 w-6" />
+                Widget Apidia
+              </h1>
+              <p className="text-muted-foreground text-sm mt-1">
+                Créez des widgets pour intégrer les fiches touristiques sur des sites externes
+              </p>
+            </div>
           </div>
           <Button onClick={() => setShowCreate(true)}>
             <Plus className="h-4 w-4 mr-2" />
