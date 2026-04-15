@@ -210,12 +210,6 @@ export default function WidgetApidia() {
                 Créez des widgets pour intégrer les fiches touristiques sur des sites externes
               </p>
             </div>
-          </div>
-            </h1>
-            <p className="text-muted-foreground text-sm mt-1">
-              Créez des widgets pour intégrer les fiches touristiques sur des sites externes
-            </p>
-          </div>
           <Button onClick={() => setShowCreate(true)}>
             <Plus className="h-4 w-4 mr-2" />
             Nouveau widget
