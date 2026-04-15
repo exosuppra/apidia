@@ -44,6 +44,24 @@ export default function WidgetEmbed() {
     fetchData();
   }, [token]);
 
+  // Auto-resize: notify parent iframe of content height
+  useEffect(() => {
+    const sendHeight = () => {
+      const height = document.documentElement.scrollHeight;
+      window.parent.postMessage({ type: "apidia-widget-resize", height }, "*");
+    };
+    // Send on load, after images, and on resize
+    sendHeight();
+    const interval = setInterval(sendHeight, 500);
+    const timeout = setTimeout(() => clearInterval(interval), 5000);
+    window.addEventListener("resize", sendHeight);
+    return () => {
+      clearInterval(interval);
+      clearTimeout(timeout);
+      window.removeEventListener("resize", sendHeight);
+    };
+  }, [data]);
+
   if (loading) return <div style={{ padding: 32, textAlign: "center", color: "#888", fontFamily: "system-ui, sans-serif" }}>Chargement...</div>;
   if (error) return <div style={{ padding: 32, textAlign: "center", color: "#e53e3e", fontFamily: "system-ui, sans-serif" }}>{error}</div>;
   if (!data || data.fiches.length === 0) return <div style={{ padding: 32, textAlign: "center", color: "#888", fontFamily: "system-ui, sans-serif" }}>Aucune fiche à afficher</div>;
