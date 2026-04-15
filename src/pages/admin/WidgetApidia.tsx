@@ -156,25 +156,32 @@ export default function WidgetApidia() {
 
   const getIframeCode = (widget: Widget) => {
     const baseUrl = window.location.origin;
-    return `<iframe src="${baseUrl}/widget/${widget.share_token}" width="100%" height="500" frameborder="0" style="border:none;border-radius:8px;"></iframe>`;
+    return `<iframe id="apidia-widget-${widget.share_token}" src="${baseUrl}/widget/${widget.share_token}" width="100%" frameborder="0" style="border:none;border-radius:8px;"></iframe>
+<script>
+window.addEventListener('message', function(e) {
+  if (e.data && e.data.type === 'apidia-widget-resize') {
+    var iframe = document.getElementById('apidia-widget-${widget.share_token}');
+    if (iframe) iframe.style.height = e.data.height + 'px';
+  }
+});
+</script>`;
   };
 
   const getScriptCode = (widget: Widget) => {
-    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-    return `<div id="apidia-widget-${widget.share_token}"></div>
+    return `<div id="apidia-container-${widget.share_token}"></div>
 <script>
 (function() {
-  var container = document.getElementById('apidia-widget-${widget.share_token}');
+  var container = document.getElementById('apidia-container-${widget.share_token}');
   var iframe = document.createElement('iframe');
+  iframe.id = 'apidia-widget-${widget.share_token}';
   iframe.src = '${window.location.origin}/widget/${widget.share_token}';
-  iframe.style.cssText = 'width:100%;border:none;border-radius:8px;min-height:500px;';
-  iframe.onload = function() {
-    // Auto-resize based on content
-    try {
-      iframe.style.height = iframe.contentWindow.document.body.scrollHeight + 'px';
-    } catch(e) {}
-  };
+  iframe.style.cssText = 'width:100%;border:none;border-radius:8px;';
   container.appendChild(iframe);
+  window.addEventListener('message', function(e) {
+    if (e.data && e.data.type === 'apidia-widget-resize') {
+      iframe.style.height = e.data.height + 'px';
+    }
+  });
 })();
 </script>`;
   };
