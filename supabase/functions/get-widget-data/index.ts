@@ -84,12 +84,26 @@ serve(async (req) => {
       const commune = d.localisation?.adresse?.commune?.nom || "";
       const horaires = d.ouverture?.periodeEnClair?.libelleFr || null;
 
+      // Extract first image URL
+      let image_url: string | null = null;
+      const illustrations = d.illustrations;
+      if (Array.isArray(illustrations) && illustrations.length > 0) {
+        const traductionFichiers = illustrations[0]?.traductionFichiers;
+        if (Array.isArray(traductionFichiers) && traductionFichiers.length > 0) {
+          let url = traductionFichiers[0]?.url || null;
+          if (url && url.startsWith("//")) url = "https:" + url;
+          if (url && url.startsWith("http://")) url = url.replace("http://", "https://");
+          image_url = url;
+        }
+      }
+
       return {
         fiche_id: f.fiche_id,
         fiche_type: f.fiche_type,
         nom,
         commune,
         horaires,
+        image_url,
       };
     });
 
