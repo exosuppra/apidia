@@ -27,6 +27,7 @@ import { SiteComparisonChart } from "@/components/stats/SiteComparisonChart";
 import { format, parse, isAfter, isBefore, isValid } from "date-fns";
 import { fr } from "date-fns/locale";
 import { cn } from "@/lib/utils";
+import { logUserAction } from "@/lib/logUserAction";
 
 interface EstablishmentEntry {
   date: string;

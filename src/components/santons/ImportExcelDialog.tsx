@@ -6,6 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Upload, Loader2 } from "lucide-react";
 import XLSX from "xlsx-js-style";
 import type { SantonsEdition } from "@/pages/admin/PlanningSantons";
+import { logUserAction } from "@/lib/logUserAction";
 
 interface ImportExcelDialogProps {
   open: boolean;
@@ -174,6 +175,7 @@ export default function ImportExcelDialog({ open, onOpenChange, edition, onImpor
         }
       }
 
+      logUserAction("santons_import_excel", { edition_id: edition.id, edition_title: edition.title });
       toast({ title: "Import réussi", description: "Les données ont été importées." });
       onImported();
       onOpenChange(false);
