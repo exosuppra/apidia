@@ -228,31 +228,38 @@ export default function DashboardRefonte() {
                 <div style={{ padding: 20, textAlign: "center", color: "var(--text-3)", fontSize: 13 }}>Aucune activité récente</div>
               )}
               {!loading &&
-                activity.slice(0, 6).map((a, i) => (
-                  <div
-                    key={a.id}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 12,
-                      padding: "12px 18px",
-                      borderBottom: i < Math.min(activity.length, 6) - 1 ? "1px solid var(--border)" : "none",
-                      animation: `refonte-slide-in-right 400ms ${i * 50}ms var(--ease-out) both`,
-                    }}
-                  >
-                    <div style={{ width: 6, height: 6, borderRadius: 3, background: "var(--pdm-vert)", flexShrink: 0 }} />
-                    <div style={{ flex: 1, minWidth: 0, fontSize: 13 }}>
-                      <b>{(a.user_email || "Système").split("@")[0]}</b>
-                      <span style={{ color: "var(--text-3)" }}> {formatAction(a.action_type)}</span>
-                      {a.action_details && typeof a.action_details === "object" && (a.action_details as any).target && (
-                        <b style={{ color: "var(--pdm-vert)" }}> {(a.action_details as any).target}</b>
-                      )}
+                activity.slice(0, 6).map((a, i) => {
+                  const detail = describeDetails(a.action_details);
+                  return (
+                    <div
+                      key={a.id}
+                      style={{
+                        display: "flex",
+                        alignItems: "flex-start",
+                        gap: 12,
+                        padding: "12px 18px",
+                        borderBottom: i < Math.min(activity.length, 6) - 1 ? "1px solid var(--border)" : "none",
+                        animation: `refonte-slide-in-right 400ms ${i * 50}ms var(--ease-out) both`,
+                      }}
+                    >
+                      <div style={{ width: 6, height: 6, borderRadius: 3, background: "var(--pdm-vert)", flexShrink: 0, marginTop: 7 }} />
+                      <div style={{ flex: 1, minWidth: 0, fontSize: 13, lineHeight: 1.45 }}>
+                        <div>
+                          <b>{(a.user_email || "Système").split("@")[0]}</b>
+                          <span style={{ color: "var(--text-3)" }}> {formatAction(a.action_type)}</span>
+                        </div>
+                        {detail && (
+                          <div style={{ fontSize: 12, color: "var(--text-2)", marginTop: 2, wordBreak: "break-word" }}>
+                            {detail}
+                          </div>
+                        )}
+                      </div>
+                      <div style={{ fontSize: 11, color: "var(--text-3)", fontFamily: "var(--font-mono)", flexShrink: 0, marginTop: 2 }}>
+                        {formatDate(a.created_at)}
+                      </div>
                     </div>
-                    <div style={{ fontSize: 11, color: "var(--text-3)", fontFamily: "var(--font-mono)", flexShrink: 0 }}>
-                      {formatDate(a.created_at)}
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
             </div>
           </section>
 
