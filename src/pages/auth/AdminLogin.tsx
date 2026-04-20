@@ -179,7 +179,7 @@ function InterfaceChooser({ value, onChange }: InterfaceChooserProps) {
   return (
     <div className="pt-2">
       <Label className="text-xs text-muted-foreground mb-2 block">Interface après connexion</Label>
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
         {options.map(o => {
           const active = value === o.k;
           return (

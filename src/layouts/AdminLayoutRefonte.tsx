@@ -10,10 +10,10 @@ import { useAdminInterface } from "@/hooks/useAdminInterface";
 import "@/pages/refonte/refonte-tokens.css";
 
 /* ===============================================================
-   AdminLayoutRefonte
-   Shell admin en charte Pays de Manosque — réutilise le V1Shell
-   de la Refonte mais avec navigation react-router réelle et
-   l'authentification Supabase existante.
+   AdminLayoutRefonte — responsive
+   Desktop : sidebar sticky + topbar
+   Tablet  : sidebar sticky + topbar compacte
+   Mobile  : drawer slide-in + topbar hamburger + bottom nav fixée
    =============================================================== */
 
 interface AdminLayoutRefonteProps {
@@ -47,6 +47,7 @@ export default function AdminLayoutRefonte({ children }: AdminLayoutRefonteProps
   const location = useLocation();
   const [, setInterface] = useAdminInterface();
   const [permissions, setPermissions] = useState<{ apidia: boolean; oto: boolean }>({ apidia: false, oto: false });
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const [profile, setProfile] = useState<{ name: string; email: string; initials: string; role: string }>({
     name: "Administrateur",
     email: "",
@@ -54,7 +55,24 @@ export default function AdminLayoutRefonte({ children }: AdminLayoutRefonteProps
     role: "Administrateur",
   });
 
-  // Applique le thème PdM sur le document (garde la parité avec Lovable's AdminLayout)
+  // Ferme automatiquement le drawer lors d'une navigation
+  useEffect(() => {
+    setDrawerOpen(false);
+  }, [location.pathname]);
+
+  // Désactive le scroll du body quand le drawer est ouvert
+  useEffect(() => {
+    if (drawerOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [drawerOpen]);
+
+  // Applique le thème PdM
   useEffect(() => {
     const root = document.documentElement;
     const previous = Array.from(root.classList).filter((c) => c.startsWith("theme-"));
@@ -66,7 +84,7 @@ export default function AdminLayoutRefonte({ children }: AdminLayoutRefonteProps
     };
   }, []);
 
-  // Permissions pour les floating chats
+  // Permissions floating chats
   useEffect(() => {
     const check = async () => {
       if (!user || isGoogleSheetsUser) {
@@ -89,7 +107,7 @@ export default function AdminLayoutRefonte({ children }: AdminLayoutRefonteProps
     check();
   }, [user, isGoogleSheetsUser]);
 
-  // Profil utilisateur courant (nom, email, initiales)
+  // Profil
   useEffect(() => {
     if (!user) return;
     const email = (user as any).email || "";
@@ -120,9 +138,7 @@ export default function AdminLayoutRefonte({ children }: AdminLayoutRefonteProps
     navigate("/admin/login");
   };
 
-  const switchToClassic = () => {
-    setInterface("classic");
-  };
+  const switchToClassic = () => setInterface("classic");
 
   const isActive = (item: NavItem) => {
     const prefixes = item.matchPrefixes || [item.to];
@@ -133,27 +149,38 @@ export default function AdminLayoutRefonte({ children }: AdminLayoutRefonteProps
 
   return (
     <div className="refonte-root" data-accent="jaune" data-density="comfy" data-motion="on">
-      <div style={{ display: "grid", gridTemplateColumns: "240px 1fr", minHeight: "100vh", background: "var(--gris-100)" }}>
-        {/* Sidebar */}
-        <aside
-          style={{
-            background: "var(--gris-900)",
-            color: "white",
-            padding: "22px 16px 16px",
-            display: "flex",
-            flexDirection: "column",
-            gap: 14,
-            position: "sticky",
-            top: 0,
-            height: "100vh",
-          }}
-        >
+      <div className="refonte-shell" data-drawer-open={drawerOpen}>
+        {/* Backdrop pour drawer mobile */}
+        <div className="refonte-mobile-drawer-backdrop" onClick={() => setDrawerOpen(false)} />
+
+        {/* Sidebar (desktop permanente, mobile = drawer) */}
+        <aside className="refonte-sidebar">
           <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "0 4px" }}>
             <ApidiaLogo size={40} />
-            <div>
+            <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontFamily: "var(--font-display)", fontSize: 18, lineHeight: 1, letterSpacing: "-0.01em" }}>APIDIA</div>
               <div style={{ fontSize: 10, color: "rgba(255,255,255,0.55)", textTransform: "uppercase", letterSpacing: "0.1em", marginTop: 2 }}>Back-office PdM</div>
             </div>
+            {/* Close button visible uniquement en drawer mobile */}
+            <button
+              onClick={() => setDrawerOpen(false)}
+              aria-label="Fermer le menu"
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: 8,
+                background: "rgba(255,255,255,0.06)",
+                color: "white",
+                display: "none",
+                alignItems: "center",
+                justifyContent: "center",
+                border: "none",
+                cursor: "pointer",
+              }}
+              className="refonte-sidebar-close"
+            >
+              <Icon name="x" size={14} />
+            </button>
           </div>
 
           <nav style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 2 }}>
@@ -198,7 +225,7 @@ export default function AdminLayoutRefonte({ children }: AdminLayoutRefonteProps
 
           <div style={{ flex: 1 }} />
 
-          {/* Bouton switch interface */}
+          {/* Switch interface */}
           <button
             onClick={switchToClassic}
             title="Revenir à l'interface classique"
@@ -276,28 +303,24 @@ export default function AdminLayoutRefonte({ children }: AdminLayoutRefonteProps
         </aside>
 
         {/* Main */}
-        <main style={{ minWidth: 0, display: "flex", flexDirection: "column" }}>
+        <main className="refonte-main">
           {/* Top bar */}
-          <header
-            style={{
-              padding: "20px 32px 16px",
-              display: "flex",
-              alignItems: "center",
-              gap: 16,
-              borderBottom: "1px solid var(--border)",
-              background: "var(--surface)",
-              position: "sticky",
-              top: 0,
-              zIndex: 30,
-            }}
-          >
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <h1 style={{ fontFamily: "var(--font-display)", fontSize: 22, letterSpacing: "-0.025em", margin: 0, lineHeight: 1.1 }}>
-                {pageTitle.title}
-              </h1>
-              <div style={{ fontSize: 12, color: "var(--text-3)", marginTop: 3 }}>{pageTitle.subtitle}</div>
+          <header className="refonte-topbar">
+            {/* Hamburger mobile */}
+            <button
+              className="refonte-topbar-menu"
+              onClick={() => setDrawerOpen(true)}
+              aria-label="Ouvrir le menu"
+            >
+              <Icon name="list" size={16} />
+            </button>
+
+            <div className="refonte-topbar-title">
+              <h1>{pageTitle.title}</h1>
+              <div className="refonte-topbar-subtitle">{pageTitle.subtitle}</div>
             </div>
-            <div style={{ display: "flex", gap: 6 }}>
+
+            <div className="refonte-topbar-actions-desktop">
               <Button variant="ghost" size="sm" icon="refresh" onClick={switchToClassic}>
                 Interface classique
               </Button>
@@ -312,6 +335,7 @@ export default function AdminLayoutRefonte({ children }: AdminLayoutRefonteProps
                   alignItems: "center",
                   justifyContent: "center",
                   position: "relative",
+                  cursor: "pointer",
                 }}
               >
                 <Icon name="bell" size={15} />
@@ -336,12 +360,34 @@ export default function AdminLayoutRefonte({ children }: AdminLayoutRefonteProps
                 </div>
               </div>
             </div>
+
+            {/* Avatar seul en mobile */}
+            <div className="refonte-topbar-avatar-mobile" onClick={() => setDrawerOpen(true)} style={{ cursor: "pointer" }}>
+              <Avatar initials={profile.initials} size={34} color="vert" />
+            </div>
           </header>
 
-          {/* Page content */}
+          {/* Contenu de la page */}
           <div style={{ flex: 1, minWidth: 0 }}>{children}</div>
         </main>
       </div>
+
+      {/* Bottom nav mobile */}
+      <nav className="refonte-bottom-nav">
+        {NAV.map((n) => {
+          const active = isActive(n);
+          return (
+            <NavLink
+              key={n.id}
+              to={n.to}
+              className={`refonte-bottom-nav-item ${active ? "active" : ""}`}
+            >
+              <Icon name={n.icon} size={20} />
+              <span>{n.label}</span>
+            </NavLink>
+          );
+        })}
+      </nav>
 
       {permissions.apidia && <FloatingChat />}
       {permissions.oto && <FloatingOtoChat />}
