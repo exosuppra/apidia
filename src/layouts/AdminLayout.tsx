@@ -13,6 +13,18 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   const { user, isGoogleSheetsUser } = useAuth();
   const [permissions, setPermissions] = useState<{ apidia: boolean; oto: boolean }>({ apidia: false, oto: false });
 
+  // Apply Pays de Manosque tourisme theme to entire admin area
+  useEffect(() => {
+    const root = document.documentElement;
+    const previousThemes = Array.from(root.classList).filter(c => c.startsWith('theme-'));
+    previousThemes.forEach(c => root.classList.remove(c));
+    root.classList.add('theme-tourisme');
+    return () => {
+      root.classList.remove('theme-tourisme');
+      previousThemes.forEach(c => root.classList.add(c));
+    };
+  }, []);
+
   useEffect(() => {
     const check = async () => {
       if (!user || isGoogleSheetsUser) {
