@@ -255,6 +255,26 @@ export default function DashboardRefonte() {
                 ))}
             </div>
           </section>
+
+          {/* OTO Arena — Agents IA en direct */}
+          <section style={{ marginTop: 42 }}>
+            <div style={{ display: "flex", alignItems: "baseline", gap: 14, marginBottom: 16 }}>
+              <div style={{ width: 30, height: 30, borderRadius: 8, background: "var(--gris-800)", color: "var(--pdm-vert)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <Icon name="chat" size={15} />
+              </div>
+              <h2 style={{ fontFamily: "var(--font-display)", fontSize: 19, letterSpacing: "-0.015em", margin: 0, color: "var(--pdm-vert)" }}>OTO Arena — Agents IA en direct</h2>
+              <div style={{ flex: 1, height: 1, background: "var(--border)" }} />
+              <div style={{ fontSize: 10, color: "var(--text-3)", fontFamily: "var(--font-mono)" }}>Live</div>
+            </div>
+            <div style={{ background: "var(--surface)", borderRadius: 14, border: "1px solid var(--border)", overflow: "hidden" }}>
+              <iframe
+                src="https://oto-arena.lovable.app/embed?focus=b5b567c6-f866-45a1-8b7a-7f1a267a1f64"
+                style={{ width: "100%", height: 500, border: 0, display: "block" }}
+                allow="autoplay"
+                title="OTO Arena - Claude Pixel Live"
+              />
+            </div>
+          </section>
         </div>
       </div>
     </>
