@@ -284,6 +284,7 @@ export default function StatsEreputation() {
 
       const response = data as StatsResponse;
       setEstablishments(response.establishments || []);
+      logUserAction("stats_ereputation_refresh", { count: response.establishments?.length || 0 });
       
       if (response.establishments?.length > 0) {
         toast({
