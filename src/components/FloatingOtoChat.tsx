@@ -161,7 +161,7 @@ export default function FloatingOtoChat() {
 
       {/* Chat window */}
       {isOpen && (
-        <div className="fixed bottom-24 left-6 w-80 sm:w-96 h-[500px] bg-card border rounded-lg shadow-xl z-50 flex flex-col overflow-hidden animate-in slide-in-from-bottom-5 duration-200">
+        <div className="fixed bottom-24 right-6 w-80 sm:w-96 h-[500px] bg-card border rounded-lg shadow-xl z-50 flex flex-col overflow-hidden animate-in slide-in-from-bottom-5 duration-200">
           {/* Header */}
           <div className="bg-gradient-to-r from-orange-500 to-amber-500 text-white p-3 flex items-center justify-between">
             <div className="flex items-center gap-3">
