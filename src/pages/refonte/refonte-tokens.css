@@ -237,3 +237,449 @@
   transition: all var(--dur-fast);
 }
 .refonte-root .tweak-row .opts button.active { background: var(--gris-900); color: white; border-color: var(--gris-900); }
+
+/* ================================================================
+   Layout shell (responsive)
+   Desktop: sidebar fixe 240px + main
+   Tablet  : sidebar 240px + grille 2 cols
+   Mobile  : sidebar en drawer, bottom nav, topbar compacte
+   ================================================================ */
+.refonte-root .refonte-shell {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  min-height: 100vh;
+  background: var(--gris-100);
+}
+
+.refonte-root .refonte-sidebar {
+  background: var(--gris-900);
+  color: white;
+  padding: 22px 16px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+}
+
+.refonte-root .refonte-main {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.refonte-root .refonte-topbar {
+  padding: 20px 32px 16px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  position: sticky;
+  top: 0;
+  z-index: 30;
+}
+
+.refonte-root .refonte-topbar-title { flex: 1; min-width: 0; }
+.refonte-root .refonte-topbar h1 {
+  font-family: var(--font-display);
+  font-size: 22px;
+  letter-spacing: -0.025em;
+  margin: 0;
+  line-height: 1.1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.refonte-root .refonte-topbar-subtitle {
+  font-size: 12px;
+  color: var(--text-3);
+  margin-top: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.refonte-root .refonte-topbar-menu {
+  display: none;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.refonte-root .refonte-topbar-actions-desktop { display: flex; gap: 6px; align-items: center; }
+.refonte-root .refonte-topbar-avatar-mobile { display: none; }
+
+.refonte-root .refonte-mobile-drawer-backdrop { display: none; }
+
+.refonte-root .refonte-bottom-nav { display: none; }
+
+.refonte-root .refonte-hub-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+
+.refonte-root .refonte-hub-container {
+  padding: 36px 44px 24px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.refonte-root .refonte-hero {
+  padding: 28px 44px 24px;
+  background: var(--surface);
+}
+
+.refonte-root .refonte-hero-eyebrow {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--pdm-vert);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+
+.refonte-root .refonte-hero-title {
+  font-family: var(--font-display);
+  font-size: 38px;
+  letter-spacing: -0.03em;
+  margin: 0;
+  line-height: 1.05;
+  max-width: 900px;
+}
+
+.refonte-root .refonte-hero-sub {
+  font-size: 13px;
+  color: var(--text-3);
+  margin-top: 12px;
+  max-width: 680px;
+}
+
+.refonte-root .refonte-section-head {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.refonte-root .refonte-section-head h2 {
+  font-family: var(--font-display);
+  font-size: 19px;
+  letter-spacing: -0.015em;
+  margin: 0;
+  color: var(--pdm-vert);
+}
+
+.refonte-root .refonte-section-count {
+  font-size: 10px;
+  color: var(--text-3);
+  font-family: var(--font-mono);
+  white-space: nowrap;
+}
+
+.refonte-root .refonte-section-divider {
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+/* === Tablet : 2 colonnes hub + sidebar plus fine === */
+@media (max-width: 1100px) {
+  .refonte-root .refonte-hub-grid { grid-template-columns: repeat(2, 1fr); }
+  .refonte-root .refonte-topbar { padding: 16px 20px; }
+  .refonte-root .refonte-hero { padding: 22px 20px 18px; }
+  .refonte-root .refonte-hub-container { padding: 28px 20px 24px; }
+}
+
+/* === Mobile : drawer + bottom nav, single col, compact topbar === */
+@media (max-width: 768px) {
+  .refonte-root .refonte-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .refonte-root .refonte-sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 280px;
+    max-width: 80vw;
+    height: 100vh;
+    z-index: 100;
+    transform: translateX(-105%);
+    transition: transform var(--dur-med) var(--ease-out);
+    box-shadow: var(--sh-lg);
+  }
+
+  .refonte-root .refonte-shell[data-drawer-open="true"] .refonte-sidebar {
+    transform: translateX(0);
+  }
+
+  .refonte-root .refonte-shell[data-drawer-open="true"] .refonte-mobile-drawer-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 99;
+    animation: refonte-fade-in 200ms var(--ease-out);
+  }
+
+  .refonte-root .refonte-topbar {
+    padding: 12px 14px;
+    gap: 10px;
+  }
+
+  .refonte-root .refonte-topbar-menu { display: flex; flex-shrink: 0; }
+  .refonte-root .refonte-topbar-actions-desktop { display: none; }
+  .refonte-root .refonte-topbar-avatar-mobile { display: flex; flex-shrink: 0; }
+  .refonte-root .refonte-sidebar-close { display: flex !important; }
+
+  .refonte-root .refonte-topbar h1 { font-size: 17px; }
+  .refonte-root .refonte-topbar-subtitle { display: none; }
+
+  /* Bottom nav mobile */
+  .refonte-root .refonte-bottom-nav {
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 62px;
+    background: var(--gris-900);
+    color: white;
+    z-index: 50;
+    padding: 6px 0;
+    padding-bottom: calc(6px + env(safe-area-inset-bottom));
+    border-top: 1px solid rgba(255,255,255,0.08);
+    box-shadow: 0 -4px 12px rgba(0,0,0,0.15);
+  }
+
+  .refonte-root .refonte-bottom-nav-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    color: rgba(255,255,255,0.55);
+    font-size: 10px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: color var(--dur-fast);
+    position: relative;
+    cursor: pointer;
+    background: transparent;
+    border: none;
+  }
+
+  .refonte-root .refonte-bottom-nav-item.active { color: var(--pdm-jaune); }
+
+  .refonte-root .refonte-bottom-nav-item.active::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 20%;
+    right: 20%;
+    height: 2px;
+    background: var(--pdm-jaune);
+    border-radius: 0 0 3px 3px;
+  }
+
+  /* Hub mobile : single col, pad réduit, espace pour bottom nav */
+  .refonte-root .refonte-hub-grid { grid-template-columns: 1fr; gap: 10px; }
+  .refonte-root .refonte-hub-container { padding: 18px 14px 84px; }
+  .refonte-root .refonte-hero { padding: 18px 14px 14px; }
+  .refonte-root .refonte-hero-title { font-size: 24px; line-height: 1.08; }
+  .refonte-root .refonte-hero-eyebrow { font-size: 9px; }
+  .refonte-root .refonte-hero-sub { font-size: 12px; margin-top: 10px; }
+
+  .refonte-root .refonte-section-head { gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
+  .refonte-root .refonte-section-head h2 { font-size: 15px; }
+  .refonte-root .refonte-section-count { font-size: 9px; }
+}
+
+@media (max-width: 380px) {
+  .refonte-root .refonte-topbar h1 { font-size: 15px; }
+  .refonte-root .refonte-hero-title { font-size: 21px; }
+}
+
+/* ================================================================
+   Motion design avancé — signature Apidia / Pays de Manosque
+   ================================================================ */
+
+/* Page enter (animée via clé location.pathname) */
+@keyframes refonte-page-enter {
+  0%   { opacity: 0; transform: translateY(10px); filter: blur(2px); }
+  100% { opacity: 1; transform: translateY(0); filter: blur(0); }
+}
+
+.refonte-root .refonte-page {
+  animation: refonte-page-enter 420ms var(--ease-out) both;
+}
+
+/* Topbar title re-enters on route change */
+@keyframes refonte-title-enter {
+  0% { opacity: 0; transform: translateX(-6px); }
+  100% { opacity: 1; transform: translateX(0); }
+}
+
+.refonte-root .refonte-topbar-title-inner {
+  animation: refonte-title-enter 300ms var(--ease-out) both;
+}
+
+/* Halo faisceau autour du logo (signature PdM) */
+@keyframes refonte-halo-pulse {
+  0%, 100% { opacity: 0.2; transform: scale(1); }
+  50%      { opacity: 0.55; transform: scale(1.15); }
+}
+
+.refonte-root .refonte-logo-halo {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.refonte-root .refonte-logo-halo::after {
+  content: "";
+  position: absolute;
+  inset: -8px;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--pdm-jaune) 0%, transparent 62%);
+  opacity: 0.35;
+  z-index: 0;
+  animation: refonte-halo-pulse 3.4s ease-in-out infinite;
+  pointer-events: none;
+  filter: blur(4px);
+}
+
+.refonte-root .refonte-logo-halo > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Status dot pulse */
+@keyframes refonte-dot-pulse {
+  0%   { box-shadow: 0 0 0 0 rgba(162, 199, 67, 0.6); }
+  70%  { box-shadow: 0 0 0 8px rgba(162, 199, 67, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(162, 199, 67, 0); }
+}
+
+.refonte-root .refonte-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 4px;
+  background: var(--pdm-vert);
+  animation: refonte-dot-pulse 2.2s ease-in-out infinite;
+}
+
+/* Skeleton shimmer pour états de chargement */
+@keyframes refonte-skeleton-slide {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.refonte-root .refonte-skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--gris-150) 25%,
+    var(--gris-100) 50%,
+    var(--gris-150) 75%
+  );
+  background-size: 200% 100%;
+  animation: refonte-skeleton-slide 1.4s ease-in-out infinite;
+  border-radius: 6px;
+  display: block;
+}
+
+/* Bottom nav tap/active bounce */
+@keyframes refonte-tap-bounce {
+  0%, 100% { transform: scale(1); }
+  45%      { transform: scale(0.85); }
+  70%      { transform: scale(1.08); }
+}
+
+.refonte-root .refonte-bottom-nav-item {
+  transition: transform var(--dur-fast), color var(--dur-fast);
+}
+
+.refonte-root .refonte-bottom-nav-item:active {
+  transform: scale(0.92);
+}
+
+.refonte-root .refonte-bottom-nav-item.active svg {
+  animation: refonte-tap-bounce 420ms var(--ease-spring);
+}
+
+/* Hub card icon wiggle (desktop hover) */
+@keyframes refonte-icon-wiggle {
+  0%, 100% { transform: scale(1) rotate(0); }
+  30%      { transform: scale(1.12) rotate(-10deg); }
+  60%      { transform: scale(1.08) rotate(6deg); }
+}
+
+@media (hover: hover) {
+  .refonte-root .refonte-hub-card:hover .refonte-hub-icon {
+    animation: refonte-icon-wiggle 550ms var(--ease-spring);
+  }
+}
+
+/* Active nav indicator slide in */
+@keyframes refonte-active-indicator {
+  0% { transform: scaleY(0); opacity: 0; }
+  100% { transform: scaleY(1); opacity: 1; }
+}
+
+.refonte-root .refonte-nav-active-indicator {
+  transform-origin: center;
+  animation: refonte-active-indicator 300ms var(--ease-spring) both;
+}
+
+/* Sidebar nav item hover */
+.refonte-root .refonte-sidebar-nav-item {
+  transition: background var(--dur-fast), color var(--dur-fast), transform var(--dur-fast);
+}
+
+@media (hover: hover) {
+  .refonte-root .refonte-sidebar-nav-item:not(.active):hover {
+    transform: translateX(2px);
+  }
+}
+
+/* Button subtle press */
+.refonte-root button:not(:disabled):active:not(.refonte-bottom-nav-item) {
+  transform: scale(0.98);
+  transition: transform 60ms ease-out;
+}
+
+/* Drawer entrance polish */
+@media (max-width: 768px) {
+  .refonte-root .refonte-shell[data-drawer-open="true"] .refonte-sidebar {
+    animation: refonte-drawer-slide 320ms var(--ease-out);
+  }
+
+  @keyframes refonte-drawer-slide {
+    from { transform: translateX(-105%); }
+    to   { transform: translateX(0); }
+  }
+}
+
+/* Respecte la préférence utilisateur "reduced motion" */
+@media (prefers-reduced-motion: reduce) {
+  .refonte-root *,
+  .refonte-root *::before,
+  .refonte-root *::after {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
+    transition-duration: 0.01ms !important;
+  }
+  .refonte-root .refonte-logo-halo::after { display: none; }
+  .refonte-root .refonte-status-dot { animation: none; }
+}
