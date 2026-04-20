@@ -683,3 +683,33 @@
   .refonte-root .refonte-logo-halo::after { display: none; }
   .refonte-root .refonte-status-dot { animation: none; }
 }
+
+/* ================================================================
+   Page Login — responsive
+   ================================================================ */
+.refonte-login-root .refonte-login-chooser-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+@media (max-width: 480px) {
+  .refonte-login-root {
+    padding: 16px !important;
+    align-items: flex-start !important;
+    padding-top: 40px !important;
+  }
+  .refonte-login-root .refonte-login-card {
+    padding: 24px 20px !important;
+    border-radius: 18px !important;
+  }
+  .refonte-login-root .refonte-login-chooser-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 380px) {
+  .refonte-login-root .refonte-login-card h1 {
+    font-size: 22px !important;
+  }
+}
