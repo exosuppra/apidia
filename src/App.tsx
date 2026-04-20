@@ -53,6 +53,7 @@ import ApidiaChat from "./pages/ApidiaChat";
 import TelegramOTO from "./pages/admin/TelegramOTO";
 import WidgetApidia from "./pages/admin/WidgetApidia";
 import WidgetEmbed from "./pages/WidgetEmbed";
+import Refonte from "./pages/refonte/Refonte";
 
 const queryClient = new QueryClient();
 
@@ -288,6 +289,9 @@ const App = () => (
             
             {/* Public widget embed */}
             <Route path="/widget/:token" element={<WidgetEmbed />} />
+
+            {/* Refonte preview — charte Pays de Manosque (V1 Éditorial) */}
+            <Route path="/admin/refonte" element={<Refonte />} />
             
             {/* Main business dashboard */}
             <Route path="/avis" element={
