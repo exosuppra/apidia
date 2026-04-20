@@ -9,6 +9,7 @@ import { Plus, Trash2, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import type { SantonsEdition } from "@/pages/admin/PlanningSantons";
+import { logUserAction } from "@/lib/logUserAction";
 
 interface EditionSelectorProps {
   editions: SantonsEdition[];
@@ -52,6 +53,7 @@ export default function EditionSelector({ editions, selected, onSelect, onRefres
         await importFromEdition(importFrom, newEdition.id, startDate, endDate);
       }
 
+      logUserAction("santons_create_edition", { title, year: parseInt(year), imported_from: importFrom || null });
       toast({ title: "Édition créée", description: importFrom ? "Données importées depuis l'édition précédente." : undefined });
       setShowNew(false);
       resetForm();
@@ -206,6 +208,7 @@ export default function EditionSelector({ editions, selected, onSelect, onRefres
       // Delete edition
       await supabase.from("santons_editions").delete().eq("id", selected.id);
 
+      logUserAction("santons_delete_edition", { edition_id: selected.id, title: selected.title });
       toast({ title: "Édition supprimée", description: `"${selected.title}" et toutes ses données ont été supprimées.` });
       setShowDelete(false);
       onRefresh();

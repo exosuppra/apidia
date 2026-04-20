@@ -32,6 +32,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import type { EditorialPlanning } from "@/types/planning";
+import { logUserAction } from "@/lib/logUserAction";
 
 interface PlanningSelectorProps {
   plannings: EditorialPlanning[];
@@ -81,6 +82,7 @@ export function PlanningSelector({
 
       if (error) throw error;
 
+      logUserAction("create_planning", { title });
       toast({
         title: "Succès",
         description: "Planning créé avec succès",
@@ -123,6 +125,7 @@ export function PlanningSelector({
 
       if (error) throw error;
 
+      logUserAction("update_planning", { planning_id: selectedPlanningId, title });
       toast({
         title: "Succès",
         description: "Planning modifié avec succès",
@@ -155,6 +158,7 @@ export function PlanningSelector({
 
       if (error) throw error;
 
+      logUserAction("delete_planning", { planning_id: selectedPlanningId });
       toast({
         title: "Succès",
         description: "Planning supprimé avec succès",
