@@ -27,6 +27,7 @@ import { SiteComparisonChart } from "@/components/stats/SiteComparisonChart";
 import { format, parse, isAfter, isBefore, isValid } from "date-fns";
 import { fr } from "date-fns/locale";
 import { cn } from "@/lib/utils";
+import { logUserAction } from "@/lib/logUserAction";
 
 interface EstablishmentEntry {
   date: string;
@@ -252,6 +253,7 @@ export default function StatsEreputation() {
       const updatedRatings = await fetchGoogleRatings();
       setGoogleRatings(updatedRatings);
 
+      logUserAction("stats_ereputation_scrape", { success: successCount, errors: errorCount });
       toast({
         title: "Synchronisation terminée",
         description: `${successCount} établissement(s) mis à jour${errorCount > 0 ? `, ${errorCount} erreur(s)` : ""}`,
@@ -282,6 +284,7 @@ export default function StatsEreputation() {
 
       const response = data as StatsResponse;
       setEstablishments(response.establishments || []);
+      logUserAction("stats_ereputation_refresh", { count: response.establishments?.length || 0 });
       
       if (response.establishments?.length > 0) {
         toast({

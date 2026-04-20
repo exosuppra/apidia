@@ -11,6 +11,7 @@ import { fr } from "date-fns/locale";
 import type { Benevole, Santonnier, PlanningAssignment } from "@/pages/admin/PlanningSantons";
 import { exportPlanningExcel } from "./ExportPlanningExcel";
 import { exportPlanningPDF } from "./ExportPlanningPDF";
+import { logUserAction } from "@/lib/logUserAction";
 
 interface PlanningTabProps {
   benevoles: Benevole[];
@@ -230,6 +231,7 @@ export default function PlanningTab({ benevoles, santonniers, assignments, days,
         }
       }
 
+      logUserAction("santons_generate_planning", { edition_id: editionId, assignments: newAssignments.length });
       toast({ title: "Planning généré", description: `${newAssignments.length} affectations créées (2 bénévoles/stand/jour).` });
       onRefresh();
     } catch (e: any) {
@@ -241,8 +243,19 @@ export default function PlanningTab({ benevoles, santonniers, assignments, days,
   const handleClearPlanning = async () => {
     if (!confirm("Supprimer toutes les affectations du planning ?")) return;
     await supabase.from("santons_planning").delete().eq("edition_id", editionId);
+    logUserAction("santons_clear_planning", { edition_id: editionId });
     onRefresh();
     toast({ title: "Planning vidé" });
+  };
+
+  const handleExportExcel = () => {
+    exportPlanningExcel(benevoles, santonniers, assignments, days, year);
+    logUserAction("santons_export_excel", { edition_id: editionId });
+  };
+
+  const handleExportPDF = () => {
+    exportPlanningPDF(benevoles, santonniers, assignments, days, editionTitle, year);
+    logUserAction("santons_export_pdf", { edition_id: editionId });
   };
 
   const isConstraintViolation = (day: string, santId: string, benId: string): string | null => {
@@ -278,10 +291,10 @@ export default function PlanningTab({ benevoles, santonniers, assignments, days,
         <div className="flex gap-2">
           {assignments.length > 0 && (
             <>
-              <Button size="sm" variant="outline" onClick={() => exportPlanningExcel(benevoles, santonniers, assignments, days, year)}>
+              <Button size="sm" variant="outline" onClick={handleExportExcel}>
                 <FileSpreadsheet className="w-4 h-4 mr-1" /> Export Excel
               </Button>
-              <Button size="sm" variant="outline" onClick={() => exportPlanningPDF(benevoles, santonniers, assignments, days, editionTitle, year)}>
+              <Button size="sm" variant="outline" onClick={handleExportPDF}>
                 <FileText className="w-4 h-4 mr-1" /> Export PDF
               </Button>
             </>

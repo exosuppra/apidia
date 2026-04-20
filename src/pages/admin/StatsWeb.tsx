@@ -28,6 +28,7 @@ import Seo from "@/components/Seo";
 import { SiteStatsCard } from "@/components/stats/SiteStatsCard";
 import { SiteStatsChart } from "@/components/stats/SiteStatsChart";
 import { SiteComparisonChart } from "@/components/stats/SiteComparisonChart";
+import { logUserAction } from "@/lib/logUserAction";
 import { format, startOfMonth, endOfMonth, subMonths, isWithinInterval, parse } from "date-fns";
 import { fr } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -121,6 +122,7 @@ export default function StatsWeb() {
 
       const response = data as StatsResponse;
       setSites(response.sites || []);
+      logUserAction("stats_web_refresh", { sites_count: response.sites?.length || 0 });
       
       if (response.sites?.length > 0) {
         toast({

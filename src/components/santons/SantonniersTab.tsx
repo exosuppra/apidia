@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Pencil, Trash2, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import type { Santonnier } from "@/pages/admin/PlanningSantons";
+import { logUserAction } from "@/lib/logUserAction";
 
 type SortKey = "nom_stand" | "contact" | "ville";
 type SortDir = "asc" | "desc";
@@ -142,12 +143,14 @@ export default function SantonniersTab({ santonniers, editionId, onRefresh }: Sa
     setSaving(false);
     setShowForm(false);
     onRefresh();
+    logUserAction(editingId ? "santons_update_santonnier" : "santons_create_santonnier", { nom_stand: form.nom_stand });
     toast({ title: editingId ? "Santonnier modifié" : "Santonnier ajouté" });
   };
 
   const handleDelete = async (id: string) => {
     if (!confirm("Supprimer ce santonnier ?")) return;
     await supabase.from("santons_santonniers").delete().eq("id", id);
+    logUserAction("santons_delete_santonnier", { santonnier_id: id });
     onRefresh();
     toast({ title: "Santonnier supprimé" });
   };

@@ -36,6 +36,7 @@ import {
   BorderStyle,
 } from "docx";
 import type { Task, Tag } from "@/types/planning";
+import { logUserAction } from "@/lib/logUserAction";
 
 interface ExportDialogProps {
   open: boolean;
@@ -362,6 +363,7 @@ export function ExportDialog({ open, onOpenChange, tasks, tags }: ExportDialogPr
     } else if (exportFormat === "docx") {
       exportToWord();
     }
+    logUserAction("export_planning", { format: exportFormat });
   };
 
   const hasFilters = titleFilter || selectedTagIds.length > 0;

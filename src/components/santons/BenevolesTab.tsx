@@ -13,6 +13,7 @@ import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import type { Benevole } from "@/pages/admin/PlanningSantons";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { logUserAction } from "@/lib/logUserAction";
 
 type SortKey = "nom" | "ville" | "stand_souhaite" | "dispos";
 type SortDir = "asc" | "desc";
@@ -136,6 +137,7 @@ export default function BenevolesTab({ benevoles, days, editionId, onRefresh }: 
       if (dispoRows.length > 0) {
         await supabase.from("santons_disponibilites").insert(dispoRows);
       }
+      logUserAction("santons_update_benevole", { benevole_id: editingId, nom: form.nom });
     } else {
       const { data: newBen } = await supabase.from("santons_benevoles").insert({
         edition_id: editionId,
@@ -159,6 +161,7 @@ export default function BenevolesTab({ benevoles, days, editionId, onRefresh }: 
           await supabase.from("santons_disponibilites").insert(dispoRows);
         }
       }
+      logUserAction("santons_create_benevole", { nom: form.nom });
     }
 
     setSaving(false);
@@ -170,6 +173,7 @@ export default function BenevolesTab({ benevoles, days, editionId, onRefresh }: 
   const handleDelete = async (id: string) => {
     if (!confirm("Supprimer ce bénévole ?")) return;
     await supabase.from("santons_benevoles").delete().eq("id", id);
+    logUserAction("santons_delete_benevole", { benevole_id: id });
     onRefresh();
     toast({ title: "Bénévole supprimé" });
   };
