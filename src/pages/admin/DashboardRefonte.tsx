@@ -157,30 +157,28 @@ export default function DashboardRefonte() {
 
       <div style={{ animation: "refonte-fade-in 400ms var(--ease-out)" }}>
         {/* Hero éditorial */}
-        <div style={{ padding: "28px 44px 24px", background: "var(--surface)" }}>
-          <div style={{ fontSize: 10, fontWeight: 700, color: "var(--pdm-vert)", letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 6 }}>
-            ★ Tableau de bord administrateur
-          </div>
-          <h2 style={{ fontFamily: "var(--font-display)", fontSize: 38, letterSpacing: "-0.03em", margin: 0, lineHeight: 1.05, maxWidth: 900 }}>
+        <div className="refonte-hero">
+          <div className="refonte-hero-eyebrow">★ Tableau de bord administrateur</div>
+          <h2 className="refonte-hero-title">
             {firstName ? `Bonjour ${firstName}. ` : "Bienvenue. "}
             <span style={{ color: "var(--text-3)" }}>Voici votre</span>
             <br />
             espace de pilotage <span style={{ color: "var(--pdm-vert)" }}>Apidia</span>.
           </h2>
-          <div style={{ fontSize: 13, color: "var(--text-3)", marginTop: 12, maxWidth: 680 }}>
+          <div className="refonte-hero-sub">
             Accédez à toutes les rubriques ci-dessous. Les modules grisés nécessitent une permission spécifique — contactez un administrateur pour y accéder.
           </div>
         </div>
 
         {/* Rubriques */}
-        <div style={{ padding: "36px 44px 24px", maxWidth: 1400, margin: "0 auto" }}>
+        <div className="refonte-hub-container">
           {HUB_GROUPS.map((section, si) => {
             const visible = section.items.filter((it) => canAccess(it) || isAdmin);
             if (visible.length === 0 && !isAdmin) return null;
             const items = isAdmin ? section.items : visible;
             return (
               <section key={section.group} style={{ marginBottom: 42, animation: `refonte-fade-in 500ms ${si * 80}ms var(--ease-out) both` }}>
-                <div style={{ display: "flex", alignItems: "baseline", gap: 14, marginBottom: 18 }}>
+                <div className="refonte-section-head">
                   <div
                     style={{
                       width: 30,
@@ -191,15 +189,16 @@ export default function DashboardRefonte() {
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
+                      flexShrink: 0,
                     }}
                   >
                     <Icon name={section.icon} size={15} />
                   </div>
-                  <h2 style={{ fontFamily: "var(--font-display)", fontSize: 19, letterSpacing: "-0.015em", margin: 0, color: "var(--pdm-vert)" }}>{section.group}</h2>
-                  <div style={{ flex: 1, height: 1, background: "var(--border)" }} />
-                  <div style={{ fontSize: 10, color: "var(--text-3)", fontFamily: "var(--font-mono)" }}>{items.length} modules</div>
+                  <h2>{section.group}</h2>
+                  <div className="refonte-section-divider" />
+                  <div className="refonte-section-count">{items.length} modules</div>
                 </div>
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14 }}>
+                <div className="refonte-hub-grid">
                   {items.map((item, i) => (
                     <HubCard key={item.id} item={item} delay={si * 80 + i * 40} canAccess={canAccess(item)} onClick={() => goTo(item)} />
                   ))}
@@ -210,19 +209,36 @@ export default function DashboardRefonte() {
 
           {/* Activité récente */}
           <section>
-            <div style={{ display: "flex", alignItems: "baseline", gap: 14, marginBottom: 16 }}>
-              <div style={{ width: 30, height: 30, borderRadius: 8, background: "var(--gris-800)", color: "var(--pdm-vert)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <div className="refonte-section-head">
+              <div style={{ width: 30, height: 30, borderRadius: 8, background: "var(--gris-800)", color: "var(--pdm-vert)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                 <Icon name="history" size={15} />
               </div>
-              <h2 style={{ fontFamily: "var(--font-display)", fontSize: 19, letterSpacing: "-0.015em", margin: 0, color: "var(--pdm-vert)" }}>Activité récente</h2>
-              <div style={{ flex: 1, height: 1, background: "var(--border)" }} />
-              <button onClick={() => navigate("/admin/logs")} style={{ fontSize: 12, color: "var(--text-2)", fontWeight: 600, cursor: "pointer", background: "transparent", border: "none" }}>
+              <h2>Activité récente</h2>
+              <div className="refonte-section-divider" />
+              <button onClick={() => navigate("/admin/logs")} style={{ fontSize: 12, color: "var(--text-2)", fontWeight: 600, cursor: "pointer", background: "transparent", border: "none", whiteSpace: "nowrap" }}>
                 Tout afficher →
               </button>
             </div>
             <div style={{ background: "var(--surface)", borderRadius: 14, border: "1px solid var(--border)", overflow: "hidden" }}>
               {loading && (
-                <div style={{ padding: 20, textAlign: "center", color: "var(--text-3)", fontSize: 13 }}>Chargement…</div>
+                <>
+                  {[0, 1, 2, 3, 4].map((i) => (
+                    <div
+                      key={i}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 12,
+                        padding: "14px 18px",
+                        borderBottom: i < 4 ? "1px solid var(--border)" : "none",
+                      }}
+                    >
+                      <span className="refonte-skeleton" style={{ width: 8, height: 8, borderRadius: 4, flexShrink: 0 }} />
+                      <span className="refonte-skeleton" style={{ flex: 1, height: 12, maxWidth: `${60 + (i * 7) % 30}%` }} />
+                      <span className="refonte-skeleton" style={{ width: 80, height: 10, flexShrink: 0 }} />
+                    </div>
+                  ))}
+                </>
               )}
               {!loading && activity.length === 0 && (
                 <div style={{ padding: 20, textAlign: "center", color: "var(--text-3)", fontSize: 13 }}>Aucune activité récente</div>
@@ -265,13 +281,13 @@ export default function DashboardRefonte() {
 
           {/* OTO Arena — Agents IA en direct */}
           <section style={{ marginTop: 42 }}>
-            <div style={{ display: "flex", alignItems: "baseline", gap: 14, marginBottom: 16 }}>
-              <div style={{ width: 30, height: 30, borderRadius: 8, background: "var(--gris-800)", color: "var(--pdm-vert)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <div className="refonte-section-head">
+              <div style={{ width: 30, height: 30, borderRadius: 8, background: "var(--gris-800)", color: "var(--pdm-vert)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                 <Icon name="chat" size={15} />
               </div>
-              <h2 style={{ fontFamily: "var(--font-display)", fontSize: 19, letterSpacing: "-0.015em", margin: 0, color: "var(--pdm-vert)" }}>OTO Arena — Agents IA en direct</h2>
-              <div style={{ flex: 1, height: 1, background: "var(--border)" }} />
-              <div style={{ fontSize: 10, color: "var(--text-3)", fontFamily: "var(--font-mono)" }}>Live</div>
+              <h2>OTO Arena — Agents IA en direct</h2>
+              <div className="refonte-section-divider" />
+              <div className="refonte-section-count">Live</div>
             </div>
             <div style={{ background: "var(--surface)", borderRadius: 14, border: "1px solid var(--border)", overflow: "hidden" }}>
               <iframe
@@ -304,6 +320,7 @@ function HubCard({ item, delay, canAccess, onClick }: HubCardProps) {
       onMouseEnter={() => !disabled && setHover(true)}
       onMouseLeave={() => !disabled && setHover(false)}
       disabled={disabled}
+      className="refonte-hub-card"
       style={{
         background: "var(--surface)",
         border: "1px solid " + (hover ? "var(--pdm-vert)" : "var(--border)"),
@@ -311,7 +328,7 @@ function HubCard({ item, delay, canAccess, onClick }: HubCardProps) {
         padding: 20,
         textAlign: "left",
         cursor: disabled ? "not-allowed" : "pointer",
-        transition: "all var(--dur-med) var(--ease-out)",
+        transition: "border-color var(--dur-med) var(--ease-out), transform var(--dur-med) var(--ease-out), box-shadow var(--dur-med) var(--ease-out)",
         transform: hover ? "translateY(-3px)" : "none",
         boxShadow: hover ? "var(--sh-md)" : "var(--sh-xs)",
         animation: `refonte-fade-in 500ms ${delay}ms var(--ease-out) both`,
@@ -323,6 +340,7 @@ function HubCard({ item, delay, canAccess, onClick }: HubCardProps) {
     >
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 12 }}>
         <div
+          className="refonte-hub-icon"
           style={{
             width: 40,
             height: 40,
@@ -332,8 +350,7 @@ function HubCard({ item, delay, canAccess, onClick }: HubCardProps) {
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            transition: "all var(--dur-med) var(--ease-spring)",
-            transform: hover ? "scale(1.08) rotate(-4deg)" : "none",
+            transition: "background var(--dur-med) var(--ease-spring), color var(--dur-med) var(--ease-spring)",
           }}
         >
           <Icon name={item.icon} size={20} />
