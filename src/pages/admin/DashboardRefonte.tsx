@@ -85,8 +85,8 @@ interface ActivityRow {
   id: string;
   created_at: string;
   user_email: string | null;
-  action: string;
-  details: any;
+  action_type: string;
+  action_details: any;
 }
 
 export default function DashboardRefonte() {
@@ -235,9 +235,9 @@ export default function DashboardRefonte() {
                     <div style={{ width: 6, height: 6, borderRadius: 3, background: "var(--pdm-vert)", flexShrink: 0 }} />
                     <div style={{ flex: 1, minWidth: 0, fontSize: 13 }}>
                       <b>{(a.user_email || "Système").split("@")[0]}</b>
-                      <span style={{ color: "var(--text-3)" }}> {formatAction(a.action)}</span>
-                      {a.details && typeof a.details === "object" && (a.details as any).target && (
-                        <b style={{ color: "var(--pdm-vert)" }}> {(a.details as any).target}</b>
+                      <span style={{ color: "var(--text-3)" }}> {formatAction(a.action_type)}</span>
+                      {a.action_details && typeof a.action_details === "object" && (a.action_details as any).target && (
+                        <b style={{ color: "var(--pdm-vert)" }}> {(a.action_details as any).target}</b>
                       )}
                     </div>
                     <div style={{ fontSize: 11, color: "var(--text-3)", fontFamily: "var(--font-mono)", flexShrink: 0 }}>
@@ -325,7 +325,8 @@ function HubCard({ item, delay, canAccess, onClick }: HubCardProps) {
   );
 }
 
-function formatAction(raw: string): string {
+function formatAction(raw: string | undefined | null): string {
+  if (typeof raw !== "string" || !raw) return "a effectué une action";
   const map: Record<string, string> = {
     login: "s'est connecté(e)",
     logout: "s'est déconnecté(e)",
@@ -335,7 +336,7 @@ function formatAction(raw: string): string {
     delete_fiche: "a supprimé une fiche",
     sync_apidae: "a synchronisé avec APIDAE",
   };
-  return map[raw] || raw.replaceAll("_", " ");
+  return map[raw] || raw.split("_").join(" ");
 }
 
 function formatDate(iso: string): string {
