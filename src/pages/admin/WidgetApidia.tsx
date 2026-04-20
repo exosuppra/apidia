@@ -99,6 +99,40 @@ export default function WidgetApidia() {
     }
   };
 
+  const loadCriteres = async () => {
+    // Load all criteresInternes from all fiches and aggregate
+    const counts = new Map<number, { libelle: string; count: number }>();
+    let from = 0;
+    const pageSize = 1000;
+    while (true) {
+      const { data, error } = await supabase
+        .from("fiches_data")
+        .select("data")
+        .eq("is_published", true)
+        .range(from, from + pageSize - 1);
+      if (error || !data || data.length === 0) break;
+      data.forEach((f: any) => {
+        const list = f.data?.criteresInternes;
+        if (Array.isArray(list)) {
+          list.forEach((c: any) => {
+            if (c?.id == null) return;
+            const id = Number(c.id);
+            const libelle = c.libelle || `Critère ${id}`;
+            const existing = counts.get(id);
+            if (existing) existing.count++;
+            else counts.set(id, { libelle, count: 1 });
+          });
+        }
+      });
+      if (data.length < pageSize) break;
+      from += pageSize;
+    }
+    const arr: Critere[] = Array.from(counts.entries())
+      .map(([id, v]) => ({ id, libelle: v.libelle, count: v.count }))
+      .sort((a, b) => a.libelle.localeCompare(b.libelle));
+    setCriteres(arr);
+  };
+
   const createWidget = async () => {
     if (!name.trim()) {
       toast({ title: "Le nom est requis", variant: "destructive" });
