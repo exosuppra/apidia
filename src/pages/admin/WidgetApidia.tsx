@@ -199,6 +199,8 @@ export default function WidgetApidia() {
     setManualIds("");
     setMaxFiches(10);
     setTheme("light");
+    setSelectedCriteres([]);
+    setCriteresMode("any");
   };
 
   const getIframeCode = (widget: Widget) => {
