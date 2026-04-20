@@ -366,12 +366,72 @@ function formatAction(raw: string | undefined | null): string {
     login: "s'est connecté(e)",
     logout: "s'est déconnecté(e)",
     view_page: "a consulté une page",
+    view_fiches: "a consulté la liste des fiches",
+    view_details: "a consulté les détails d'une fiche",
+    create_task: "a créé une tâche",
+    update_task: "a modifié une tâche",
+    delete_task: "a supprimé une tâche",
+    validate_task: "a validé une tâche",
+    reject_task: "a refusé une tâche",
+    import_fiches: "a importé des fiches",
+    export_data: "a exporté des données",
+    verify_fiche: "a vérifié une fiche",
     edit_fiche: "a modifié une fiche",
     create_fiche: "a créé une fiche",
     delete_fiche: "a supprimé une fiche",
     sync_apidae: "a synchronisé avec APIDAE",
+    sync_sheets: "a synchronisé Google Sheets",
+    linking_check: "a lancé une vérification linking",
+    linking_send_email: "a envoyé un email linking",
+    linking_import: "a importé des sites linking",
+    linking_add_site: "a ajouté un site linking",
+    linking_edit_site: "a modifié un site linking",
+    linking_delete_site: "a supprimé un site linking",
+    create_planning: "a créé un planning",
+    update_planning: "a modifié un planning",
+    request_update: "a demandé une modification",
+    set_code: "a défini un code d'accès",
+    apidia_knowledge_update: "a modifié la base ApidIA",
+    apidia_knowledge_add: "a ajouté une connaissance ApidIA",
+    apidia_knowledge_delete: "a supprimé une connaissance ApidIA",
+    import_excel: "a importé un fichier Excel",
+    bulk_verification: "a lancé une vérification groupée",
+    toggle_publish_fiche: "a publié/dépublié une fiche",
+    transfer_fiche: "a transféré une fiche",
+    create_user: "a créé un utilisateur",
+    delete_user: "a supprimé un utilisateur",
+    update_permissions: "a modifié des permissions",
+    reset_password: "a réinitialisé un mot de passe",
+    telegram_poll: "a lancé un polling Telegram",
+    telegram_send: "a envoyé un message Telegram",
+    widget_create: "a créé un widget",
+    widget_delete: "a supprimé un widget",
+    other: "a effectué une action",
   };
   return map[raw] || raw.split("_").join(" ");
+}
+
+function describeDetails(details: any): string | null {
+  if (!details || typeof details !== "object") return null;
+  const parts: string[] = [];
+  const keys = ["target", "fiche_id", "fiche_name", "name", "title", "page", "url", "email", "site_url", "commune", "planning_title", "count", "request_id"];
+  for (const k of keys) {
+    const v = (details as any)[k];
+    if (v === undefined || v === null || v === "") continue;
+    const label = k === "fiche_id" ? "Fiche" : k === "fiche_name" ? "Fiche" : k === "count" ? "Nombre" : k.replace(/_/g, " ");
+    parts.push(`${label.charAt(0).toUpperCase() + label.slice(1)} : ${String(v)}`);
+  }
+  if (parts.length === 0) {
+    // Fallback: show raw JSON compactly
+    try {
+      const json = JSON.stringify(details);
+      if (json && json !== "{}") return json.length > 160 ? json.slice(0, 157) + "…" : json;
+    } catch {
+      return null;
+    }
+    return null;
+  }
+  return parts.join(" · ");
 }
 
 function formatDate(iso: string): string {
