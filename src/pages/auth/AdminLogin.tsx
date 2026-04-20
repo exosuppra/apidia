@@ -8,12 +8,13 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import Seo from "@/components/Seo";
-import { Shield } from "lucide-react";
+import { useAdminInterface, AdminInterface } from "@/hooks/useAdminInterface";
 
 export default function AdminLogin() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [interfaceChoice, setInterfaceChoice] = useAdminInterface();
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -29,13 +30,13 @@ export default function AdminLogin() {
           .eq('user_id', session.user.id)
           .eq('role', 'admin')
           .single();
-        
+
         if (roles) {
           navigate("/admin/dashboard");
         }
       }
     };
-    
+
     checkAdminSession();
   }, [navigate]);
 
@@ -67,7 +68,7 @@ export default function AdminLogin() {
 
       toast({
         title: "Connexion réussie",
-        description: "Bienvenue dans l'interface d'administration",
+        description: `Bienvenue — interface ${interfaceChoice === "refonte" ? "nouvelle" : "classique"}`,
       });
 
       logUserAction("login");
@@ -75,7 +76,7 @@ export default function AdminLogin() {
     } catch (error: any) {
       // Traduire les messages d'erreur en français
       let errorMessage = "Identifiants invalides";
-      
+
       if (error.message?.includes("Invalid login credentials")) {
         errorMessage = "Email ou mot de passe incorrect";
       } else if (error.message?.includes("Email not confirmed")) {
@@ -85,7 +86,7 @@ export default function AdminLogin() {
       } else if (error.message?.includes("permissions d'administrateur")) {
         errorMessage = error.message;
       }
-      
+
       toast({
         title: "Erreur de connexion",
         description: errorMessage,
@@ -98,18 +99,18 @@ export default function AdminLogin() {
 
   return (
     <>
-      <Seo 
+      <Seo
         title="Connexion Administrateur"
         description="Accès à l'interface d'administration"
       />
-      
+
       <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/5 flex items-center justify-center p-4">
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
             <div className="mx-auto w-16 h-16 mb-4">
-              <img 
-                src="/lovable-uploads/d4594427-d5ec-4616-9298-7912d6c72b56.png" 
-                alt="ApidIA Logo" 
+              <img
+                src="/lovable-uploads/d4594427-d5ec-4616-9298-7912d6c72b56.png"
+                alt="ApidIA Logo"
                 className="w-full h-full object-contain"
               />
             </div>
@@ -118,7 +119,7 @@ export default function AdminLogin() {
               Connectez-vous avec vos identifiants administrateur
             </CardDescription>
           </CardHeader>
-          
+
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
@@ -132,7 +133,7 @@ export default function AdminLogin() {
                   required
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="password">Mot de passe</Label>
                 <Input
@@ -144,10 +145,13 @@ export default function AdminLogin() {
                   required
                 />
               </div>
-              
-              <Button 
-                type="submit" 
-                className="w-full" 
+
+              {/* Sélecteur d'interface */}
+              <InterfaceChooser value={interfaceChoice} onChange={setInterfaceChoice} />
+
+              <Button
+                type="submit"
+                className="w-full"
                 disabled={isLoading}
               >
                 {isLoading ? "Connexion..." : "Se connecter"}
@@ -157,5 +161,63 @@ export default function AdminLogin() {
         </Card>
       </div>
     </>
+  );
+}
+
+/* ---------- Interface chooser ---------- */
+
+interface InterfaceChooserProps {
+  value: AdminInterface;
+  onChange: (v: AdminInterface) => void;
+}
+
+function InterfaceChooser({ value, onChange }: InterfaceChooserProps) {
+  const options: { k: AdminInterface; title: string; desc: string; badge?: string }[] = [
+    { k: "refonte", title: "Nouvelle interface", desc: "Charte Pays de Manosque — layouts éditoriaux", badge: "Recommandée" },
+    { k: "classic", title: "Interface classique", desc: "Version précédente du back-office" },
+  ];
+  return (
+    <div className="pt-2">
+      <Label className="text-xs text-muted-foreground mb-2 block">Interface après connexion</Label>
+      <div className="grid grid-cols-2 gap-2">
+        {options.map(o => {
+          const active = value === o.k;
+          return (
+            <button
+              key={o.k}
+              type="button"
+              onClick={() => onChange(o.k)}
+              className="relative text-left rounded-lg border p-3 transition-all"
+              style={{
+                borderColor: active ? "hsl(var(--primary))" : "hsl(var(--border))",
+                background: active ? "hsl(var(--primary) / 0.08)" : "hsl(var(--card))",
+                boxShadow: active ? "0 0 0 2px hsl(var(--primary) / 0.2)" : "none",
+                cursor: "pointer",
+              }}
+            >
+              {o.badge && active && (
+                <span
+                  className="absolute -top-2 right-2 text-[9px] font-bold tracking-wider uppercase rounded-full px-2 py-[2px]"
+                  style={{ background: "hsl(var(--primary))", color: "hsl(var(--primary-foreground))" }}
+                >
+                  {o.badge}
+                </span>
+              )}
+              <div className="flex items-center gap-2 mb-1">
+                <span
+                  className="inline-block w-3 h-3 rounded-full"
+                  style={{
+                    background: active ? "hsl(var(--primary))" : "transparent",
+                    border: "2px solid " + (active ? "hsl(var(--primary))" : "hsl(var(--border))"),
+                  }}
+                />
+                <span className="text-sm font-semibold">{o.title}</span>
+              </div>
+              <div className="text-[11px] text-muted-foreground leading-snug">{o.desc}</div>
+            </button>
+          );
+        })}
+      </div>
+    </div>
   );
 }

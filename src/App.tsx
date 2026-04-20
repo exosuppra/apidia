@@ -7,7 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import DashboardLayout from "./layouts/DashboardLayout";
-import AdminLayout from "./layouts/AdminLayout";
+import AdminLayoutSwitch from "./layouts/AdminLayoutSwitch";
 import Overview from "./pages/dashboard/Overview";
 import AuthProvider from "./context/AuthProvider";
 import { ChatProvider } from "./context/ChatContext";
@@ -20,7 +20,7 @@ import Login from "./pages/auth/Login";
 import SetCode from "./pages/auth/SetCode";
 import ChangePassword from "./pages/auth/ChangePassword";
 import AdminLogin from "./pages/auth/AdminLogin";
-import AdminDashboard from "./pages/admin/Dashboard";
+import AdminDashboardSwitch from "./pages/admin/DashboardSwitch";
 import AllFiches from "./pages/admin/AllFiches";
 import PlanningEditorial from "./pages/admin/PlanningEditorial";
 import UsersManagement from "./pages/admin/UsersManagement";
@@ -53,7 +53,6 @@ import ApidiaChat from "./pages/ApidiaChat";
 import TelegramOTO from "./pages/admin/TelegramOTO";
 import WidgetApidia from "./pages/admin/WidgetApidia";
 import WidgetEmbed from "./pages/WidgetEmbed";
-import Refonte from "./pages/refonte/Refonte";
 
 const queryClient = new QueryClient();
 
@@ -88,9 +87,9 @@ const App = () => (
             <Route path="/admin/dashboard" element={
               <RequireAdminAuth>
                 <RequirePasswordChange>
-                  <AdminLayout>
-                    <AdminDashboard />
-                  </AdminLayout>
+                  <AdminLayoutSwitch>
+                    <AdminDashboardSwitch />
+                  </AdminLayoutSwitch>
                 </RequirePasswordChange>
               </RequireAdminAuth>
             } />
@@ -98,9 +97,9 @@ const App = () => (
               <RequireAdminAuth>
                 <RequirePasswordChange>
                   <RequirePermission pageKey="users">
-                    <AdminLayout>
+                    <AdminLayoutSwitch>
                       <UsersManagement />
-                    </AdminLayout>
+                    </AdminLayoutSwitch>
                   </RequirePermission>
                 </RequirePasswordChange>
               </RequireAdminAuth>
@@ -109,9 +108,9 @@ const App = () => (
               <RequireAdminAuth>
                 <RequirePasswordChange>
                   <RequirePermission pageKey="fiches">
-                    <AdminLayout>
+                    <AdminLayoutSwitch>
                       <AllFiches />
-                    </AdminLayout>
+                    </AdminLayoutSwitch>
                   </RequirePermission>
                 </RequirePasswordChange>
               </RequireAdminAuth>
@@ -120,9 +119,9 @@ const App = () => (
               <RequireAdminAuth>
                 <RequirePasswordChange>
                   <RequirePermission pageKey="planning">
-                    <AdminLayout>
+                    <AdminLayoutSwitch>
                       <PlanningEditorial />
-                    </AdminLayout>
+                    </AdminLayoutSwitch>
                   </RequirePermission>
                 </RequirePasswordChange>
               </RequireAdminAuth>
@@ -131,9 +130,9 @@ const App = () => (
               <RequireAdminAuth>
                 <RequirePasswordChange>
                   <RequirePermission pageKey="requests">
-                    <AdminLayout>
+                    <AdminLayoutSwitch>
                       <UserRequests />
-                    </AdminLayout>
+                    </AdminLayoutSwitch>
                   </RequirePermission>
                 </RequirePasswordChange>
               </RequireAdminAuth>
@@ -142,9 +141,9 @@ const App = () => (
               <RequireAdminAuth>
                 <RequirePasswordChange>
                   <RequirePermission pageKey="logs">
-                    <AdminLayout>
+                    <AdminLayoutSwitch>
                       <UserActionLogs />
-                    </AdminLayout>
+                    </AdminLayoutSwitch>
                   </RequirePermission>
                 </RequirePasswordChange>
               </RequireAdminAuth>
@@ -153,9 +152,9 @@ const App = () => (
               <RequireAdminAuth>
                 <RequirePasswordChange>
                   <RequirePermission pageKey="rh">
-                    <AdminLayout>
+                    <AdminLayoutSwitch>
                       <SuiviRH />
-                    </AdminLayout>
+                    </AdminLayoutSwitch>
                   </RequirePermission>
                 </RequirePasswordChange>
               </RequireAdminAuth>
@@ -164,9 +163,9 @@ const App = () => (
               <RequireAdminAuth>
                 <RequirePasswordChange>
                   <RequirePermission pageKey="missions">
-                    <AdminLayout>
+                    <AdminLayoutSwitch>
                       <SuiviMissions />
-                    </AdminLayout>
+                    </AdminLayoutSwitch>
                   </RequirePermission>
                 </RequirePasswordChange>
               </RequireAdminAuth>
@@ -175,9 +174,9 @@ const App = () => (
               <RequireAdminAuth>
                 <RequirePasswordChange>
                   <RequirePermission pageKey="stats-web">
-                    <AdminLayout>
+                    <AdminLayoutSwitch>
                       <StatsWeb />
-                    </AdminLayout>
+                    </AdminLayoutSwitch>
                   </RequirePermission>
                 </RequirePasswordChange>
               </RequireAdminAuth>
@@ -186,9 +185,9 @@ const App = () => (
               <RequireAdminAuth>
                 <RequirePasswordChange>
                   <RequirePermission pageKey="stats-ereputation">
-                    <AdminLayout>
+                    <AdminLayoutSwitch>
                       <StatsEreputation />
-                    </AdminLayout>
+                    </AdminLayoutSwitch>
                   </RequirePermission>
                 </RequirePasswordChange>
               </RequireAdminAuth>
@@ -197,9 +196,9 @@ const App = () => (
               <RequireAdminAuth>
                 <RequirePasswordChange>
                   <RequirePermission pageKey="fiches">
-                    <AdminLayout>
+                    <AdminLayoutSwitch>
                       <VerificationAlerts />
-                    </AdminLayout>
+                    </AdminLayoutSwitch>
                   </RequirePermission>
                 </RequirePasswordChange>
               </RequireAdminAuth>
@@ -208,9 +207,9 @@ const App = () => (
               <RequireAdminAuth>
                 <RequirePasswordChange>
                   <RequirePermission pageKey="fiches">
-                    <AdminLayout>
+                    <AdminLayoutSwitch>
                       <ImportFiches />
-                    </AdminLayout>
+                    </AdminLayoutSwitch>
                   </RequirePermission>
                 </RequirePasswordChange>
               </RequireAdminAuth>
@@ -219,9 +218,9 @@ const App = () => (
               <RequireAdminAuth>
                 <RequirePasswordChange>
                   <RequirePermission pageKey="fiches">
-                    <AdminLayout>
+                    <AdminLayoutSwitch>
                       <FichesVerified />
-                    </AdminLayout>
+                    </AdminLayoutSwitch>
                   </RequirePermission>
                 </RequirePasswordChange>
               </RequireAdminAuth>
@@ -231,9 +230,9 @@ const App = () => (
               <RequireAdminAuth>
                 <RequirePasswordChange>
                   <RequirePermission pageKey="planning-santons">
-                    <AdminLayout>
+                    <AdminLayoutSwitch>
                       <PlanningSantons />
-                    </AdminLayout>
+                    </AdminLayoutSwitch>
                   </RequirePermission>
                 </RequirePasswordChange>
               </RequireAdminAuth>
@@ -243,9 +242,9 @@ const App = () => (
               <RequireAdminAuth>
                 <RequirePasswordChange>
                   <RequirePermission pageKey="linking">
-                    <AdminLayout>
+                    <AdminLayoutSwitch>
                       <Linking />
-                    </AdminLayout>
+                    </AdminLayoutSwitch>
                   </RequirePermission>
                 </RequirePasswordChange>
               </RequireAdminAuth>
@@ -255,9 +254,9 @@ const App = () => (
               <RequireAdminAuth>
                 <RequirePasswordChange>
                   <RequirePermission pageKey="apidia">
-                    <AdminLayout>
+                    <AdminLayoutSwitch>
                       <ApidiaKnowledge />
-                    </AdminLayout>
+                    </AdminLayoutSwitch>
                   </RequirePermission>
                 </RequirePasswordChange>
               </RequireAdminAuth>
@@ -267,9 +266,9 @@ const App = () => (
               <RequireAdminAuth>
                 <RequirePasswordChange>
                   <RequirePermission pageKey="telegram-oto">
-                    <AdminLayout>
+                    <AdminLayoutSwitch>
                       <TelegramOTO />
-                    </AdminLayout>
+                    </AdminLayoutSwitch>
                   </RequirePermission>
                 </RequirePasswordChange>
               </RequireAdminAuth>
@@ -279,9 +278,9 @@ const App = () => (
               <RequireAdminAuth>
                 <RequirePasswordChange>
                   <RequirePermission pageKey="widget-apidia">
-                    <AdminLayout>
+                    <AdminLayoutSwitch>
                       <WidgetApidia />
-                    </AdminLayout>
+                    </AdminLayoutSwitch>
                   </RequirePermission>
                 </RequirePasswordChange>
               </RequireAdminAuth>
@@ -289,9 +288,6 @@ const App = () => (
             
             {/* Public widget embed */}
             <Route path="/widget/:token" element={<WidgetEmbed />} />
-
-            {/* Refonte preview — charte Pays de Manosque (V1 Éditorial) */}
-            <Route path="/admin/refonte" element={<Refonte />} />
             
             {/* Main business dashboard */}
             <Route path="/avis" element={
