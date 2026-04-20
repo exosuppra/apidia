@@ -40,7 +40,7 @@ const FICHE_TYPES = [
 const WIDGET_TYPES = [
   { value: "carousel", label: "Carrousel", icon: Layers },
   { value: "grid", label: "Grille", icon: LayoutGrid },
-  { value: "map", label: "Carte", icon: Map },
+  { value: "map", label: "Carte", icon: MapIcon },
 ];
 
 export default function WidgetApidia() {
