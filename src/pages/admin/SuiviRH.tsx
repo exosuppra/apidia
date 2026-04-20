@@ -409,7 +409,7 @@ export default function SuiviRH() {
                   </Button>
                   <Button
                     variant="default"
-                    onClick={() => refetch()}
+                    onClick={() => { logUserAction("rh_refresh"); refetch(); }}
                     disabled={isFetching}
                   >
                     {isFetching ? (

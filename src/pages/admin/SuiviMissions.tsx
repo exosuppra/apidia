@@ -8,6 +8,7 @@ import Seo from "@/components/Seo";
 import MissionFolderCard from "@/components/missions/MissionFolderCard";
 import MissionDetailPanel from "@/components/missions/MissionDetailPanel";
 import { ArrowLeft, Search, RefreshCw, Loader2, FolderOpen, Briefcase } from "lucide-react";
+import { logUserAction } from "@/lib/logUserAction";
 
 interface MissionFile {
   id: string;
@@ -48,6 +49,7 @@ export default function SuiviMissions() {
       }
 
       setFolders(data.folders || []);
+      logUserAction("missions_refresh", { folders_count: data.folders?.length || 0 });
     } catch (error: any) {
       console.error('Error fetching missions:', error);
       toast({

@@ -12,6 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import { logUserAction } from "@/lib/logUserAction";
 
 interface MissionFile {
   id: string;
@@ -107,6 +108,7 @@ export default function MissionDetailPanel({ folder, onClose }: MissionDetailPan
 
       if (newUploads.length > 0) {
         setUploadedJustificatifs(prev => [...prev, ...newUploads]);
+        logUserAction("missions_upload_justificatif", { folder: folder.name, count: newUploads.length });
         toast({
           title: "Upload réussi",
           description: `${newUploads.length} fichier(s) ajouté(s) au Drive`,
