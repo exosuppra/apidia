@@ -413,24 +413,58 @@ function formatAction(raw: string | undefined | null): string {
 
 function describeDetails(details: any): string | null {
   if (!details || typeof details !== "object") return null;
+
+  // Traductions des valeurs techniques courantes
+  const valueMap: Record<string, string> = {
+    token_refresh: "session restaurée automatiquement",
+    direct: "connexion directe",
+    google: "via Google",
+    email: "par email",
+    manual: "manuellement",
+    auto: "automatiquement",
+    pending: "en attente",
+    approved: "approuvée",
+    rejected: "refusée",
+    success: "réussite",
+    error: "erreur",
+  };
+
+  // Étiquettes lisibles en français
+  const labelMap: Record<string, string> = {
+    target: "Cible",
+    fiche_id: "Fiche",
+    fiche_name: "Fiche",
+    name: "Nom",
+    title: "Titre",
+    page: "Page",
+    url: "URL",
+    email: "Email",
+    site_url: "Site",
+    commune: "Commune",
+    planning_title: "Planning",
+    count: "Nombre",
+    request_id: "Demande",
+    method: "Méthode",
+    type: "Type",
+    status: "Statut",
+    field_name: "Champ",
+  };
+
+  // Clés purement techniques à masquer
+  const skipKeys = new Set(["user_id", "id", "timestamp", "ip", "user_agent"]);
+
   const parts: string[] = [];
-  const keys = ["target", "fiche_id", "fiche_name", "name", "title", "page", "url", "email", "site_url", "commune", "planning_title", "count", "request_id"];
-  for (const k of keys) {
-    const v = (details as any)[k];
-    if (v === undefined || v === null || v === "") continue;
-    const label = k === "fiche_id" ? "Fiche" : k === "fiche_name" ? "Fiche" : k === "count" ? "Nombre" : k.replace(/_/g, " ");
-    parts.push(`${label.charAt(0).toUpperCase() + label.slice(1)} : ${String(v)}`);
+  for (const [k, raw] of Object.entries(details)) {
+    if (skipKeys.has(k)) continue;
+    if (raw === undefined || raw === null || raw === "") continue;
+    const label = labelMap[k] || k.charAt(0).toUpperCase() + k.slice(1).replace(/_/g, " ");
+    let value = String(raw);
+    if (valueMap[value]) value = valueMap[value];
+    if (value.length > 80) value = value.slice(0, 77) + "…";
+    parts.push(`${label} : ${value}`);
   }
-  if (parts.length === 0) {
-    // Fallback: show raw JSON compactly
-    try {
-      const json = JSON.stringify(details);
-      if (json && json !== "{}") return json.length > 160 ? json.slice(0, 157) + "…" : json;
-    } catch {
-      return null;
-    }
-    return null;
-  }
+
+  if (parts.length === 0) return null;
   return parts.join(" · ");
 }
 
