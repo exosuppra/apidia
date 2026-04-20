@@ -351,6 +351,83 @@ window.addEventListener('message', function(e) {
               </div>
 
               <div>
+                <div className="flex items-center justify-between mb-1">
+                  <Label>Critères Apidae ({criteres.length} disponibles)</Label>
+                  {selectedCriteres.length > 1 && (
+                    <Select value={criteresMode} onValueChange={(v) => setCriteresMode(v as "any" | "all")}>
+                      <SelectTrigger className="h-7 w-32 text-xs">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="any">Au moins un</SelectItem>
+                        <SelectItem value="all">Tous requis</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                </div>
+                <Popover open={criteresOpen} onOpenChange={setCriteresOpen}>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="w-full justify-start font-normal">
+                      <Search className="h-4 w-4 mr-2" />
+                      {selectedCriteres.length === 0
+                        ? "Sélectionner des critères..."
+                        : `${selectedCriteres.length} critère${selectedCriteres.length > 1 ? "s" : ""} sélectionné${selectedCriteres.length > 1 ? "s" : ""}`}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[400px] p-0" align="start">
+                    <Command>
+                      <CommandInput placeholder="Rechercher un critère..." />
+                      <CommandList className="max-h-72">
+                        <CommandEmpty>Aucun critère trouvé.</CommandEmpty>
+                        <CommandGroup>
+                          {criteres.map((c) => {
+                            const checked = selectedCriteres.includes(c.id);
+                            return (
+                              <CommandItem
+                                key={c.id}
+                                value={`${c.libelle} ${c.id}`}
+                                onSelect={() => {
+                                  setSelectedCriteres((prev) =>
+                                    prev.includes(c.id) ? prev.filter((x) => x !== c.id) : [...prev, c.id]
+                                  );
+                                }}
+                              >
+                                <div className="flex items-center gap-2 w-full">
+                                  <div className={`h-4 w-4 rounded border flex items-center justify-center ${checked ? "bg-primary border-primary" : "border-input"}`}>
+                                    {checked && <span className="text-primary-foreground text-xs">✓</span>}
+                                  </div>
+                                  <span className="flex-1 truncate">{c.libelle}</span>
+                                  <Badge variant="secondary" className="text-xs">{c.count}</Badge>
+                                </div>
+                              </CommandItem>
+                            );
+                          })}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+                {selectedCriteres.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mt-2">
+                    {selectedCriteres.map((id) => {
+                      const c = criteres.find((x) => x.id === id);
+                      return (
+                        <Badge key={id} variant="secondary" className="text-xs gap-1">
+                          {c?.libelle || `#${id}`}
+                          <button
+                            onClick={() => setSelectedCriteres((prev) => prev.filter((x) => x !== id))}
+                            className="ml-1 hover:text-destructive"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </Badge>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              <div>
                 <Label>IDs de fiches manuels (optionnel, séparés par des virgules)</Label>
                 <Input
                   value={manualIds}
