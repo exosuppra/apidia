@@ -503,6 +503,12 @@ window.addEventListener('message', function(e) {
                     <Badge variant="outline">{WIDGET_TYPES.find((t) => t.value === w.widget_type)?.label}</Badge>
                     {w.filters?.fiche_type && <Badge variant="outline">{w.filters.fiche_type.replace(/_/g, " ")}</Badge>}
                     {w.filters?.commune && <Badge variant="outline">{w.filters.commune}</Badge>}
+                    {Array.isArray(w.filters?.critere_ids) && w.filters.critere_ids.length > 0 && (
+                      <Badge variant="outline">
+                        {w.filters.critere_ids.length} critère{w.filters.critere_ids.length > 1 ? "s" : ""}
+                        {w.filters.critere_mode === "all" ? " (tous)" : ""}
+                      </Badge>
+                    )}
                     {w.selected_fiche_ids?.length > 0 && (
                       <Badge variant="outline">{w.selected_fiche_ids.length} fiches sélectionnées</Badge>
                     )}
