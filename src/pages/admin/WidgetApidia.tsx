@@ -143,6 +143,10 @@ export default function WidgetApidia() {
     if (ficheType && ficheType !== "all") filters.fiche_type = ficheType;
     if (commune && commune !== "all") filters.commune = commune;
     if (source && source !== "all") filters.source = source;
+    if (selectedCriteres.length > 0) {
+      filters.critere_ids = selectedCriteres;
+      filters.critere_mode = criteresMode;
+    }
 
     const selectedIds = manualIds.trim()
       ? manualIds.split(",").map((s) => s.trim()).filter(Boolean)
