@@ -4,6 +4,8 @@ import FloatingOtoChat from "@/components/FloatingOtoChat";
 import { useAuth } from "@/context/AuthProvider";
 import { supabase } from "@/integrations/supabase/client";
 import type { User } from "@supabase/supabase-js";
+import { useAdminInterface } from "@/hooks/useAdminInterface";
+import { Sparkles } from "lucide-react";
 
 interface AdminLayoutProps {
   children?: React.ReactNode;
@@ -11,6 +13,7 @@ interface AdminLayoutProps {
 
 export default function AdminLayout({ children }: AdminLayoutProps) {
   const { user, isGoogleSheetsUser } = useAuth();
+  const [, setAdminInterface] = useAdminInterface();
   const [permissions, setPermissions] = useState<{ apidia: boolean; oto: boolean }>({ apidia: false, oto: false });
 
   // Apply Pays de Manosque tourisme theme to entire admin area
@@ -52,6 +55,24 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       {children}
       {permissions.apidia && <FloatingChat />}
       {permissions.oto && <FloatingOtoChat />}
+
+      {/* Bouton flottant : passer à la nouvelle interface */}
+      <button
+        onClick={() => setAdminInterface("refonte")}
+        title="Essayer la nouvelle interface (charte Pays de Manosque)"
+        className="fixed z-40 flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-full shadow-lg transition-all hover:shadow-xl hover:-translate-y-0.5"
+        style={{
+          bottom: 24,
+          left: 24,
+          background: "hsl(var(--primary))",
+          color: "hsl(var(--primary-foreground))",
+          border: "none",
+          cursor: "pointer",
+        }}
+      >
+        <Sparkles className="h-3.5 w-3.5" />
+        Essayer la nouvelle interface
+      </button>
     </>
   );
 }
