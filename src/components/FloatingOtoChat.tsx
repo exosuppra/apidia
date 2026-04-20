@@ -149,7 +149,7 @@ export default function FloatingOtoChat() {
       {/* Floating OTO button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg z-50 overflow-hidden border-2 border-primary/30 hover:border-primary transition-colors hover:scale-105 active:scale-95"
+        className="fixed bottom-24 right-6 h-14 w-14 rounded-full shadow-lg z-50 overflow-hidden border-2 border-primary/30 hover:border-primary transition-colors hover:scale-105 active:scale-95"
         title="Contacter OTO"
       >
         <img
