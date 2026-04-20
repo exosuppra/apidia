@@ -473,9 +473,10 @@ export default function AllFiches() {
     setLoading(true);
     try {
       const allFiches: FicheData[] = [];
-      const pageSize = 1000;
+      const pageSize = 500;
       let offset = 0;
       let hasMore = true;
+      let retries = 0;
       
       while (hasMore) {
         const { data, error } = await supabase
@@ -484,7 +485,16 @@ export default function AllFiches() {
           .order('updated_at', { ascending: false })
           .range(offset, offset + pageSize - 1);
 
-        if (error) throw error;
+        if (error) {
+          // Retry en cas de statement timeout
+          if ((error as any).code === '57014' && retries < 2) {
+            retries++;
+            await new Promise(r => setTimeout(r, 800));
+            continue;
+          }
+          throw error;
+        }
+        retries = 0;
         
         if (data && data.length > 0) {
           allFiches.push(...data);
