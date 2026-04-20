@@ -180,6 +180,180 @@
   to { stroke-dashoffset: 0; }
 }
 
+/* ================================================================
+   Motion design avancé — signature Apidia / Pays de Manosque
+   ================================================================ */
+
+/* Page enter (animée via clé location.pathname) */
+@keyframes refonte-page-enter {
+  0%   { opacity: 0; transform: translateY(10px); filter: blur(2px); }
+  100% { opacity: 1; transform: translateY(0); filter: blur(0); }
+}
+
+.refonte-root .refonte-page {
+  animation: refonte-page-enter 420ms var(--ease-out) both;
+}
+
+/* Topbar title re-enters on route change */
+@keyframes refonte-title-enter {
+  0% { opacity: 0; transform: translateX(-6px); }
+  100% { opacity: 1; transform: translateX(0); }
+}
+
+.refonte-root .refonte-topbar-title-inner {
+  animation: refonte-title-enter 300ms var(--ease-out) both;
+}
+
+/* Halo faisceau autour du logo (signature PdM) */
+@keyframes refonte-halo-pulse {
+  0%, 100% { opacity: 0.2; transform: scale(1); }
+  50%      { opacity: 0.55; transform: scale(1.15); }
+}
+
+.refonte-root .refonte-logo-halo {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.refonte-root .refonte-logo-halo::after {
+  content: "";
+  position: absolute;
+  inset: -8px;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--pdm-jaune) 0%, transparent 62%);
+  opacity: 0.35;
+  z-index: 0;
+  animation: refonte-halo-pulse 3.4s ease-in-out infinite;
+  pointer-events: none;
+  filter: blur(4px);
+}
+
+.refonte-root .refonte-logo-halo > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Status dot pulse */
+@keyframes refonte-dot-pulse {
+  0%   { box-shadow: 0 0 0 0 rgba(162, 199, 67, 0.6); }
+  70%  { box-shadow: 0 0 0 8px rgba(162, 199, 67, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(162, 199, 67, 0); }
+}
+
+.refonte-root .refonte-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 4px;
+  background: var(--pdm-vert);
+  animation: refonte-dot-pulse 2.2s ease-in-out infinite;
+}
+
+/* Skeleton shimmer pour états de chargement */
+@keyframes refonte-skeleton-slide {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.refonte-root .refonte-skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--gris-150) 25%,
+    var(--gris-100) 50%,
+    var(--gris-150) 75%
+  );
+  background-size: 200% 100%;
+  animation: refonte-skeleton-slide 1.4s ease-in-out infinite;
+  border-radius: 6px;
+  display: block;
+}
+
+/* Bottom nav tap/active bounce */
+@keyframes refonte-tap-bounce {
+  0%, 100% { transform: scale(1); }
+  45%      { transform: scale(0.85); }
+  70%      { transform: scale(1.08); }
+}
+
+.refonte-root .refonte-bottom-nav-item {
+  transition: transform var(--dur-fast), color var(--dur-fast);
+}
+
+.refonte-root .refonte-bottom-nav-item:active {
+  transform: scale(0.92);
+}
+
+.refonte-root .refonte-bottom-nav-item.active svg {
+  animation: refonte-tap-bounce 420ms var(--ease-spring);
+}
+
+/* Hub card icon wiggle (desktop hover) */
+@keyframes refonte-icon-wiggle {
+  0%, 100% { transform: scale(1) rotate(0); }
+  30%      { transform: scale(1.12) rotate(-10deg); }
+  60%      { transform: scale(1.08) rotate(6deg); }
+}
+
+@media (hover: hover) {
+  .refonte-root .refonte-hub-card:hover .refonte-hub-icon {
+    animation: refonte-icon-wiggle 550ms var(--ease-spring);
+  }
+}
+
+/* Active nav indicator slide in */
+@keyframes refonte-active-indicator {
+  0% { transform: scaleY(0); opacity: 0; }
+  100% { transform: scaleY(1); opacity: 1; }
+}
+
+.refonte-root .refonte-nav-active-indicator {
+  transform-origin: center;
+  animation: refonte-active-indicator 300ms var(--ease-spring) both;
+}
+
+/* Sidebar nav item hover — légère translation horizontale */
+.refonte-root .refonte-sidebar-nav-item {
+  transition: background var(--dur-fast), color var(--dur-fast), transform var(--dur-fast);
+}
+
+@media (hover: hover) {
+  .refonte-root .refonte-sidebar-nav-item:not(.active):hover {
+    transform: translateX(2px);
+  }
+}
+
+/* Button subtle press */
+.refonte-root button:not(:disabled):active:not(.refonte-bottom-nav-item) {
+  transform: scale(0.98);
+  transition: transform 60ms ease-out;
+}
+
+/* Drawer entrance polish (renforce la transition déjà en place) */
+@media (max-width: 768px) {
+  .refonte-root .refonte-shell[data-drawer-open="true"] .refonte-sidebar {
+    animation: refonte-drawer-slide 320ms var(--ease-out);
+  }
+
+  @keyframes refonte-drawer-slide {
+    from { transform: translateX(-105%); }
+    to   { transform: translateX(0); }
+  }
+}
+
+/* Respecte la préférence utilisateur "reduced motion" */
+@media (prefers-reduced-motion: reduce) {
+  .refonte-root *,
+  .refonte-root *::before,
+  .refonte-root *::after {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
+    transition-duration: 0.01ms !important;
+  }
+  .refonte-root .refonte-logo-halo::after { display: none; }
+  .refonte-root .refonte-status-dot { animation: none; }
+}
+
 /* ======= Utility focus ring ======= */
 .refonte-root .focus-ring:focus-visible,
 .refonte-root button:focus-visible,

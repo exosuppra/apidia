@@ -156,7 +156,9 @@ export default function AdminLayoutRefonte({ children }: AdminLayoutRefonteProps
         {/* Sidebar (desktop permanente, mobile = drawer) */}
         <aside className="refonte-sidebar">
           <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "0 4px" }}>
-            <ApidiaLogo size={40} />
+            <span className="refonte-logo-halo">
+              <ApidiaLogo size={40} />
+            </span>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontFamily: "var(--font-display)", fontSize: 18, lineHeight: 1, letterSpacing: "-0.01em" }}>APIDIA</div>
               <div style={{ fontSize: 10, color: "rgba(255,255,255,0.55)", textTransform: "uppercase", letterSpacing: "0.1em", marginTop: 2 }}>Back-office PdM</div>
@@ -190,6 +192,7 @@ export default function AdminLayoutRefonte({ children }: AdminLayoutRefonteProps
                 <NavLink
                   key={n.id}
                   to={n.to}
+                  className={`refonte-sidebar-nav-item${active ? " active" : ""}`}
                   style={{
                     height: 40,
                     padding: "0 12px",
@@ -202,7 +205,6 @@ export default function AdminLayoutRefonte({ children }: AdminLayoutRefonteProps
                     color: active ? "var(--pdm-jaune)" : "rgba(255,255,255,0.75)",
                     fontSize: 13,
                     fontWeight: 600,
-                    transition: "all var(--dur-fast)",
                     position: "relative",
                     textDecoration: "none",
                   }}
@@ -214,7 +216,7 @@ export default function AdminLayoutRefonte({ children }: AdminLayoutRefonteProps
                   }}
                 >
                   {active && (
-                    <span style={{ position: "absolute", left: -16, top: 8, bottom: 8, width: 3, borderRadius: 2, background: "var(--pdm-jaune)" }} />
+                    <span className="refonte-nav-active-indicator" style={{ position: "absolute", left: -16, top: 8, bottom: 8, width: 3, borderRadius: 2, background: "var(--pdm-jaune)" }} />
                   )}
                   <Icon name={n.icon} size={16} />
                   {n.label}
@@ -261,7 +263,7 @@ export default function AdminLayoutRefonte({ children }: AdminLayoutRefonteProps
           <div style={{ padding: 12, borderRadius: 12, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}>
             <div style={{ fontSize: 10, color: "rgba(255,255,255,0.5)", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 6 }}>Synchro APIDAE</div>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <div style={{ width: 8, height: 8, borderRadius: 4, background: "var(--pdm-vert)", boxShadow: "0 0 8px var(--pdm-vert)" }} />
+              <span className="refonte-status-dot" />
               <span style={{ fontSize: 11, color: "rgba(255,255,255,0.85)" }}>En ligne</span>
             </div>
           </div>
@@ -316,8 +318,10 @@ export default function AdminLayoutRefonte({ children }: AdminLayoutRefonteProps
             </button>
 
             <div className="refonte-topbar-title">
-              <h1>{pageTitle.title}</h1>
-              <div className="refonte-topbar-subtitle">{pageTitle.subtitle}</div>
+              <div key={location.pathname} className="refonte-topbar-title-inner">
+                <h1>{pageTitle.title}</h1>
+                <div className="refonte-topbar-subtitle">{pageTitle.subtitle}</div>
+              </div>
             </div>
 
             <div className="refonte-topbar-actions-desktop">
@@ -367,8 +371,10 @@ export default function AdminLayoutRefonte({ children }: AdminLayoutRefonteProps
             </div>
           </header>
 
-          {/* Contenu de la page */}
-          <div style={{ flex: 1, minWidth: 0 }}>{children}</div>
+          {/* Contenu de la page — re-animé à chaque navigation */}
+          <div key={location.pathname} className="refonte-page" style={{ flex: 1, minWidth: 0 }}>
+            {children}
+          </div>
         </main>
       </div>
 

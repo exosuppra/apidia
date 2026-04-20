@@ -213,7 +213,24 @@ export default function DashboardRefonte() {
             </div>
             <div style={{ background: "var(--surface)", borderRadius: 14, border: "1px solid var(--border)", overflow: "hidden" }}>
               {loading && (
-                <div style={{ padding: 20, textAlign: "center", color: "var(--text-3)", fontSize: 13 }}>Chargement…</div>
+                <>
+                  {[0, 1, 2, 3, 4].map((i) => (
+                    <div
+                      key={i}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 12,
+                        padding: "14px 18px",
+                        borderBottom: i < 4 ? "1px solid var(--border)" : "none",
+                      }}
+                    >
+                      <span className="refonte-skeleton" style={{ width: 8, height: 8, borderRadius: 4, flexShrink: 0 }} />
+                      <span className="refonte-skeleton" style={{ flex: 1, height: 12, maxWidth: `${60 + (i * 7) % 30}%` }} />
+                      <span className="refonte-skeleton" style={{ width: 80, height: 10, flexShrink: 0 }} />
+                    </div>
+                  ))}
+                </>
               )}
               {!loading && activity.length === 0 && (
                 <div style={{ padding: 20, textAlign: "center", color: "var(--text-3)", fontSize: 13 }}>Aucune activité récente</div>
@@ -268,6 +285,7 @@ function HubCard({ item, delay, canAccess, onClick }: HubCardProps) {
       onMouseEnter={() => !disabled && setHover(true)}
       onMouseLeave={() => !disabled && setHover(false)}
       disabled={disabled}
+      className="refonte-hub-card"
       style={{
         background: "var(--surface)",
         border: "1px solid " + (hover ? "var(--pdm-vert)" : "var(--border)"),
@@ -275,7 +293,7 @@ function HubCard({ item, delay, canAccess, onClick }: HubCardProps) {
         padding: 20,
         textAlign: "left",
         cursor: disabled ? "not-allowed" : "pointer",
-        transition: "all var(--dur-med) var(--ease-out)",
+        transition: "border-color var(--dur-med) var(--ease-out), transform var(--dur-med) var(--ease-out), box-shadow var(--dur-med) var(--ease-out)",
         transform: hover ? "translateY(-3px)" : "none",
         boxShadow: hover ? "var(--sh-md)" : "var(--sh-xs)",
         animation: `refonte-fade-in 500ms ${delay}ms var(--ease-out) both`,
@@ -287,6 +305,7 @@ function HubCard({ item, delay, canAccess, onClick }: HubCardProps) {
     >
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 12 }}>
         <div
+          className="refonte-hub-icon"
           style={{
             width: 40,
             height: 40,
@@ -296,8 +315,7 @@ function HubCard({ item, delay, canAccess, onClick }: HubCardProps) {
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            transition: "all var(--dur-med) var(--ease-spring)",
-            transform: hover ? "scale(1.08) rotate(-4deg)" : "none",
+            transition: "background var(--dur-med) var(--ease-spring), color var(--dur-med) var(--ease-spring)",
           }}
         >
           <Icon name={item.icon} size={20} />
