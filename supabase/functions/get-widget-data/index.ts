@@ -44,7 +44,12 @@ serve(async (req) => {
     const settings = widget.settings as any || {};
     const maxFiches = settings.max_fiches || 10;
 
-    // Build query
+    const critereIds: number[] = Array.isArray(filters.critere_ids)
+      ? filters.critere_ids.map((x: any) => Number(x)).filter((x: number) => Number.isFinite(x))
+      : [];
+    const critereMode: "any" | "all" = filters.critere_mode === "all" ? "all" : "any";
+
+    // Build query — when critères are set, we need to fetch a larger pool to filter post-query
     let query = supabase
       .from("fiches_data")
       .select("fiche_id, fiche_type, source, data, is_published")
@@ -62,19 +67,42 @@ serve(async (req) => {
       }
     }
 
-    const { data: fiches, error: fichesErr } = await query.limit(maxFiches);
+    // If we filter by critères or commune, fetch a larger pool then apply limit after filtering
+    const needsPostFilter = critereIds.length > 0 || !!filters.commune;
+    const fetchLimit = needsPostFilter ? Math.min(2000, Math.max(maxFiches * 20, 200)) : maxFiches;
+
+    const { data: fiches, error: fichesErr } = await query.limit(fetchLimit);
 
     if (fichesErr) {
       throw new Error(fichesErr.message);
     }
 
-    // Filter by commune if needed (JSONB path)
     let results = fiches || [];
+
+    // Filter by commune (JSONB path)
     if (filters.commune) {
       results = results.filter((f: any) => {
         const commune = f.data?.localisation?.adresse?.commune?.nom;
         return commune && commune.toLowerCase().includes(filters.commune.toLowerCase());
       });
+    }
+
+    // Filter by criteresInternes
+    if (critereIds.length > 0) {
+      results = results.filter((f: any) => {
+        const list = f.data?.criteresInternes;
+        if (!Array.isArray(list)) return false;
+        const ficheCritIds = new Set(list.map((c: any) => Number(c?.id)).filter((x: number) => Number.isFinite(x)));
+        if (critereMode === "all") {
+          return critereIds.every((id) => ficheCritIds.has(id));
+        }
+        return critereIds.some((id) => ficheCritIds.has(id));
+      });
+    }
+
+    // Apply max limit after filtering
+    if (needsPostFilter) {
+      results = results.slice(0, maxFiches);
     }
 
     // Format output

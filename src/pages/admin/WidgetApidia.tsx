@@ -11,9 +11,13 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import Seo from "@/components/Seo";
-import { ArrowLeft, Code, Copy, Plus, Trash2, Eye, LayoutGrid, Map, Layers, Settings } from "lucide-react";
+import { ArrowLeft, Code, Copy, Plus, Trash2, Eye, LayoutGrid, Map as MapIcon, Layers, Settings, X, Search } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { logUserAction } from "@/lib/logUserAction";
+
+type Critere = { id: number; libelle: string; count: number };
 
 type Widget = {
   id: string;
@@ -36,7 +40,7 @@ const FICHE_TYPES = [
 const WIDGET_TYPES = [
   { value: "carousel", label: "Carrousel", icon: Layers },
   { value: "grid", label: "Grille", icon: LayoutGrid },
-  { value: "map", label: "Carte", icon: Map },
+  { value: "map", label: "Carte", icon: MapIcon },
 ];
 
 export default function WidgetApidia() {
@@ -46,6 +50,8 @@ export default function WidgetApidia() {
   const [showCreate, setShowCreate] = useState(false);
   const [selectedWidget, setSelectedWidget] = useState<Widget | null>(null);
   const [communes, setCommunes] = useState<string[]>([]);
+  const [criteres, setCriteres] = useState<Critere[]>([]);
+  const [criteresOpen, setCriteresOpen] = useState(false);
   const { toast } = useToast();
 
   // Form state
@@ -57,10 +63,13 @@ export default function WidgetApidia() {
   const [manualIds, setManualIds] = useState("");
   const [maxFiches, setMaxFiches] = useState(10);
   const [theme, setTheme] = useState("light");
+  const [selectedCriteres, setSelectedCriteres] = useState<number[]>([]);
+  const [criteresMode, setCriteresMode] = useState<"any" | "all">("any");
 
   useEffect(() => {
     loadWidgets();
     loadCommunes();
+    loadCriteres();
   }, []);
 
   const loadWidgets = async () => {
@@ -90,6 +99,40 @@ export default function WidgetApidia() {
     }
   };
 
+  const loadCriteres = async () => {
+    // Load all criteresInternes from all fiches and aggregate
+    const counts: Map<number, { libelle: string; count: number }> = new Map();
+    let from = 0;
+    const pageSize = 1000;
+    while (true) {
+      const { data, error } = await supabase
+        .from("fiches_data")
+        .select("data")
+        .eq("is_published", true)
+        .range(from, from + pageSize - 1);
+      if (error || !data || data.length === 0) break;
+      data.forEach((f: any) => {
+        const list = f.data?.criteresInternes;
+        if (Array.isArray(list)) {
+          list.forEach((c: any) => {
+            if (c?.id == null) return;
+            const id = Number(c.id);
+            const libelle = c.libelle || `Critère ${id}`;
+            const existing = counts.get(id);
+            if (existing) existing.count++;
+            else counts.set(id, { libelle, count: 1 });
+          });
+        }
+      });
+      if (data.length < pageSize) break;
+      from += pageSize;
+    }
+    const arr: Critere[] = Array.from(counts.entries())
+      .map(([id, v]) => ({ id, libelle: v.libelle, count: v.count }))
+      .sort((a, b) => a.libelle.localeCompare(b.libelle));
+    setCriteres(arr);
+  };
+
   const createWidget = async () => {
     if (!name.trim()) {
       toast({ title: "Le nom est requis", variant: "destructive" });
@@ -100,6 +143,10 @@ export default function WidgetApidia() {
     if (ficheType && ficheType !== "all") filters.fiche_type = ficheType;
     if (commune && commune !== "all") filters.commune = commune;
     if (source && source !== "all") filters.source = source;
+    if (selectedCriteres.length > 0) {
+      filters.critere_ids = selectedCriteres;
+      filters.critere_mode = criteresMode;
+    }
 
     const selectedIds = manualIds.trim()
       ? manualIds.split(",").map((s) => s.trim()).filter(Boolean)
@@ -152,6 +199,8 @@ export default function WidgetApidia() {
     setManualIds("");
     setMaxFiches(10);
     setTheme("light");
+    setSelectedCriteres([]);
+    setCriteresMode("any");
   };
 
   const getIframeCode = (widget: Widget) => {
@@ -302,6 +351,83 @@ window.addEventListener('message', function(e) {
               </div>
 
               <div>
+                <div className="flex items-center justify-between mb-1">
+                  <Label>Critères Apidae ({criteres.length} disponibles)</Label>
+                  {selectedCriteres.length > 1 && (
+                    <Select value={criteresMode} onValueChange={(v) => setCriteresMode(v as "any" | "all")}>
+                      <SelectTrigger className="h-7 w-32 text-xs">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="any">Au moins un</SelectItem>
+                        <SelectItem value="all">Tous requis</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                </div>
+                <Popover open={criteresOpen} onOpenChange={setCriteresOpen}>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="w-full justify-start font-normal">
+                      <Search className="h-4 w-4 mr-2" />
+                      {selectedCriteres.length === 0
+                        ? "Sélectionner des critères..."
+                        : `${selectedCriteres.length} critère${selectedCriteres.length > 1 ? "s" : ""} sélectionné${selectedCriteres.length > 1 ? "s" : ""}`}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[400px] p-0" align="start">
+                    <Command>
+                      <CommandInput placeholder="Rechercher un critère..." />
+                      <CommandList className="max-h-72">
+                        <CommandEmpty>Aucun critère trouvé.</CommandEmpty>
+                        <CommandGroup>
+                          {criteres.map((c) => {
+                            const checked = selectedCriteres.includes(c.id);
+                            return (
+                              <CommandItem
+                                key={c.id}
+                                value={`${c.libelle} ${c.id}`}
+                                onSelect={() => {
+                                  setSelectedCriteres((prev) =>
+                                    prev.includes(c.id) ? prev.filter((x) => x !== c.id) : [...prev, c.id]
+                                  );
+                                }}
+                              >
+                                <div className="flex items-center gap-2 w-full">
+                                  <div className={`h-4 w-4 rounded border flex items-center justify-center ${checked ? "bg-primary border-primary" : "border-input"}`}>
+                                    {checked && <span className="text-primary-foreground text-xs">✓</span>}
+                                  </div>
+                                  <span className="flex-1 truncate">{c.libelle}</span>
+                                  <Badge variant="secondary" className="text-xs">{c.count}</Badge>
+                                </div>
+                              </CommandItem>
+                            );
+                          })}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+                {selectedCriteres.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mt-2">
+                    {selectedCriteres.map((id) => {
+                      const c = criteres.find((x) => x.id === id);
+                      return (
+                        <Badge key={id} variant="secondary" className="text-xs gap-1">
+                          {c?.libelle || `#${id}`}
+                          <button
+                            onClick={() => setSelectedCriteres((prev) => prev.filter((x) => x !== id))}
+                            className="ml-1 hover:text-destructive"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </Badge>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              <div>
                 <Label>IDs de fiches manuels (optionnel, séparés par des virgules)</Label>
                 <Input
                   value={manualIds}
@@ -377,6 +503,12 @@ window.addEventListener('message', function(e) {
                     <Badge variant="outline">{WIDGET_TYPES.find((t) => t.value === w.widget_type)?.label}</Badge>
                     {w.filters?.fiche_type && <Badge variant="outline">{w.filters.fiche_type.replace(/_/g, " ")}</Badge>}
                     {w.filters?.commune && <Badge variant="outline">{w.filters.commune}</Badge>}
+                    {Array.isArray(w.filters?.critere_ids) && w.filters.critere_ids.length > 0 && (
+                      <Badge variant="outline">
+                        {w.filters.critere_ids.length} critère{w.filters.critere_ids.length > 1 ? "s" : ""}
+                        {w.filters.critere_mode === "all" ? " (tous)" : ""}
+                      </Badge>
+                    )}
                     {w.selected_fiche_ids?.length > 0 && (
                       <Badge variant="outline">{w.selected_fiche_ids.length} fiches sélectionnées</Badge>
                     )}
