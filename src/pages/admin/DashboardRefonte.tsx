@@ -96,19 +96,22 @@ export default function DashboardRefonte() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
   const [activity, setActivity] = useState<ActivityRow[]>([]);
+  const [profileFirstName, setProfileFirstName] = useState<string>("");
 
   useEffect(() => {
     const load = async () => {
       if (!user) return;
       try {
-        const [permResult, roleResult, logsResult] = await Promise.all([
+        const [permResult, roleResult, logsResult, profileResult] = await Promise.all([
           supabase.from("admin_permissions").select("page_key").eq("user_id", (user as any).id),
           supabase.rpc("has_role", { _user_id: (user as any).id, _role: "admin" }),
           supabase.from("user_action_logs").select("*").order("created_at", { ascending: false }).limit(8),
+          supabase.from("profiles").select("first_name").eq("id", (user as any).id).maybeSingle(),
         ]);
         setPermissions((permResult.data || []).map((p: any) => p.page_key));
         setIsAdmin(roleResult.data === true);
         setActivity((logsResult.data as any as ActivityRow[]) || []);
+        setProfileFirstName((profileResult.data as any)?.first_name || "");
       } catch (e) {
         // fail silent — Hub reste utilisable même si certaines requêtes échouent
         console.warn("DashboardRefonte load error", e);
@@ -127,12 +130,17 @@ export default function DashboardRefonte() {
   };
 
   const firstName = (() => {
+    if (profileFirstName) return profileFirstName;
     const email = (user as any)?.email || "";
     const meta = (user as any)?.user_metadata || {};
-    const fullName: string = meta.full_name || meta.name || "";
+    const fullName: string = meta.full_name || meta.first_name || meta.name || "";
     if (fullName) return fullName.split(" ")[0];
     if (email) {
-      const part = email.split("@")[0].split(".")[0];
+      const local = email.split("@")[0];
+      // Si format prenom.nom → prendre le prénom complet ; sinon le local complet
+      const part = local.includes(".") ? local.split(".")[0] : local;
+      // Ignorer les initiales (1 lettre seule)
+      if (part.length <= 1) return "";
       return part.charAt(0).toUpperCase() + part.slice(1);
     }
     return "";
