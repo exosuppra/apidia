@@ -101,7 +101,7 @@ export default function WidgetApidia() {
 
   const loadCriteres = async () => {
     // Load all criteresInternes from all fiches and aggregate
-    const counts = new Map<number, { libelle: string; count: number }>();
+    const counts: Map<number, { libelle: string; count: number }> = new Map();
     let from = 0;
     const pageSize = 1000;
     while (true) {
