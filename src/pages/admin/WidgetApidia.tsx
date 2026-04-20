@@ -50,6 +50,8 @@ export default function WidgetApidia() {
   const [showCreate, setShowCreate] = useState(false);
   const [selectedWidget, setSelectedWidget] = useState<Widget | null>(null);
   const [communes, setCommunes] = useState<string[]>([]);
+  const [criteres, setCriteres] = useState<Critere[]>([]);
+  const [criteresOpen, setCriteresOpen] = useState(false);
   const { toast } = useToast();
 
   // Form state
@@ -61,10 +63,13 @@ export default function WidgetApidia() {
   const [manualIds, setManualIds] = useState("");
   const [maxFiches, setMaxFiches] = useState(10);
   const [theme, setTheme] = useState("light");
+  const [selectedCriteres, setSelectedCriteres] = useState<number[]>([]);
+  const [criteresMode, setCriteresMode] = useState<"any" | "all">("any");
 
   useEffect(() => {
     loadWidgets();
     loadCommunes();
+    loadCriteres();
   }, []);
 
   const loadWidgets = async () => {
