@@ -190,6 +190,7 @@ export default function MissionDetailPanel({ folder, onClose }: MissionDetailPan
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
 
+      logUserAction("missions_merge_download", { folder: folder.name, page_count: data.pageCount });
       toast({
         title: "Succès",
         description: `PDF fusionné téléchargé (${data.pageCount} pages)`,

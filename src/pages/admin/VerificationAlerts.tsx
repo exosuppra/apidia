@@ -328,6 +328,7 @@ export default function VerificationAlerts() {
 
       if (error) throw error;
 
+      logUserAction("verify_update_alert_status", { alert_id: selectedAlert.id, new_status: newStatus, fiche_id: selectedAlert.fiche_id });
       toast.success("Statut mis à jour");
       setDialogOpen(false);
       loadAlerts();
@@ -366,6 +367,7 @@ export default function VerificationAlerts() {
       if (error) throw error;
 
       if (data.success) {
+        logUserAction("verify_apply_correction", { alert_id: selectedAlert.id, field: data.field, fiche_id: selectedAlert.fiche_id });
         toast.success(`Correction appliquée : ${data.field} mis à jour`);
         setDialogOpen(false);
         loadAlerts();
@@ -395,6 +397,7 @@ export default function VerificationAlerts() {
       if (error) throw error;
 
       if (data.success && data.started) {
+        logUserAction("verify_run_manual", { total: data.total });
         toast.success(`Vérification de ${data.total} fiches lancée en arrière-plan`);
       } else if (data.error) {
         toast.error(data.error);
