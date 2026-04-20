@@ -173,7 +173,7 @@ interface InterfaceChooserProps {
 
 function InterfaceChooser({ value, onChange }: InterfaceChooserProps) {
   const options: { k: AdminInterface; title: string; desc: string; badge?: string }[] = [
-    { k: "refonte", title: "Nouvelle interface", desc: "Charte Pays de Manosque — layouts éditoriaux", badge: "Recommandée" },
+    { k: "refonte", title: "Nouvelle interface", desc: "Charte Pays de Manosque — layouts éditoriaux", badge: "Bêta" },
     { k: "classic", title: "Interface classique", desc: "Version précédente du back-office" },
   ];
   return (
