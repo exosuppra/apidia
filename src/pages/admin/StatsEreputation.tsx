@@ -253,6 +253,7 @@ export default function StatsEreputation() {
       const updatedRatings = await fetchGoogleRatings();
       setGoogleRatings(updatedRatings);
 
+      logUserAction("stats_ereputation_scrape", { success: successCount, errors: errorCount });
       toast({
         title: "Synchronisation terminée",
         description: `${successCount} établissement(s) mis à jour${errorCount > 0 ? `, ${errorCount} erreur(s)` : ""}`,
