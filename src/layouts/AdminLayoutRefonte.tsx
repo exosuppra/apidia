@@ -50,6 +50,16 @@ export default function AdminLayoutRefonte({ children }: AdminLayoutRefonteProps
   const [, setInterface] = useAdminInterface();
   const [permissions, setPermissions] = useState<{ apidia: boolean; oto: boolean }>({ apidia: false, oto: false });
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState<boolean>(() => {
+    try { return localStorage.getItem("refonte_sidebar_collapsed") === "1"; } catch { return false; }
+  });
+  const toggleCollapsed = () => {
+    setCollapsed((c) => {
+      const next = !c;
+      try { localStorage.setItem("refonte_sidebar_collapsed", next ? "1" : "0"); } catch {}
+      return next;
+    });
+  };
   const [profile, setProfile] = useState<{ name: string; email: string; initials: string; role: string }>({
     name: "Administrateur",
     email: "",
