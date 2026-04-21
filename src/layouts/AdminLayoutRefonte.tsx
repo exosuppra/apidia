@@ -5,6 +5,8 @@ import { supabase } from "@/integrations/supabase/client";
 import type { User } from "@supabase/supabase-js";
 import FloatingChat from "@/components/FloatingChat";
 import FloatingOtoChat from "@/components/FloatingOtoChat";
+import NotificationsBell from "@/components/NotificationsBell";
+import ProfileMenu from "@/components/ProfileMenu";
 import { Icon, ApidiaLogo, Avatar, Button, IconName } from "@/pages/refonte/primitives";
 import { useAdminInterface } from "@/hooks/useAdminInterface";
 import "@/pages/refonte/refonte-tokens.css";
