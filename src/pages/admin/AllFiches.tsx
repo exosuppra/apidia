@@ -1170,9 +1170,29 @@ export default function AllFiches() {
                   </TooltipContent>
                 </Tooltip>
 
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      onClick={openCleanupDialog}
+                      variant="outline"
+                      size="sm"
+                      disabled={syncingApidae || makeSyncRunning || cleanupLoading}
+                    >
+                      {cleanupLoading ? (
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      ) : (
+                        <Trash2 className="w-4 h-4 mr-2" />
+                      )}
+                      Nettoyer obsolètes
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" className="max-w-xs">
+                    <p>Supprime les fiches Apidae qui ne sont plus présentes dans la sélection territoriale (fiches retirées d'Apidae)</p>
+                  </TooltipContent>
+                </Tooltip>
+
                 <div className="border-l border-border pl-2 ml-2 flex items-center gap-2">
-                  {/* Progress bar during sync */}
-                  {syncingApidae && apidaeSyncProgress && (
+
                     <div className="flex items-center gap-3 min-w-[200px]">
                       <div className="flex-1">
                         <div className="h-2 bg-muted rounded-full overflow-hidden">
