@@ -636,6 +636,10 @@ window.addEventListener('message', function(e) {
                       <Eye className="h-3 w-3 mr-1" />
                       Prévisualiser
                     </Button>
+                    <Button variant="outline" size="sm" onClick={() => openEdit(w)}>
+                      <Pencil className="h-3 w-3 mr-1" />
+                      Modifier
+                    </Button>
                     <Button variant="ghost" size="sm" onClick={() => deleteWidget(w.id)} className="text-destructive hover:text-destructive">
                       <Trash2 className="h-3 w-3" />
                     </Button>
