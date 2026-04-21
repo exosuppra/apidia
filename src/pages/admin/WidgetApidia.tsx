@@ -519,7 +519,7 @@ window.addEventListener('message', function(e) {
               </div>
 
               <Button className="w-full" onClick={createWidget}>
-                Créer le widget
+                {editingId ? "Enregistrer les modifications" : "Créer le widget"}
               </Button>
             </div>
           </DialogContent>
