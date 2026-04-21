@@ -187,6 +187,7 @@ function GridView({ fiches, onSelect, showDescription }: { fiches: WidgetFiche[]
 /* ===================== CAROUSEL ===================== */
 function CarouselView({ fiches, onSelect, showDescription }: { fiches: WidgetFiche[]; onSelect: (f: WidgetFiche) => void; showDescription: boolean }) {
   const scrollerRef = useRef<HTMLDivElement>(null);
+  const [paused, setPaused] = useState(false);
 
   const scrollBy = (dir: number) => {
     const el = scrollerRef.current;
@@ -195,8 +196,30 @@ function CarouselView({ fiches, onSelect, showDescription }: { fiches: WidgetFic
     el.scrollBy({ left: dir * (cardWidth + 16), behavior: "smooth" });
   };
 
+  // Auto-scroll: avance d'une carte toutes les 4s, repart au début à la fin
+  useEffect(() => {
+    if (paused || fiches.length <= 1) return;
+    const interval = setInterval(() => {
+      const el = scrollerRef.current;
+      if (!el) return;
+      const cardWidth = el.clientWidth >= 768 ? 320 : el.clientWidth - 32;
+      const step = cardWidth + 16;
+      const atEnd = el.scrollLeft + el.clientWidth >= el.scrollWidth - 8;
+      if (atEnd) {
+        el.scrollTo({ left: 0, behavior: "smooth" });
+      } else {
+        el.scrollBy({ left: step, behavior: "smooth" });
+      }
+    }, 4000);
+    return () => clearInterval(interval);
+  }, [paused, fiches.length]);
+
   return (
-    <div style={{ position: "relative" }}>
+    <div
+      style={{ position: "relative" }}
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
+    >
       <div
         ref={scrollerRef}
         style={{
