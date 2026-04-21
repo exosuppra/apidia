@@ -48,6 +48,7 @@ export default function WidgetApidia() {
   const [widgets, setWidgets] = useState<Widget[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [selectedWidget, setSelectedWidget] = useState<Widget | null>(null);
   const [communes, setCommunes] = useState<string[]>([]);
   const [criteres, setCriteres] = useState<Critere[]>([]);
