@@ -2029,6 +2029,81 @@ export default function AllFiches() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Cleanup Apidae orphans dialog */}
+      <AlertDialog open={cleanupOpen} onOpenChange={(open) => { if (!cleanupLoading) setCleanupOpen(open); }}>
+        <AlertDialogContent className="max-w-2xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Nettoyer les fiches Apidae obsolètes</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3">
+                {cleanupLoading && !cleanupPreview && (
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Analyse en cours…
+                  </div>
+                )}
+                {cleanupPreview && (
+                  <>
+                    <div className="grid grid-cols-3 gap-3 text-center">
+                      <div className="p-3 rounded-lg bg-muted">
+                        <div className="text-2xl font-bold">{cleanupPreview.db_total}</div>
+                        <div className="text-xs text-muted-foreground">En base</div>
+                      </div>
+                      <div className="p-3 rounded-lg bg-muted">
+                        <div className="text-2xl font-bold text-green-600">{cleanupPreview.apidae_total}</div>
+                        <div className="text-xs text-muted-foreground">Sur Apidae</div>
+                      </div>
+                      <div className="p-3 rounded-lg bg-destructive/10">
+                        <div className="text-2xl font-bold text-destructive">{cleanupPreview.orphans_count}</div>
+                        <div className="text-xs text-muted-foreground">À supprimer</div>
+                      </div>
+                    </div>
+                    {cleanupPreview.orphans_count > 0 ? (
+                      <div className="space-y-2">
+                        <p className="text-sm">
+                          Les fiches suivantes sont en base mais ne sont plus présentes dans la sélection Apidae.
+                          Elles seront <strong>définitivement supprimées</strong>.
+                        </p>
+                        <div className="max-h-64 overflow-auto border rounded-lg p-2 text-sm bg-muted/30">
+                          {cleanupPreview.sample.slice(0, 50).map((f) => (
+                            <div key={f.fiche_id} className="py-1 border-b last:border-0">
+                              <span className="font-mono text-xs text-muted-foreground mr-2">{f.fiche_id}</span>
+                              {f.nom}
+                            </div>
+                          ))}
+                          {cleanupPreview.orphans_count > 50 && (
+                            <div className="py-1 text-xs text-muted-foreground italic">
+                              … et {cleanupPreview.orphans_count - 50} autres
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-sm text-green-600">
+                        ✅ Aucune fiche obsolète détectée. La base est synchronisée avec Apidae.
+                      </p>
+                    )}
+                  </>
+                )}
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={cleanupLoading}>Annuler</AlertDialogCancel>
+            {cleanupPreview && cleanupPreview.orphans_count > 0 && (
+              <AlertDialogAction
+                onClick={(e) => { e.preventDefault(); confirmCleanup(); }}
+                disabled={cleanupLoading}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                {cleanupLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Trash2 className="w-4 h-4 mr-2" />}
+                Supprimer {cleanupPreview.orphans_count} fiche(s)
+              </AlertDialogAction>
+            )}
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
