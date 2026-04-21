@@ -1192,7 +1192,8 @@ export default function AllFiches() {
                 </Tooltip>
 
                 <div className="border-l border-border pl-2 ml-2 flex items-center gap-2">
-
+                  {/* Progress bar during sync */}
+                  {syncingApidae && apidaeSyncProgress && (
                     <div className="flex items-center gap-3 min-w-[200px]">
                       <div className="flex-1">
                         <div className="h-2 bg-muted rounded-full overflow-hidden">
