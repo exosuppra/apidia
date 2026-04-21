@@ -50,6 +50,16 @@ export default function AdminLayoutRefonte({ children }: AdminLayoutRefonteProps
   const [, setInterface] = useAdminInterface();
   const [permissions, setPermissions] = useState<{ apidia: boolean; oto: boolean }>({ apidia: false, oto: false });
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState<boolean>(() => {
+    try { return localStorage.getItem("refonte_sidebar_collapsed") === "1"; } catch { return false; }
+  });
+  const toggleCollapsed = () => {
+    setCollapsed((c) => {
+      const next = !c;
+      try { localStorage.setItem("refonte_sidebar_collapsed", next ? "1" : "0"); } catch {}
+      return next;
+    });
+  };
   const [profile, setProfile] = useState<{ name: string; email: string; initials: string; role: string }>({
     name: "Administrateur",
     email: "",
@@ -152,40 +162,53 @@ export default function AdminLayoutRefonte({ children }: AdminLayoutRefonteProps
 
   return (
     <div className="refonte-root" data-accent="jaune" data-density="comfy" data-motion="on">
-      <div className="refonte-shell" data-drawer-open={drawerOpen}>
+      <div className="refonte-shell" data-drawer-open={drawerOpen} data-collapsed={collapsed}>
         {/* Backdrop pour drawer mobile */}
         <div className="refonte-mobile-drawer-backdrop" onClick={() => setDrawerOpen(false)} />
 
         {/* Sidebar */}
         <aside className="refonte-sidebar">
-          <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "0 4px" }}>
+          <div className="refonte-sidebar-header" style={{ display: "flex", alignItems: "center", gap: 10, padding: "0 4px" }}>
             <span className="refonte-logo-halo">
-              <ApidiaLogo size={40} />
+              {collapsed ? <ApidiaLogo size={36} /> : <ApidiaLogo size={120} full />}
             </span>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontFamily: "var(--font-display)", fontSize: 18, lineHeight: 1, letterSpacing: "-0.01em" }}>APIDIA</div>
-              <div style={{ fontSize: 10, color: "rgba(255,255,255,0.55)", textTransform: "uppercase", letterSpacing: "0.1em", marginTop: 2 }}>Back-office PdM</div>
-            </div>
+            {!collapsed && (
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontFamily: "var(--font-display)", fontSize: 16, lineHeight: 1, letterSpacing: "-0.01em" }}>APIDIA</div>
+                <div style={{ fontSize: 10, color: "rgba(255,255,255,0.55)", textTransform: "uppercase", letterSpacing: "0.1em", marginTop: 2 }}>Back-office PdM</div>
+              </div>
+            )}
             <button
               onClick={() => setDrawerOpen(false)}
               aria-label="Fermer le menu"
               className="refonte-sidebar-close"
               style={{
-                width: 32,
-                height: 32,
-                borderRadius: 8,
-                background: "rgba(255,255,255,0.06)",
-                color: "white",
-                display: "none",
-                alignItems: "center",
-                justifyContent: "center",
-                border: "none",
-                cursor: "pointer",
+                width: 32, height: 32, borderRadius: 8,
+                background: "rgba(255,255,255,0.06)", color: "white",
+                display: "none", alignItems: "center", justifyContent: "center",
+                border: "none", cursor: "pointer",
               }}
             >
               <Icon name="x" size={14} />
             </button>
           </div>
+
+          {/* Toggle plier/déplier (desktop) */}
+          <button
+            onClick={toggleCollapsed}
+            aria-label={collapsed ? "Déplier le menu" : "Plier le menu"}
+            title={collapsed ? "Déplier le menu" : "Plier le menu"}
+            className="refonte-sidebar-toggle"
+            style={{
+              alignSelf: collapsed ? "center" : "flex-end",
+              width: 28, height: 28, borderRadius: 8,
+              background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.75)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              border: "1px solid rgba(255,255,255,0.08)", cursor: "pointer",
+            }}
+          >
+            <Icon name={collapsed ? "chevron" : "chevronL"} size={14} />
+          </button>
 
           <nav style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 2 }}>
             {NAV.map((n) => {
@@ -221,7 +244,7 @@ export default function AdminLayoutRefonte({ children }: AdminLayoutRefonteProps
                     <span className="refonte-nav-active-indicator" style={{ position: "absolute", left: -16, top: 8, bottom: 8, width: 3, borderRadius: 2, background: "var(--pdm-jaune)" }} />
                   )}
                   <Icon name={n.icon} size={16} />
-                  {n.label}
+                  {!collapsed && n.label}
                 </NavLink>
               );
             })}
@@ -258,10 +281,11 @@ export default function AdminLayoutRefonte({ children }: AdminLayoutRefonteProps
             }}
           >
             <Icon name="refresh" size={13} />
-            Interface classique
+            {!collapsed && "Interface classique"}
           </button>
 
           {/* Statut synchro */}
+          {!collapsed && (
           <div style={{ padding: 12, borderRadius: 12, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}>
             <div style={{ fontSize: 10, color: "rgba(255,255,255,0.5)", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 6 }}>Synchro APIDAE</div>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -269,14 +293,17 @@ export default function AdminLayoutRefonte({ children }: AdminLayoutRefonteProps
               <span style={{ fontSize: 11, color: "rgba(255,255,255,0.85)" }}>En ligne</span>
             </div>
           </div>
+          )}
 
           {/* Profil */}
-          <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 6px", borderTop: "1px solid rgba(255,255,255,0.08)" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: collapsed ? 0 : 10, padding: "10px 6px", borderTop: "1px solid rgba(255,255,255,0.08)", justifyContent: collapsed ? "center" : "flex-start" }}>
             <Avatar initials={profile.initials} size={32} color="vert" />
+            {!collapsed && (
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 12, fontWeight: 700, color: "white", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{profile.name}</div>
               <div style={{ fontSize: 10, color: "rgba(255,255,255,0.5)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{profile.email || profile.role}</div>
             </div>
+            )}
             <button
               onClick={handleLogout}
               title="Déconnexion"
