@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import Seo from "@/components/Seo";
-import { ArrowLeft, Code, Copy, Plus, Trash2, Eye, LayoutGrid, Map as MapIcon, Layers, Settings, X, Search } from "lucide-react";
+import { ArrowLeft, Code, Copy, Plus, Trash2, Eye, LayoutGrid, Map as MapIcon, Layers, Settings, X, Search, Pencil } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
@@ -48,6 +48,7 @@ export default function WidgetApidia() {
   const [widgets, setWidgets] = useState<Widget[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [selectedWidget, setSelectedWidget] = useState<Widget | null>(null);
   const [communes, setCommunes] = useState<string[]>([]);
   const [criteres, setCriteres] = useState<Critere[]>([]);
@@ -171,26 +172,60 @@ export default function WidgetApidia() {
       ? manualIds.split(",").map((s) => s.trim()).filter(Boolean)
       : [];
 
-    const { data: userData } = await supabase.auth.getUser();
-    
-    const { error } = await supabase.from("apidia_widgets").insert({
-      name,
-      widget_type: widgetType,
-      filters,
-      selected_fiche_ids: selectedIds,
-      settings: { max_fiches: maxFiches, theme },
-      created_by: userData.user?.id,
-    });
-
-    if (error) {
-      toast({ title: "Erreur de création", description: error.message, variant: "destructive" });
+    if (editingId) {
+      const { error } = await supabase
+        .from("apidia_widgets")
+        .update({
+          name,
+          widget_type: widgetType,
+          filters,
+          selected_fiche_ids: selectedIds,
+          settings: { max_fiches: maxFiches, theme },
+        })
+        .eq("id", editingId);
+      if (error) {
+        toast({ title: "Erreur de mise à jour", description: error.message, variant: "destructive" });
+        return;
+      }
+      toast({ title: "Widget mis à jour" });
+      logUserAction("widget_create", { id: editingId, name, action: "update" });
     } else {
+      const { data: userData } = await supabase.auth.getUser();
+      const { error } = await supabase.from("apidia_widgets").insert({
+        name,
+        widget_type: widgetType,
+        filters,
+        selected_fiche_ids: selectedIds,
+        settings: { max_fiches: maxFiches, theme },
+        created_by: userData.user?.id,
+      });
+      if (error) {
+        toast({ title: "Erreur de création", description: error.message, variant: "destructive" });
+        return;
+      }
       toast({ title: "Widget créé avec succès" });
       logUserAction("widget_create", { name, widget_type: widgetType });
-      resetForm();
-      setShowCreate(false);
-      loadWidgets();
     }
+
+    resetForm();
+    setEditingId(null);
+    setShowCreate(false);
+    loadWidgets();
+  };
+
+  const openEdit = (w: Widget) => {
+    setEditingId(w.id);
+    setName(w.name);
+    setWidgetType(w.widget_type);
+    setFicheType(w.filters?.fiche_type || "");
+    setCommune(w.filters?.commune || "");
+    setSource(w.filters?.source || "");
+    setManualIds((w.selected_fiche_ids || []).join(", "));
+    setMaxFiches(w.settings?.max_fiches || 10);
+    setTheme(w.settings?.theme || "light");
+    setSelectedCriteres(Array.isArray(w.filters?.critere_ids) ? w.filters.critere_ids : []);
+    setCriteresMode(w.filters?.critere_mode === "all" ? "all" : "any");
+    setShowCreate(true);
   };
 
   const toggleActive = async (widget: Widget) => {
@@ -292,11 +327,14 @@ window.addEventListener('message', function(e) {
           </Button>
         </div>
 
-        {/* Create dialog */}
-        <Dialog open={showCreate} onOpenChange={setShowCreate}>
+        {/* Create / Edit dialog */}
+        <Dialog open={showCreate} onOpenChange={(open) => {
+          setShowCreate(open);
+          if (!open) { setEditingId(null); resetForm(); }
+        }}>
           <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Créer un widget</DialogTitle>
+              <DialogTitle>{editingId ? "Modifier le widget" : "Créer un widget"}</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
               <div>
@@ -481,7 +519,7 @@ window.addEventListener('message', function(e) {
               </div>
 
               <Button className="w-full" onClick={createWidget}>
-                Créer le widget
+                {editingId ? "Enregistrer les modifications" : "Créer le widget"}
               </Button>
             </div>
           </DialogContent>
@@ -597,6 +635,10 @@ window.addEventListener('message', function(e) {
                     >
                       <Eye className="h-3 w-3 mr-1" />
                       Prévisualiser
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => openEdit(w)}>
+                      <Pencil className="h-3 w-3 mr-1" />
+                      Modifier
                     </Button>
                     <Button variant="ghost" size="sm" onClick={() => deleteWidget(w.id)} className="text-destructive hover:text-destructive">
                       <Trash2 className="h-3 w-3" />
