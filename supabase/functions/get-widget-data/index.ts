@@ -110,28 +110,61 @@ serve(async (req) => {
       const d = f.data || {};
       const nom = d.nom?.libelleFr || d.nom?.libelleEn || "Sans nom";
       const commune = d.localisation?.adresse?.commune?.nom || "";
+      const code_postal = d.localisation?.adresse?.codePostal || "";
+      const adresse = [d.localisation?.adresse?.adresse1, d.localisation?.adresse?.adresse2, d.localisation?.adresse?.adresse3]
+        .filter(Boolean).join(" ");
       const horaires = d.ouverture?.periodeEnClair?.libelleFr || null;
+      const description_courte = d.presentation?.descriptifCourt?.libelleFr || "";
+      const description_detaillee = d.presentation?.descriptifDetaille?.libelleFr || "";
 
-      // Extract first image URL
-      let image_url: string | null = null;
+      // Contact / web
+      const moyensComm = Array.isArray(d.informations?.moyensCommunication) ? d.informations.moyensCommunication : [];
+      const findComm = (typeId: number) => {
+        const m = moyensComm.find((x: any) => Number(x?.type?.id) === typeId);
+        return m?.coordonnees?.fr || null;
+      };
+      const telephone = findComm(201);
+      const email = findComm(204);
+      const site_web = findComm(205);
+
+      // Periodes ouvertures (dates)
+      const periodes = Array.isArray(d.ouverture?.periodesOuvertures) ? d.ouverture.periodesOuvertures : [];
+      const date_debut = periodes[0]?.dateDebut || null;
+      const date_fin = periodes[periodes.length - 1]?.dateFin || null;
+
+      // Toutes les images
+      const images: string[] = [];
       const illustrations = d.illustrations;
-      if (Array.isArray(illustrations) && illustrations.length > 0) {
-        const traductionFichiers = illustrations[0]?.traductionFichiers;
-        if (Array.isArray(traductionFichiers) && traductionFichiers.length > 0) {
-          let url = traductionFichiers[0]?.url || null;
-          if (url && url.startsWith("//")) url = "https:" + url;
-          if (url && url.startsWith("http://")) url = url.replace("http://", "https://");
-          image_url = url;
-        }
+      if (Array.isArray(illustrations)) {
+        illustrations.forEach((ill: any) => {
+          const tf = ill?.traductionFichiers;
+          if (Array.isArray(tf) && tf.length > 0) {
+            let url = tf[0]?.url || null;
+            if (url && url.startsWith("//")) url = "https:" + url;
+            if (url && url.startsWith("http://")) url = url.replace("http://", "https://");
+            if (url) images.push(url);
+          }
+        });
       }
+      const image_url = images[0] || null;
 
       return {
         fiche_id: f.fiche_id,
         fiche_type: f.fiche_type,
         nom,
         commune,
+        code_postal,
+        adresse,
         horaires,
+        description_courte,
+        description_detaillee,
+        telephone,
+        email,
+        site_web,
+        date_debut,
+        date_fin,
         image_url,
+        images,
       };
     });
 
