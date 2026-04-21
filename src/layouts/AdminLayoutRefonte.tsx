@@ -303,6 +303,7 @@ export default function AdminLayoutRefonte({ children }: AdminLayoutRefonteProps
               <div style={{ fontSize: 12, fontWeight: 700, color: "white", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{profile.name}</div>
               <div style={{ fontSize: 10, color: "rgba(255,255,255,0.5)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{profile.email || profile.role}</div>
             </div>
+            )}
             <button
               onClick={handleLogout}
               title="Déconnexion"
