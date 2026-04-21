@@ -293,10 +293,12 @@ export default function AdminLayoutRefonte({ children }: AdminLayoutRefonteProps
               <span style={{ fontSize: 11, color: "rgba(255,255,255,0.85)" }}>En ligne</span>
             </div>
           </div>
+          )}
 
           {/* Profil */}
-          <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 6px", borderTop: "1px solid rgba(255,255,255,0.08)" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: collapsed ? 0 : 10, padding: "10px 6px", borderTop: "1px solid rgba(255,255,255,0.08)", justifyContent: collapsed ? "center" : "flex-start" }}>
             <Avatar initials={profile.initials} size={32} color="vert" />
+            {!collapsed && (
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 12, fontWeight: 700, color: "white", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{profile.name}</div>
               <div style={{ fontSize: 10, color: "rgba(255,255,255,0.5)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{profile.email || profile.role}</div>
