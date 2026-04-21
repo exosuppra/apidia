@@ -257,9 +257,11 @@ export default function WidgetApidia() {
     setCriteresMode("any");
   };
 
+  // URL publique stable du widget (jamais l'URL preview/sandbox qui exige un login)
+  const PUBLIC_BASE_URL = "https://apidia.lovable.app";
+
   const getIframeCode = (widget: Widget) => {
-    const baseUrl = window.location.origin;
-    return `<iframe id="apidia-widget-${widget.share_token}" src="${baseUrl}/widget/${widget.share_token}" width="100%" frameborder="0" style="border:none;border-radius:8px;"></iframe>
+    return `<iframe id="apidia-widget-${widget.share_token}" src="${PUBLIC_BASE_URL}/widget/${widget.share_token}" width="100%" frameborder="0" style="border:none;border-radius:8px;"></iframe>
 <script>
 window.addEventListener('message', function(e) {
   if (e.data && e.data.type === 'apidia-widget-resize') {
@@ -277,7 +279,7 @@ window.addEventListener('message', function(e) {
   var container = document.getElementById('apidia-container-${widget.share_token}');
   var iframe = document.createElement('iframe');
   iframe.id = 'apidia-widget-${widget.share_token}';
-  iframe.src = '${window.location.origin}/widget/${widget.share_token}';
+  iframe.src = '${PUBLIC_BASE_URL}/widget/${widget.share_token}';
   iframe.style.cssText = 'width:100%;border:none;border-radius:8px;';
   container.appendChild(iframe);
   window.addEventListener('message', function(e) {
