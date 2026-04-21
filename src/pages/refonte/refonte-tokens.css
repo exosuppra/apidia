@@ -249,6 +249,22 @@
   grid-template-columns: 240px 1fr;
   min-height: 100vh;
   background: var(--gris-100);
+  transition: grid-template-columns var(--dur-med) var(--ease-out);
+}
+
+.refonte-root .refonte-shell[data-collapsed="true"] {
+  grid-template-columns: 72px 1fr;
+}
+
+.refonte-root .refonte-shell[data-collapsed="true"] .refonte-sidebar {
+  padding: 18px 10px 14px;
+  align-items: center;
+}
+
+.refonte-root .refonte-shell[data-collapsed="true"] .refonte-sidebar-nav-item {
+  justify-content: center;
+  padding: 0 !important;
+  width: 44px;
 }
 
 .refonte-root .refonte-sidebar {
