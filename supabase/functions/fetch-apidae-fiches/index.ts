@@ -114,7 +114,8 @@ serve(async (req: Request) => {
         "informations",
         "ouverture",
         "illustrations",
-        "gpisDuPatrimoineNaturel"
+        "gpisDuPatrimoineNaturel",
+        "criteresInternes"
       ],
     };
 
