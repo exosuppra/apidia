@@ -162,40 +162,53 @@ export default function AdminLayoutRefonte({ children }: AdminLayoutRefonteProps
 
   return (
     <div className="refonte-root" data-accent="jaune" data-density="comfy" data-motion="on">
-      <div className="refonte-shell" data-drawer-open={drawerOpen}>
+      <div className="refonte-shell" data-drawer-open={drawerOpen} data-collapsed={collapsed}>
         {/* Backdrop pour drawer mobile */}
         <div className="refonte-mobile-drawer-backdrop" onClick={() => setDrawerOpen(false)} />
 
         {/* Sidebar */}
         <aside className="refonte-sidebar">
-          <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "0 4px" }}>
+          <div className="refonte-sidebar-header" style={{ display: "flex", alignItems: "center", gap: 10, padding: "0 4px" }}>
             <span className="refonte-logo-halo">
-              <ApidiaLogo size={40} />
+              {collapsed ? <ApidiaLogo size={36} /> : <ApidiaLogo size={120} full />}
             </span>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontFamily: "var(--font-display)", fontSize: 18, lineHeight: 1, letterSpacing: "-0.01em" }}>APIDIA</div>
-              <div style={{ fontSize: 10, color: "rgba(255,255,255,0.55)", textTransform: "uppercase", letterSpacing: "0.1em", marginTop: 2 }}>Back-office PdM</div>
-            </div>
+            {!collapsed && (
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontFamily: "var(--font-display)", fontSize: 16, lineHeight: 1, letterSpacing: "-0.01em" }}>APIDIA</div>
+                <div style={{ fontSize: 10, color: "rgba(255,255,255,0.55)", textTransform: "uppercase", letterSpacing: "0.1em", marginTop: 2 }}>Back-office PdM</div>
+              </div>
+            )}
             <button
               onClick={() => setDrawerOpen(false)}
               aria-label="Fermer le menu"
               className="refonte-sidebar-close"
               style={{
-                width: 32,
-                height: 32,
-                borderRadius: 8,
-                background: "rgba(255,255,255,0.06)",
-                color: "white",
-                display: "none",
-                alignItems: "center",
-                justifyContent: "center",
-                border: "none",
-                cursor: "pointer",
+                width: 32, height: 32, borderRadius: 8,
+                background: "rgba(255,255,255,0.06)", color: "white",
+                display: "none", alignItems: "center", justifyContent: "center",
+                border: "none", cursor: "pointer",
               }}
             >
               <Icon name="x" size={14} />
             </button>
           </div>
+
+          {/* Toggle plier/déplier (desktop) */}
+          <button
+            onClick={toggleCollapsed}
+            aria-label={collapsed ? "Déplier le menu" : "Plier le menu"}
+            title={collapsed ? "Déplier le menu" : "Plier le menu"}
+            className="refonte-sidebar-toggle"
+            style={{
+              alignSelf: collapsed ? "center" : "flex-end",
+              width: 28, height: 28, borderRadius: 8,
+              background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.75)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              border: "1px solid rgba(255,255,255,0.08)", cursor: "pointer",
+            }}
+          >
+            <Icon name={collapsed ? "chevron-right" : "chevron-left"} size={14} />
+          </button>
 
           <nav style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 2 }}>
             {NAV.map((n) => {
