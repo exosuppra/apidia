@@ -64,6 +64,7 @@ export default function WidgetApidia() {
   const [manualIds, setManualIds] = useState("");
   const [maxFiches, setMaxFiches] = useState(10);
   const [theme, setTheme] = useState("light");
+  const [showDescription, setShowDescription] = useState(true);
   const [selectedCriteres, setSelectedCriteres] = useState<number[]>([]);
   const [criteresMode, setCriteresMode] = useState<"any" | "all">("any");
 
@@ -180,7 +181,7 @@ export default function WidgetApidia() {
           widget_type: widgetType,
           filters,
           selected_fiche_ids: selectedIds,
-          settings: { max_fiches: maxFiches, theme },
+          settings: { max_fiches: maxFiches, theme, show_description: showDescription },
         })
         .eq("id", editingId);
       if (error) {
@@ -196,7 +197,7 @@ export default function WidgetApidia() {
         widget_type: widgetType,
         filters,
         selected_fiche_ids: selectedIds,
-        settings: { max_fiches: maxFiches, theme },
+        settings: { max_fiches: maxFiches, theme, show_description: showDescription },
         created_by: userData.user?.id,
       });
       if (error) {
@@ -223,6 +224,7 @@ export default function WidgetApidia() {
     setManualIds((w.selected_fiche_ids || []).join(", "));
     setMaxFiches(w.settings?.max_fiches || 10);
     setTheme(w.settings?.theme || "light");
+    setShowDescription(w.settings?.show_description !== false);
     setSelectedCriteres(Array.isArray(w.filters?.critere_ids) ? w.filters.critere_ids : []);
     setCriteresMode(w.filters?.critere_mode === "all" ? "all" : "any");
     setShowCreate(true);
@@ -253,6 +255,7 @@ export default function WidgetApidia() {
     setManualIds("");
     setMaxFiches(10);
     setTheme("light");
+    setShowDescription(true);
     setSelectedCriteres([]);
     setCriteresMode("any");
   };
@@ -518,6 +521,14 @@ window.addEventListener('message', function(e) {
                     </SelectContent>
                   </Select>
                 </div>
+              </div>
+
+              <div className="flex items-center justify-between rounded-lg border p-3">
+                <div className="space-y-0.5">
+                  <Label>Afficher la description courte</Label>
+                  <p className="text-xs text-muted-foreground">Sous le titre, dans chaque carte</p>
+                </div>
+                <Switch checked={showDescription} onCheckedChange={setShowDescription} />
               </div>
 
               <Button className="w-full" onClick={createWidget}>

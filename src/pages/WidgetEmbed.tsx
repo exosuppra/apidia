@@ -94,12 +94,13 @@ export default function WidgetEmbed() {
 
   const { fiches, widget } = data;
   const widgetType = widget?.type || "grid";
+  const showDescription = widget?.settings?.show_description !== false;
 
   return (
     <div style={{ fontFamily: baseFont, padding: 0, margin: 0 }}>
-      {widgetType === "carousel" && <CarouselView fiches={fiches} onSelect={setSelected} />}
-      {widgetType === "grid" && <GridView fiches={fiches} onSelect={setSelected} />}
-      {widgetType === "map" && <MapListView fiches={fiches} onSelect={setSelected} />}
+      {widgetType === "carousel" && <CarouselView fiches={fiches} onSelect={setSelected} showDescription={showDescription} />}
+      {widgetType === "grid" && <GridView fiches={fiches} onSelect={setSelected} showDescription={showDescription} />}
+      {widgetType === "map" && <MapListView fiches={fiches} onSelect={setSelected} showDescription={showDescription} />}
 
       {selected && <DetailModal fiche={selected} onClose={() => setSelected(null)} />}
     </div>
@@ -107,8 +108,8 @@ export default function WidgetEmbed() {
 }
 
 /* ===================== CARD ===================== */
-function FicheCard({ f, onSelect, compact = false }: { f: WidgetFiche; onSelect: (f: WidgetFiche) => void; compact?: boolean }) {
-  const desc = f.description_courte || f.description_detaillee || "";
+function FicheCard({ f, onSelect, compact = false, showDescription = true }: { f: WidgetFiche; onSelect: (f: WidgetFiche) => void; compact?: boolean; showDescription?: boolean }) {
+  const desc = showDescription ? (f.description_courte || f.description_detaillee || "") : "";
   const dr = formatDateRange(f.date_debut, f.date_fin);
 
   return (
@@ -175,16 +176,16 @@ function FicheCard({ f, onSelect, compact = false }: { f: WidgetFiche; onSelect:
 }
 
 /* ===================== GRID ===================== */
-function GridView({ fiches, onSelect }: { fiches: WidgetFiche[]; onSelect: (f: WidgetFiche) => void }) {
+function GridView({ fiches, onSelect, showDescription }: { fiches: WidgetFiche[]; onSelect: (f: WidgetFiche) => void; showDescription: boolean }) {
   return (
     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 16 }}>
-      {fiches.map((f) => <FicheCard key={f.fiche_id} f={f} onSelect={onSelect} />)}
+      {fiches.map((f) => <FicheCard key={f.fiche_id} f={f} onSelect={onSelect} showDescription={showDescription} />)}
     </div>
   );
 }
 
 /* ===================== CAROUSEL ===================== */
-function CarouselView({ fiches, onSelect }: { fiches: WidgetFiche[]; onSelect: (f: WidgetFiche) => void }) {
+function CarouselView({ fiches, onSelect, showDescription }: { fiches: WidgetFiche[]; onSelect: (f: WidgetFiche) => void; showDescription: boolean }) {
   const scrollerRef = useRef<HTMLDivElement>(null);
 
   const scrollBy = (dir: number) => {
@@ -216,7 +217,7 @@ function CarouselView({ fiches, onSelect }: { fiches: WidgetFiche[]; onSelect: (
               scrollSnapAlign: "start",
             }}
           >
-            <FicheCard f={f} onSelect={onSelect} />
+            <FicheCard f={f} onSelect={onSelect} showDescription={showDescription} />
           </div>
         ))}
       </div>
@@ -265,11 +266,11 @@ function carouselNavStyle(side: "left" | "right"): React.CSSProperties {
 }
 
 /* ===================== MAP / LIST ===================== */
-function MapListView({ fiches, onSelect }: { fiches: WidgetFiche[]; onSelect: (f: WidgetFiche) => void }) {
+function MapListView({ fiches, onSelect, showDescription }: { fiches: WidgetFiche[]; onSelect: (f: WidgetFiche) => void; showDescription: boolean }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
       {fiches.map((f) => {
-        const desc = f.description_courte || f.description_detaillee || "";
+        const desc = showDescription ? (f.description_courte || f.description_detaillee || "") : "";
         const dr = formatDateRange(f.date_debut, f.date_fin);
         return (
           <button
