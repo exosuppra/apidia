@@ -397,7 +397,62 @@ export default function AllFiches() {
     }
   };
 
-  // Save Apidae sync config
+  // Cleanup orphan Apidae fiches (not present in current selection anymore)
+  const openCleanupDialog = async () => {
+    setCleanupOpen(true);
+    setCleanupLoading(true);
+    setCleanupPreview(null);
+    try {
+      const { data, error } = await supabase.functions.invoke("cleanup-apidae-orphans", {
+        body: { dryRun: true },
+      });
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || "Erreur lors de l'analyse");
+      setCleanupPreview({
+        orphans_count: data.orphans_count || 0,
+        db_total: data.db_total || 0,
+        apidae_total: data.apidae_total || 0,
+        sample: data.orphans || [],
+      });
+    } catch (err: any) {
+      toast({
+        title: "Erreur d'analyse",
+        description: err?.message || "Impossible d'analyser les fiches orphelines",
+        variant: "destructive",
+      });
+      setCleanupOpen(false);
+    } finally {
+      setCleanupLoading(false);
+    }
+  };
+
+  const confirmCleanup = async () => {
+    setCleanupLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("cleanup-apidae-orphans", {
+        body: { dryRun: false, triggeredBy: "manual-ui" },
+      });
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || "Erreur lors du nettoyage");
+      toast({
+        title: "Nettoyage terminé",
+        description: `${data.deleted || 0} fiche(s) supprimée(s) de la base.`,
+      });
+      setCleanupOpen(false);
+      setCleanupPreview(null);
+      await loadAllFiches();
+    } catch (err: any) {
+      toast({
+        title: "Erreur de nettoyage",
+        description: err?.message || "Impossible de supprimer les fiches",
+        variant: "destructive",
+      });
+    } finally {
+      setCleanupLoading(false);
+    }
+  };
+
+
   const saveApidaeSyncConfig = async () => {
     if (!apidaeSyncConfig) return;
     setSavingConfig(true);
