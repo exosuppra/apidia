@@ -188,7 +188,7 @@ export default function WidgetApidia() {
         return;
       }
       toast({ title: "Widget mis à jour" });
-      logUserAction("widget_update", { id: editingId, name });
+      logUserAction("widget_create", { id: editingId, name, action: "update" });
     } else {
       const { data: userData } = await supabase.auth.getUser();
       const { error } = await supabase.from("apidia_widgets").insert({
