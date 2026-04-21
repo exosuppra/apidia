@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 
 type WidgetFiche = {
@@ -36,6 +36,8 @@ function formatDateRange(start?: string | null, end?: string | null): string | n
     return null;
   }
 }
+
+const baseFont = "system-ui, -apple-system, sans-serif";
 
 export default function WidgetEmbed() {
   const { token } = useParams<{ token: string }>();
@@ -86,161 +88,319 @@ export default function WidgetEmbed() {
     return () => { document.body.style.overflow = ""; };
   }, [selected]);
 
-  const baseFont = "system-ui, -apple-system, sans-serif";
-
   if (loading) return <div style={{ padding: 32, textAlign: "center", color: "#888", fontFamily: baseFont }}>Chargement...</div>;
   if (error) return <div style={{ padding: 32, textAlign: "center", color: "#e53e3e", fontFamily: baseFont }}>{error}</div>;
   if (!data || data.fiches.length === 0) return <div style={{ padding: 32, textAlign: "center", color: "#888", fontFamily: baseFont }}>Aucune fiche à afficher</div>;
 
-  const { fiches } = data;
-  const dateRange = (f: WidgetFiche) => formatDateRange(f.date_debut, f.date_fin);
+  const { fiches, widget } = data;
+  const widgetType = widget?.type || "grid";
 
   return (
     <div style={{ fontFamily: baseFont, padding: 0, margin: 0 }}>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 16 }}>
-        {fiches.map((f) => {
-          const desc = f.description_courte || f.description_detaillee || "";
-          const dr = dateRange(f);
-          return (
-            <button
-              key={f.fiche_id}
-              type="button"
-              onClick={() => setSelected(f)}
-              style={{
-                all: "unset",
-                cursor: "pointer",
-                display: "flex",
-                flexDirection: "column",
-                borderRadius: 12,
-                border: "1px solid #e5e7eb",
-                overflow: "hidden",
-                background: "#fff",
-                boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
-                transition: "transform .15s ease, box-shadow .15s ease",
-              }}
-              onMouseEnter={(e) => {
-                (e.currentTarget as HTMLElement).style.transform = "translateY(-2px)";
-                (e.currentTarget as HTMLElement).style.boxShadow = "0 6px 16px rgba(0,0,0,0.12)";
-              }}
-              onMouseLeave={(e) => {
-                (e.currentTarget as HTMLElement).style.transform = "";
-                (e.currentTarget as HTMLElement).style.boxShadow = "0 1px 3px rgba(0,0,0,0.08)";
-              }}
-            >
-              <div style={{ width: "100%", height: 160, overflow: "hidden", background: "#f3f4f6" }}>
-                {f.image_url ? (
-                  <img src={f.image_url} alt={f.nom} loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
-                ) : (
-                  <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: "#9ca3af", fontSize: 14 }}>📍</div>
-                )}
-              </div>
+      {widgetType === "carousel" && <CarouselView fiches={fiches} onSelect={setSelected} />}
+      {widgetType === "grid" && <GridView fiches={fiches} onSelect={setSelected} />}
+      {widgetType === "map" && <MapListView fiches={fiches} onSelect={setSelected} />}
 
-              <div style={{ padding: "12px 16px 16px", display: "flex", flexDirection: "column", gap: 6 }}>
-                <h3 style={{ margin: 0, fontSize: 15, fontWeight: 600, color: "#111827", lineHeight: 1.3 }}>{f.nom}</h3>
-                {f.commune && (
-                  <p style={{ margin: 0, fontSize: 12, color: "#6b7280" }}>📍 {f.commune}</p>
-                )}
-                {dr && (
-                  <p style={{ margin: 0, fontSize: 12, color: "#2563eb", fontWeight: 500 }}>📅 {dr}</p>
-                )}
-                {desc && (
-                  <p style={{
-                    margin: "4px 0 0",
-                    fontSize: 12.5,
-                    color: "#374151",
-                    lineHeight: 1.45,
-                    display: "-webkit-box",
-                    WebkitLineClamp: 3,
-                    WebkitBoxOrient: "vertical",
-                    overflow: "hidden",
-                  }}>
-                    {desc}
-                  </p>
-                )}
-                <span style={{ marginTop: 8, fontSize: 11, color: "#2563eb", fontWeight: 600 }}>Voir le détail →</span>
-              </div>
-            </button>
-          );
-        })}
+      {selected && <DetailModal fiche={selected} onClose={() => setSelected(null)} />}
+    </div>
+  );
+}
+
+/* ===================== CARD ===================== */
+function FicheCard({ f, onSelect, compact = false }: { f: WidgetFiche; onSelect: (f: WidgetFiche) => void; compact?: boolean }) {
+  const desc = f.description_courte || f.description_detaillee || "";
+  const dr = formatDateRange(f.date_debut, f.date_fin);
+
+  return (
+    <button
+      type="button"
+      onClick={() => onSelect(f)}
+      style={{
+        all: "unset",
+        cursor: "pointer",
+        display: "flex",
+        flexDirection: "column",
+        borderRadius: 12,
+        border: "1px solid #e5e7eb",
+        overflow: "hidden",
+        background: "#fff",
+        boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
+        transition: "transform .15s ease, box-shadow .15s ease",
+        height: "100%",
+        boxSizing: "border-box",
+      }}
+      onMouseEnter={(e) => {
+        (e.currentTarget as HTMLElement).style.transform = "translateY(-2px)";
+        (e.currentTarget as HTMLElement).style.boxShadow = "0 6px 16px rgba(0,0,0,0.12)";
+      }}
+      onMouseLeave={(e) => {
+        (e.currentTarget as HTMLElement).style.transform = "";
+        (e.currentTarget as HTMLElement).style.boxShadow = "0 1px 3px rgba(0,0,0,0.08)";
+      }}
+    >
+      <div style={{ width: "100%", height: compact ? 140 : 170, overflow: "hidden", background: "#f3f4f6", flexShrink: 0 }}>
+        {f.image_url ? (
+          <img src={f.image_url} alt={f.nom} loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+        ) : (
+          <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: "#9ca3af", fontSize: 14 }}>📍</div>
+        )}
       </div>
 
-      {/* Modal détails */}
-      {selected && (
-        <div
-          onClick={() => setSelected(null)}
-          style={{
-            position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            padding: 16, zIndex: 9999,
-          }}
-        >
+      <div style={{ padding: "12px 14px 14px", display: "flex", flexDirection: "column", gap: 6, flex: 1 }}>
+        <h3 style={{ margin: 0, fontSize: 15, fontWeight: 600, color: "#111827", lineHeight: 1.3 }}>{f.nom}</h3>
+        {f.commune && (
+          <p style={{ margin: 0, fontSize: 12, color: "#6b7280" }}>📍 {f.commune}</p>
+        )}
+        {dr && (
+          <p style={{ margin: 0, fontSize: 12, color: "#2563eb", fontWeight: 500 }}>📅 {dr}</p>
+        )}
+        {desc && (
+          <p style={{
+            margin: "4px 0 0",
+            fontSize: 12.5,
+            color: "#374151",
+            lineHeight: 1.45,
+            display: "-webkit-box",
+            WebkitLineClamp: compact ? 3 : 4,
+            WebkitBoxOrient: "vertical",
+            overflow: "hidden",
+          }}>
+            {desc}
+          </p>
+        )}
+        <span style={{ marginTop: "auto", paddingTop: 8, fontSize: 11, color: "#2563eb", fontWeight: 600 }}>Voir le détail →</span>
+      </div>
+    </button>
+  );
+}
+
+/* ===================== GRID ===================== */
+function GridView({ fiches, onSelect }: { fiches: WidgetFiche[]; onSelect: (f: WidgetFiche) => void }) {
+  return (
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 16 }}>
+      {fiches.map((f) => <FicheCard key={f.fiche_id} f={f} onSelect={onSelect} />)}
+    </div>
+  );
+}
+
+/* ===================== CAROUSEL ===================== */
+function CarouselView({ fiches, onSelect }: { fiches: WidgetFiche[]; onSelect: (f: WidgetFiche) => void }) {
+  const scrollerRef = useRef<HTMLDivElement>(null);
+
+  const scrollBy = (dir: number) => {
+    const el = scrollerRef.current;
+    if (!el) return;
+    const cardWidth = el.clientWidth >= 768 ? 320 : el.clientWidth - 32;
+    el.scrollBy({ left: dir * (cardWidth + 16), behavior: "smooth" });
+  };
+
+  return (
+    <div style={{ position: "relative" }}>
+      <div
+        ref={scrollerRef}
+        style={{
+          display: "flex",
+          gap: 16,
+          overflowX: "auto",
+          scrollSnapType: "x mandatory",
+          paddingBottom: 12,
+          scrollbarWidth: "thin",
+        }}
+      >
+        {fiches.map((f) => (
           <div
-            onClick={(e) => e.stopPropagation()}
+            key={f.fiche_id}
             style={{
-              background: "#fff", borderRadius: 14, maxWidth: 640, width: "100%",
-              maxHeight: "90vh", overflowY: "auto", position: "relative",
-              boxShadow: "0 20px 60px rgba(0,0,0,0.3)",
+              flex: "0 0 300px",
+              maxWidth: 300,
+              scrollSnapAlign: "start",
             }}
           >
-            <button
-              onClick={() => setSelected(null)}
-              aria-label="Fermer"
-              style={{
-                position: "absolute", top: 12, right: 12, zIndex: 2,
-                width: 32, height: 32, borderRadius: "50%", border: "none",
-                background: "rgba(0,0,0,0.55)", color: "#fff", fontSize: 18,
-                cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
-              }}
-            >×</button>
-
-            {selected.image_url && (
-              <div style={{ width: "100%", height: 240, overflow: "hidden", background: "#f3f4f6", borderTopLeftRadius: 14, borderTopRightRadius: 14 }}>
-                <img src={selected.image_url} alt={selected.nom} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
-              </div>
-            )}
-
-            <div style={{ padding: 24 }}>
-              <h2 style={{ margin: "0 0 8px", fontSize: 22, fontWeight: 700, color: "#111827", lineHeight: 1.2 }}>{selected.nom}</h2>
-
-              {(selected.adresse || selected.commune) && (
-                <p style={{ margin: "0 0 12px", fontSize: 14, color: "#6b7280" }}>
-                  📍 {[selected.adresse, [selected.code_postal, selected.commune].filter(Boolean).join(" ")].filter(Boolean).join(", ")}
-                </p>
-              )}
-
-              {dateRange(selected) && (
-                <p style={{ margin: "0 0 12px", fontSize: 14, color: "#2563eb", fontWeight: 600 }}>📅 {dateRange(selected)}</p>
-              )}
-
-              {selected.horaires && (
-                <div style={{ margin: "0 0 14px", padding: "10px 12px", background: "#f9fafb", borderRadius: 8, fontSize: 13, color: "#374151", whiteSpace: "pre-wrap", lineHeight: 1.5 }}>
-                  🕒 {selected.horaires}
-                </div>
-              )}
-
-              {(selected.description_detaillee || selected.description_courte) && (
-                <p style={{ margin: "0 0 16px", fontSize: 14, color: "#374151", lineHeight: 1.6, whiteSpace: "pre-wrap" }}>
-                  {selected.description_detaillee || selected.description_courte}
-                </p>
-              )}
-
-              <div style={{ display: "flex", flexDirection: "column", gap: 8, fontSize: 14 }}>
-                {selected.telephone && (
-                  <a href={`tel:${selected.telephone}`} style={{ color: "#2563eb", textDecoration: "none" }}>📞 {selected.telephone}</a>
-                )}
-                {selected.email && (
-                  <a href={`mailto:${selected.email}`} style={{ color: "#2563eb", textDecoration: "none", wordBreak: "break-all" }}>✉️ {selected.email}</a>
-                )}
-                {selected.site_web && (
-                  <a href={selected.site_web} target="_blank" rel="noopener noreferrer" style={{ color: "#2563eb", textDecoration: "none", wordBreak: "break-all" }}>🌐 {selected.site_web}</a>
-                )}
-              </div>
-
-              <p style={{ marginTop: 20, fontSize: 11, color: "#9ca3af", fontFamily: "monospace" }}>Apidae #{selected.fiche_id}</p>
-            </div>
+            <FicheCard f={f} onSelect={onSelect} />
           </div>
-        </div>
+        ))}
+      </div>
+
+      {fiches.length > 1 && (
+        <>
+          <button
+            type="button"
+            aria-label="Précédent"
+            onClick={() => scrollBy(-1)}
+            style={carouselNavStyle("left")}
+          >‹</button>
+          <button
+            type="button"
+            aria-label="Suivant"
+            onClick={() => scrollBy(1)}
+            style={carouselNavStyle("right")}
+          >›</button>
+        </>
       )}
+    </div>
+  );
+}
+
+function carouselNavStyle(side: "left" | "right"): React.CSSProperties {
+  return {
+    position: "absolute",
+    top: "50%",
+    [side]: 4,
+    transform: "translateY(-50%)",
+    width: 40,
+    height: 40,
+    borderRadius: "50%",
+    border: "none",
+    background: "rgba(255,255,255,0.95)",
+    boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
+    color: "#111827",
+    fontSize: 24,
+    lineHeight: 1,
+    cursor: "pointer",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 5,
+  };
+}
+
+/* ===================== MAP / LIST ===================== */
+function MapListView({ fiches, onSelect }: { fiches: WidgetFiche[]; onSelect: (f: WidgetFiche) => void }) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+      {fiches.map((f) => {
+        const desc = f.description_courte || f.description_detaillee || "";
+        const dr = formatDateRange(f.date_debut, f.date_fin);
+        return (
+          <button
+            key={f.fiche_id}
+            type="button"
+            onClick={() => onSelect(f)}
+            style={{
+              all: "unset",
+              cursor: "pointer",
+              display: "flex",
+              gap: 14,
+              border: "1px solid #e5e7eb",
+              borderRadius: 10,
+              overflow: "hidden",
+              background: "#fff",
+              boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
+              transition: "background .15s",
+            }}
+            onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = "#f9fafb")}
+            onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.background = "#fff")}
+          >
+            <div style={{ flex: "0 0 120px", height: 110, background: "#f3f4f6", overflow: "hidden" }}>
+              {f.image_url ? (
+                <img src={f.image_url} alt={f.nom} loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+              ) : (
+                <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: "#9ca3af" }}>📍</div>
+              )}
+            </div>
+            <div style={{ flex: 1, padding: "10px 14px 10px 0", display: "flex", flexDirection: "column", gap: 4, minWidth: 0 }}>
+              <h3 style={{ margin: 0, fontSize: 15, fontWeight: 600, color: "#111827", lineHeight: 1.3 }}>{f.nom}</h3>
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap", fontSize: 12 }}>
+                {f.commune && <span style={{ color: "#6b7280" }}>📍 {f.commune}</span>}
+                {dr && <span style={{ color: "#2563eb", fontWeight: 500 }}>📅 {dr}</span>}
+              </div>
+              {desc && (
+                <p style={{
+                  margin: "2px 0 0",
+                  fontSize: 12.5,
+                  color: "#374151",
+                  lineHeight: 1.45,
+                  display: "-webkit-box",
+                  WebkitLineClamp: 2,
+                  WebkitBoxOrient: "vertical",
+                  overflow: "hidden",
+                }}>{desc}</p>
+              )}
+            </div>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/* ===================== MODAL ===================== */
+function DetailModal({ fiche, onClose }: { fiche: WidgetFiche; onClose: () => void }) {
+  const dr = formatDateRange(fiche.date_debut, fiche.date_fin);
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        padding: 16, zIndex: 9999,
+      }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          background: "#fff", borderRadius: 14, maxWidth: 640, width: "100%",
+          maxHeight: "90vh", overflowY: "auto", position: "relative",
+          boxShadow: "0 20px 60px rgba(0,0,0,0.3)",
+        }}
+      >
+        <button
+          onClick={onClose}
+          aria-label="Fermer"
+          style={{
+            position: "absolute", top: 12, right: 12, zIndex: 2,
+            width: 32, height: 32, borderRadius: "50%", border: "none",
+            background: "rgba(0,0,0,0.55)", color: "#fff", fontSize: 18,
+            cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+          }}
+        >×</button>
+
+        {fiche.image_url && (
+          <div style={{ width: "100%", height: 240, overflow: "hidden", background: "#f3f4f6", borderTopLeftRadius: 14, borderTopRightRadius: 14 }}>
+            <img src={fiche.image_url} alt={fiche.nom} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+          </div>
+        )}
+
+        <div style={{ padding: 24 }}>
+          <h2 style={{ margin: "0 0 8px", fontSize: 22, fontWeight: 700, color: "#111827", lineHeight: 1.2 }}>{fiche.nom}</h2>
+
+          {(fiche.adresse || fiche.commune) && (
+            <p style={{ margin: "0 0 12px", fontSize: 14, color: "#6b7280" }}>
+              📍 {[fiche.adresse, [fiche.code_postal, fiche.commune].filter(Boolean).join(" ")].filter(Boolean).join(", ")}
+            </p>
+          )}
+
+          {dr && (
+            <p style={{ margin: "0 0 12px", fontSize: 14, color: "#2563eb", fontWeight: 600 }}>📅 {dr}</p>
+          )}
+
+          {fiche.horaires && (
+            <div style={{ margin: "0 0 14px", padding: "10px 12px", background: "#f9fafb", borderRadius: 8, fontSize: 13, color: "#374151", whiteSpace: "pre-wrap", lineHeight: 1.5 }}>
+              🕒 {fiche.horaires}
+            </div>
+          )}
+
+          {(fiche.description_detaillee || fiche.description_courte) && (
+            <p style={{ margin: "0 0 16px", fontSize: 14, color: "#374151", lineHeight: 1.6, whiteSpace: "pre-wrap" }}>
+              {fiche.description_detaillee || fiche.description_courte}
+            </p>
+          )}
+
+          <div style={{ display: "flex", flexDirection: "column", gap: 8, fontSize: 14 }}>
+            {fiche.telephone && (
+              <a href={`tel:${fiche.telephone}`} style={{ color: "#2563eb", textDecoration: "none" }}>📞 {fiche.telephone}</a>
+            )}
+            {fiche.email && (
+              <a href={`mailto:${fiche.email}`} style={{ color: "#2563eb", textDecoration: "none", wordBreak: "break-all" }}>✉️ {fiche.email}</a>
+            )}
+            {fiche.site_web && (
+              <a href={fiche.site_web} target="_blank" rel="noopener noreferrer" style={{ color: "#2563eb", textDecoration: "none", wordBreak: "break-all" }}>🌐 {fiche.site_web}</a>
+            )}
+          </div>
+
+          <p style={{ marginTop: 20, fontSize: 11, color: "#9ca3af", fontFamily: "monospace" }}>Apidae #{fiche.fiche_id}</p>
+        </div>
+      </div>
     </div>
   );
 }
