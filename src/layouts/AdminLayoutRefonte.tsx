@@ -5,6 +5,8 @@ import { supabase } from "@/integrations/supabase/client";
 import type { User } from "@supabase/supabase-js";
 import FloatingChat from "@/components/FloatingChat";
 import FloatingOtoChat from "@/components/FloatingOtoChat";
+import NotificationsBell from "@/components/NotificationsBell";
+import ProfileMenu from "@/components/ProfileMenu";
 import { Icon, ApidiaLogo, Avatar, Button, IconName } from "@/pages/refonte/primitives";
 import { useAdminInterface } from "@/hooks/useAdminInterface";
 import "@/pages/refonte/refonte-tokens.css";
@@ -322,41 +324,8 @@ export default function AdminLayoutRefonte({ children }: AdminLayoutRefonteProps
               <Button variant="ghost" size="sm" icon="refresh" onClick={switchToClassic}>
                 Interface classique
               </Button>
-              <button
-                style={{
-                  width: 38,
-                  height: 38,
-                  borderRadius: 10,
-                  border: "1px solid var(--border)",
-                  background: "var(--surface)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  position: "relative",
-                  cursor: "pointer",
-                }}
-              >
-                <Icon name="bell" size={15} />
-                <span
-                  style={{
-                    position: "absolute",
-                    top: 6,
-                    right: 6,
-                    width: 7,
-                    height: 7,
-                    borderRadius: 4,
-                    background: "var(--pdm-jaune)",
-                    border: "1.5px solid var(--surface)",
-                  }}
-                />
-              </button>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, marginLeft: 4, padding: "0 10px 0 4px", borderRadius: 20, background: "var(--surface-2)" }}>
-                <Avatar initials={profile.initials} size={30} color="vert" />
-                <div style={{ fontSize: 12 }}>
-                  <div style={{ fontWeight: 600 }}>{profile.name}</div>
-                  <div style={{ color: "var(--text-3)", fontSize: 10 }}>{profile.role}</div>
-                </div>
-              </div>
+              <NotificationsBell />
+              <ProfileMenu profile={profile} />
             </div>
 
             <div className="refonte-topbar-avatar-mobile" onClick={() => setDrawerOpen(true)} style={{ cursor: "pointer" }}>
