@@ -172,26 +172,60 @@ export default function WidgetApidia() {
       ? manualIds.split(",").map((s) => s.trim()).filter(Boolean)
       : [];
 
-    const { data: userData } = await supabase.auth.getUser();
-    
-    const { error } = await supabase.from("apidia_widgets").insert({
-      name,
-      widget_type: widgetType,
-      filters,
-      selected_fiche_ids: selectedIds,
-      settings: { max_fiches: maxFiches, theme },
-      created_by: userData.user?.id,
-    });
-
-    if (error) {
-      toast({ title: "Erreur de création", description: error.message, variant: "destructive" });
+    if (editingId) {
+      const { error } = await supabase
+        .from("apidia_widgets")
+        .update({
+          name,
+          widget_type: widgetType,
+          filters,
+          selected_fiche_ids: selectedIds,
+          settings: { max_fiches: maxFiches, theme },
+        })
+        .eq("id", editingId);
+      if (error) {
+        toast({ title: "Erreur de mise à jour", description: error.message, variant: "destructive" });
+        return;
+      }
+      toast({ title: "Widget mis à jour" });
+      logUserAction("widget_update", { id: editingId, name });
     } else {
+      const { data: userData } = await supabase.auth.getUser();
+      const { error } = await supabase.from("apidia_widgets").insert({
+        name,
+        widget_type: widgetType,
+        filters,
+        selected_fiche_ids: selectedIds,
+        settings: { max_fiches: maxFiches, theme },
+        created_by: userData.user?.id,
+      });
+      if (error) {
+        toast({ title: "Erreur de création", description: error.message, variant: "destructive" });
+        return;
+      }
       toast({ title: "Widget créé avec succès" });
       logUserAction("widget_create", { name, widget_type: widgetType });
-      resetForm();
-      setShowCreate(false);
-      loadWidgets();
     }
+
+    resetForm();
+    setEditingId(null);
+    setShowCreate(false);
+    loadWidgets();
+  };
+
+  const openEdit = (w: Widget) => {
+    setEditingId(w.id);
+    setName(w.name);
+    setWidgetType(w.widget_type);
+    setFicheType(w.filters?.fiche_type || "");
+    setCommune(w.filters?.commune || "");
+    setSource(w.filters?.source || "");
+    setManualIds((w.selected_fiche_ids || []).join(", "));
+    setMaxFiches(w.settings?.max_fiches || 10);
+    setTheme(w.settings?.theme || "light");
+    setSelectedCriteres(Array.isArray(w.filters?.critere_ids) ? w.filters.critere_ids : []);
+    setCriteresMode(w.filters?.critere_mode === "all" ? "all" : "any");
+    setShowCreate(true);
   };
 
   const toggleActive = async (widget: Widget) => {
