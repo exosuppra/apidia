@@ -59,6 +59,36 @@ export type Database = {
         }
         Relationships: []
       }
+      apidae_criteres: {
+        Row: {
+          created_at: string
+          critere_id: number
+          id: string
+          last_synced_at: string | null
+          libelle_fr: string | null
+          type: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          critere_id: number
+          id?: string
+          last_synced_at?: string | null
+          libelle_fr?: string | null
+          type?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          critere_id?: number
+          id?: string
+          last_synced_at?: string | null
+          libelle_fr?: string | null
+          type?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       apidae_sync_config: {
         Row: {
           created_at: string | null

@@ -154,8 +154,91 @@ serve(async (req: Request) => {
       processed: 0,
       inserted: 0,
       updated: 0,
+      criteres_synced: 0,
       errors: [] as string[],
     };
+
+    // Collect all critere IDs from this batch
+    const critereIdsSet = new Set<number>();
+    for (const objet of apidaeData.objetsTouristiques || []) {
+      const list = (objet as any)?.criteresInternes;
+      if (Array.isArray(list)) {
+        for (const c of list) {
+          const id = Number(c?.id);
+          if (Number.isFinite(id)) critereIdsSet.add(id);
+        }
+      }
+    }
+
+    // Resolve unknown criteres via Apidae referentiel API
+    if (critereIdsSet.size > 0) {
+      try {
+        const allIds = Array.from(critereIdsSet);
+        const { data: existingCriteres } = await supabase
+          .from("apidae_criteres")
+          .select("critere_id, libelle_fr")
+          .in("critere_id", allIds);
+
+        const knownIds = new Set((existingCriteres || []).map((c: any) => Number(c.critere_id)));
+        const missingIds = allIds.filter((id) => !knownIds.has(id) || !(existingCriteres || []).find((c: any) => Number(c.critere_id) === id && c.libelle_fr));
+
+        if (missingIds.length > 0) {
+          console.log(`Resolving ${missingIds.length} unknown criteres via Apidae...`);
+          // Apidae referentiel: fetch criteres by ids
+          const refQuery = {
+            apiKey: APIDAE_API_KEY,
+            projetId: parseInt(APIDAE_PROJECT_ID),
+            criteresInternesIds: missingIds,
+          };
+          const refParams = new URLSearchParams();
+          refParams.append("query", JSON.stringify(refQuery));
+
+          const refRes = await fetch(
+            "https://api.apidae-tourisme.com/api/v002/referentiel/criteres-internes/",
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/x-www-form-urlencoded" },
+              body: refParams.toString(),
+            }
+          );
+
+          if (refRes.ok) {
+            const refData = await refRes.json();
+            const list = Array.isArray(refData) ? refData : (refData?.criteresInternes || refData?.results || []);
+            const upserts = list.map((c: any) => ({
+              critere_id: Number(c.id),
+              libelle_fr: c?.libelleFr || c?.nom?.libelleFr || null,
+              type: c?.type || null,
+              last_synced_at: new Date().toISOString(),
+            })).filter((c: any) => Number.isFinite(c.critere_id));
+
+            if (upserts.length > 0) {
+              const { error: upErr } = await supabase
+                .from("apidae_criteres")
+                .upsert(upserts, { onConflict: "critere_id" });
+              if (upErr) {
+                console.error("Error upserting criteres:", upErr);
+              } else {
+                results.criteres_synced = upserts.length;
+                console.log(`Synced ${upserts.length} criteres libelles`);
+              }
+            }
+          } else {
+            const txt = await refRes.text();
+            console.warn("Apidae referentiel error:", refRes.status, txt.slice(0, 200));
+            // Fallback: insert IDs without labels so they're tracked
+            const placeholders = missingIds.map((id) => ({
+              critere_id: id,
+              libelle_fr: null,
+              last_synced_at: new Date().toISOString(),
+            }));
+            await supabase.from("apidae_criteres").upsert(placeholders, { onConflict: "critere_id" });
+          }
+        }
+      } catch (e) {
+        console.error("Critere resolution error:", e);
+      }
+    }
 
     for (const objet of apidaeData.objetsTouristiques || []) {
       try {

@@ -100,8 +100,8 @@ export default function WidgetApidia() {
   };
 
   const loadCriteres = async () => {
-    // Load all criteresInternes from all fiches and aggregate
-    const counts: Map<number, { libelle: string; count: number }> = new Map();
+    // 1) Compter les occurrences depuis fiches_data
+    const counts = new Map<number, number>();
     let from = 0;
     const pageSize = 1000;
     while (true) {
@@ -115,20 +115,39 @@ export default function WidgetApidia() {
         const list = f.data?.criteresInternes;
         if (Array.isArray(list)) {
           list.forEach((c: any) => {
-            if (c?.id == null) return;
-            const id = Number(c.id);
-            const libelle = c.libelle || `Critère ${id}`;
-            const existing = counts.get(id);
-            if (existing) existing.count++;
-            else counts.set(id, { libelle, count: 1 });
+            const id = Number(c?.id);
+            if (!Number.isFinite(id)) return;
+            counts.set(id, (counts.get(id) || 0) + 1);
           });
         }
       });
       if (data.length < pageSize) break;
       from += pageSize;
     }
-    const arr: Critere[] = Array.from(counts.entries())
-      .map(([id, v]) => ({ id, libelle: v.libelle, count: v.count }))
+
+    // 2) Charger les libellés depuis la table dédiée apidae_criteres
+    const ids = Array.from(counts.keys());
+    const labelsMap = new Map<number, string>();
+    if (ids.length > 0) {
+      const chunkSize = 500;
+      for (let i = 0; i < ids.length; i += chunkSize) {
+        const chunk = ids.slice(i, i + chunkSize);
+        const { data: labels } = await supabase
+          .from("apidae_criteres")
+          .select("critere_id, libelle_fr")
+          .in("critere_id", chunk);
+        (labels || []).forEach((l: any) => {
+          if (l.libelle_fr) labelsMap.set(Number(l.critere_id), l.libelle_fr);
+        });
+      }
+    }
+
+    const arr: Critere[] = ids
+      .map((id) => ({
+        id,
+        libelle: labelsMap.get(id) || `Critère #${id}`,
+        count: counts.get(id) || 0,
+      }))
       .sort((a, b) => a.libelle.localeCompare(b.libelle));
     setCriteres(arr);
   };
