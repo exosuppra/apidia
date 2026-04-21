@@ -168,12 +168,12 @@ export default function AdminLayoutRefonte({ children }: AdminLayoutRefonteProps
 
         {/* Sidebar */}
         <aside className="refonte-sidebar">
-          <div className="refonte-sidebar-header" style={{ display: "flex", alignItems: "center", gap: 10, padding: "0 4px" }}>
+          <div className="refonte-sidebar-header" style={{ display: "flex", flexDirection: collapsed ? "row" : "column", alignItems: "center", gap: collapsed ? 10 : 8, padding: "0 4px", textAlign: "center" }}>
             <span className="refonte-logo-halo">
               {collapsed ? <ApidiaLogo size={36} /> : <ApidiaLogo size={120} full />}
             </span>
             {!collapsed && (
-              <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ minWidth: 0 }}>
                 <div style={{ fontFamily: "var(--font-display)", fontSize: 16, lineHeight: 1, letterSpacing: "-0.01em" }}>APIDIA</div>
                 <div style={{ fontSize: 10, color: "rgba(255,255,255,0.55)", textTransform: "uppercase", letterSpacing: "0.1em", marginTop: 2 }}>Back-office PdM</div>
               </div>
