@@ -207,7 +207,7 @@ export default function AdminLayoutRefonte({ children }: AdminLayoutRefonteProps
               border: "1px solid rgba(255,255,255,0.08)", cursor: "pointer",
             }}
           >
-            <Icon name={collapsed ? "chevron-right" : "chevron-left"} size={14} />
+            <Icon name={collapsed ? "chevron" : "chevronL"} size={14} />
           </button>
 
           <nav style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 2 }}>
