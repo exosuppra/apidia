@@ -244,7 +244,7 @@ export default function AdminLayoutRefonte({ children }: AdminLayoutRefonteProps
                     <span className="refonte-nav-active-indicator" style={{ position: "absolute", left: -16, top: 8, bottom: 8, width: 3, borderRadius: 2, background: "var(--pdm-jaune)" }} />
                   )}
                   <Icon name={n.icon} size={16} />
-                  {n.label}
+                  {!collapsed && n.label}
                 </NavLink>
               );
             })}
