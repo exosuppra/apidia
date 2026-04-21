@@ -102,6 +102,14 @@ export default function AllFiches() {
   const [transferring, setTransferring] = useState<string | null>(null);
   const [syncingApidae, setSyncingApidae] = useState(false);
   const [makeSyncRunning, setMakeSyncRunning] = useState(false);
+  const [cleanupOpen, setCleanupOpen] = useState(false);
+  const [cleanupLoading, setCleanupLoading] = useState(false);
+  const [cleanupPreview, setCleanupPreview] = useState<{
+    orphans_count: number;
+    db_total: number;
+    apidae_total: number;
+    sample: Array<{ fiche_id: string; nom: string }>;
+  } | null>(null);
   const [apidaeSyncProgress, setApidaeSyncProgress] = useState<{
     current: number;
     total: number;
