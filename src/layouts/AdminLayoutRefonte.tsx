@@ -281,10 +281,11 @@ export default function AdminLayoutRefonte({ children }: AdminLayoutRefonteProps
             }}
           >
             <Icon name="refresh" size={13} />
-            Interface classique
+            {!collapsed && "Interface classique"}
           </button>
 
           {/* Statut synchro */}
+          {!collapsed && (
           <div style={{ padding: 12, borderRadius: 12, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}>
             <div style={{ fontSize: 10, color: "rgba(255,255,255,0.5)", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 6 }}>Synchro APIDAE</div>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
