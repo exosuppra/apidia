@@ -136,7 +136,33 @@ serve(async (req: Request) => {
       }).eq("id", config.id);
 
       if (isComplete) {
-        const syncResult = { total_found: totalFound, synced: totalSynced, created: totalCreated, updated: totalUpdated, batches: batchNumber };
+        const syncResult: Record<string, unknown> = { total_found: totalFound, synced: totalSynced, created: totalCreated, updated: totalUpdated, batches: batchNumber };
+
+        // Cleanup automatique des fiches orphelines (fire-and-forget)
+        try {
+          console.log("Triggering cleanup-apidae-orphans after complete sync...");
+          const cleanupResp = await fetch(`${SUPABASE_URL}/functions/v1/cleanup-apidae-orphans`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+            },
+            body: JSON.stringify({ triggeredBy: "cron-apidae-sync" }),
+          });
+          if (cleanupResp.ok) {
+            const cleanupData = await cleanupResp.json();
+            syncResult.cleanup = cleanupData;
+            console.log(`Cleanup result:`, cleanupData);
+          } else {
+            const txt = await cleanupResp.text();
+            console.error("Cleanup failed:", txt);
+            syncResult.cleanup_error = txt.slice(0, 200);
+          }
+        } catch (cleanupErr) {
+          console.error("Cleanup exception:", cleanupErr);
+          syncResult.cleanup_error = cleanupErr instanceof Error ? cleanupErr.message : "Unknown";
+        }
+
         const scheduleType = config.schedule_type || "daily";
         const syncHour = config.sync_hour || 6;
         const nextRunAt = calculateNextRun(scheduleType, syncHour);
@@ -157,7 +183,7 @@ serve(async (req: Request) => {
           fiches_synced: totalSynced,
           fiches_created: totalCreated,
           fiches_updated: totalUpdated,
-          details: { batches: batchNumber, selection_ids: selectionIds },
+          details: { batches: batchNumber, selection_ids: selectionIds, cleanup: syncResult.cleanup ?? null },
         });
 
         return json({ success: true, completed: true, result: syncResult, next_sync_at: nextRunAt.toISOString() });
