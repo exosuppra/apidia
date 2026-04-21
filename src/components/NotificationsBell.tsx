@@ -166,9 +166,9 @@ export default function NotificationsBell() {
   const iconFor = (k: NotifKind) => {
     switch (k) {
       case "task": return <ListChecks className="h-4 w-4 text-primary" />;
-      case "validation": return <ClipboardCheck className="h-4 w-4 text-amber-500" />;
-      case "request": return <FileEdit className="h-4 w-4 text-blue-500" />;
-      case "alert": return <AlertTriangle className="h-4 w-4 text-red-500" />;
+      case "validation": return <ClipboardCheck className="h-4 w-4" style={{ color: "hsl(var(--pdm-jaune, 38 92% 50%))" }} />;
+      case "request": return <FileEdit className="h-4 w-4 text-primary" />;
+      case "alert": return <AlertTriangle className="h-4 w-4 text-destructive" />;
     }
   };
 
