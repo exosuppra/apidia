@@ -327,11 +327,14 @@ window.addEventListener('message', function(e) {
           </Button>
         </div>
 
-        {/* Create dialog */}
-        <Dialog open={showCreate} onOpenChange={setShowCreate}>
+        {/* Create / Edit dialog */}
+        <Dialog open={showCreate} onOpenChange={(open) => {
+          setShowCreate(open);
+          if (!open) { setEditingId(null); resetForm(); }
+        }}>
           <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Créer un widget</DialogTitle>
+              <DialogTitle>{editingId ? "Modifier le widget" : "Créer un widget"}</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
               <div>
