@@ -21,6 +21,8 @@ import {
   useSensors,
   PointerSensor,
   useDroppable,
+  pointerWithin,
+  rectIntersection,
 } from "@dnd-kit/core";
 import { useDraggable } from "@dnd-kit/core";
 import type { Task, Tag } from "@/types/planning";
@@ -46,9 +48,11 @@ function DraggableTask({ task, onTaskClick, onMarkDone, onDelete }: DraggableTas
     data: { task },
   });
 
-  const style = transform ? {
-    transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
-  } : undefined;
+  // Hide source while dragging — DragOverlay shows the visual representation.
+  // Avoids stale transform offsets that prevent droppable detection.
+  const style: React.CSSProperties | undefined = isDragging
+    ? { opacity: 0, pointerEvents: "none" }
+    : undefined;
 
   const isDone = task.status === "done";
 
@@ -60,10 +64,9 @@ function DraggableTask({ task, onTaskClick, onMarkDone, onDelete }: DraggableTas
           style={style}
           {...listeners}
           {...attributes}
-          className={`text-xs p-0.5 rounded cursor-grab hover:opacity-90 transition-all duration-200 hover:shadow-sm relative overflow-visible ${
-            isDragging ? "opacity-50 shadow-lg" : ""
-          }`}
+          className="text-xs p-0.5 rounded cursor-grab hover:opacity-90 transition-all duration-200 hover:shadow-sm relative overflow-visible touch-none"
           onClick={(e) => {
+            if (isDragging) return;
             e.stopPropagation();
             onTaskClick?.(task);
           }}
@@ -313,9 +316,17 @@ export function CalendarView({ tasks, tags, onRefresh, onDateDoubleClick, onTask
     }
   };
 
+  // Custom collision detection: prefer pointer-within (precise), fallback to rect intersection.
+  const collisionDetection = (args: any) => {
+    const pointerCollisions = pointerWithin(args);
+    if (pointerCollisions.length > 0) return pointerCollisions;
+    return rectIntersection(args);
+  };
+
   return (
     <DndContext
       sensors={sensors}
+      collisionDetection={collisionDetection}
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
