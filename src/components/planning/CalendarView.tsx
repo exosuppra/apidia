@@ -25,6 +25,7 @@ import {
   rectIntersection,
 } from "@dnd-kit/core";
 import { useDraggable } from "@dnd-kit/core";
+import { snapCenterToCursor } from "@dnd-kit/modifiers";
 import type { Task, Tag } from "@/types/planning";
 
 interface CalendarViewProps {
@@ -327,6 +328,7 @@ export function CalendarView({ tasks, tags, onRefresh, onDateDoubleClick, onTask
     <DndContext
       sensors={sensors}
       collisionDetection={collisionDetection}
+      modifiers={[snapCenterToCursor]}
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >

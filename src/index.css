@@ -574,9 +574,12 @@ All colors MUST be HSL.
    📱 Global mobile responsive fixes
    ================================================================ */
 @layer utilities {
-  /* Empêche tout débordement horizontal du document */
+  /* Empêche tout débordement horizontal du document.
+     NOTE: on évite `overflow-x: hidden` sur html/body car cela casse
+     `position: sticky` sur les éléments enfants (sidebar admin notamment).
+     On utilise `overflow-x: clip` qui n'établit pas de contexte de scroll. */
   html, body {
-    overflow-x: hidden;
+    overflow-x: clip;
     max-width: 100vw;
   }
 
