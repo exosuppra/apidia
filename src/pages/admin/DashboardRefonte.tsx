@@ -47,6 +47,7 @@ const HUB_GROUPS: HubGroup[] = [
         desc: "Formulaire de dépôt d'un ordre de mission",
         cta: "Ouvrir le formulaire",
         to: "",
+        permKey: "depot-mission",
         external: () => window.open("https://forms.gle/EdcyDLrVuwaLjka87", "_blank"),
       },
     ],
