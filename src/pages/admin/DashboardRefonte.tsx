@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthProvider";
 import { supabase } from "@/integrations/supabase/client";
@@ -6,6 +6,10 @@ import { Icon, Chip, IconName } from "@/pages/refonte/primitives";
 import { format } from "date-fns";
 import { fr as frLocale } from "date-fns/locale";
 import Seo from "@/components/Seo";
+
+type SectionKey = "rh-admin" | "donnees-touristiques" | "reseaux-sociaux" | "projet-web";
+const DEFAULT_ORDER: SectionKey[] = ["rh-admin", "donnees-touristiques", "reseaux-sociaux", "projet-web"];
+const SECTION_KEYS: SectionKey[] = ["rh-admin", "donnees-touristiques", "reseaux-sociaux", "projet-web"];
 
 /* ===============================================================
    DashboardRefonte · Hub admin en charte Pays de Manosque
@@ -26,6 +30,7 @@ interface HubItem {
 }
 
 interface HubGroup {
+  key: SectionKey;
   group: string;
   icon: IconName;
   items: HubItem[];
@@ -33,6 +38,7 @@ interface HubGroup {
 
 const HUB_GROUPS: HubGroup[] = [
   {
+    key: "rh-admin",
     group: "RH & Administration",
     icon: "users",
     items: [
@@ -53,6 +59,7 @@ const HUB_GROUPS: HubGroup[] = [
     ],
   },
   {
+    key: "donnees-touristiques",
     group: "Accueil & Qualification de la donnée touristique",
     icon: "pin",
     items: [
@@ -64,6 +71,7 @@ const HUB_GROUPS: HubGroup[] = [
     ],
   },
   {
+    key: "reseaux-sociaux",
     group: "Gestion de Projet Réseaux sociaux",
     icon: "share",
     items: [
@@ -81,6 +89,7 @@ const HUB_GROUPS: HubGroup[] = [
     ],
   },
   {
+    key: "projet-web",
     group: "Gestion de Projet Web",
     icon: "globe",
     items: [
@@ -117,21 +126,29 @@ export default function DashboardRefonte() {
   const [loading, setLoading] = useState(true);
   const [activity, setActivity] = useState<ActivityRow[]>([]);
   const [profileFirstName, setProfileFirstName] = useState<string>("");
+  const [sectionOrder, setSectionOrder] = useState<SectionKey[]>(DEFAULT_ORDER);
+  const [isReordering, setIsReordering] = useState(false);
 
   useEffect(() => {
     const load = async () => {
       if (!user) return;
       try {
-        const [permResult, roleResult, logsResult, profileResult] = await Promise.all([
+        const [permResult, roleResult, logsResult, profileResult, orderResult] = await Promise.all([
           supabase.from("admin_permissions").select("page_key").eq("user_id", (user as any).id),
           supabase.rpc("has_role", { _user_id: (user as any).id, _role: "admin" }),
           supabase.from("user_action_logs").select("*").order("created_at", { ascending: false }).limit(8),
           supabase.from("profiles").select("first_name").eq("id", (user as any).id).maybeSingle(),
+          supabase.from("admin_dashboard_order").select("section_order").eq("user_id", (user as any).id).maybeSingle(),
         ]);
         setPermissions((permResult.data || []).map((p: any) => p.page_key));
         setIsAdmin(roleResult.data === true);
         setActivity((logsResult.data as any as ActivityRow[]) || []);
         setProfileFirstName((profileResult.data as any)?.first_name || "");
+        const saved = (orderResult.data as any)?.section_order as SectionKey[] | undefined;
+        if (saved && Array.isArray(saved)) {
+          const merged = [...saved.filter((k) => SECTION_KEYS.includes(k)), ...DEFAULT_ORDER.filter((k) => !saved.includes(k))];
+          setSectionOrder(merged);
+        }
       } catch (e) {
         // fail silent — Hub reste utilisable même si certaines requêtes échouent
         console.warn("DashboardRefonte load error", e);
@@ -141,6 +158,40 @@ export default function DashboardRefonte() {
     };
     load();
   }, [user]);
+
+  const saveSectionOrder = useCallback(async (newOrder: SectionKey[]) => {
+    if (!user) return;
+    const uid = (user as any).id;
+    const { data: existing } = await supabase
+      .from("admin_dashboard_order")
+      .select("id")
+      .eq("user_id", uid)
+      .maybeSingle();
+    if (existing) {
+      await supabase
+        .from("admin_dashboard_order")
+        .update({ section_order: newOrder as unknown as any, updated_at: new Date().toISOString() })
+        .eq("user_id", uid);
+    } else {
+      await supabase.from("admin_dashboard_order").insert({ user_id: uid, section_order: newOrder as unknown as any });
+    }
+  }, [user]);
+
+  const moveSection = (key: SectionKey, direction: "up" | "down") => {
+    const idx = sectionOrder.indexOf(key);
+    if (idx === -1) return;
+    if (direction === "up" && idx === 0) return;
+    if (direction === "down" && idx === sectionOrder.length - 1) return;
+    const newOrder = [...sectionOrder];
+    const swapIdx = direction === "up" ? idx - 1 : idx + 1;
+    [newOrder[idx], newOrder[swapIdx]] = [newOrder[swapIdx], newOrder[idx]];
+    setSectionOrder(newOrder);
+    saveSectionOrder(newOrder);
+  };
+
+  const orderedGroups = sectionOrder
+    .map((k) => HUB_GROUPS.find((g) => g.key === k))
+    .filter((g): g is HubGroup => Boolean(g));
 
   // Si l'utilisateur a des permissions granulaires définies, elles priment sur le rôle admin.
   // Cela évite qu'un utilisateur configuré avec un sous-ensemble de droits voie tout
@@ -197,12 +248,39 @@ export default function DashboardRefonte() {
 
         {/* Rubriques */}
         <div className="refonte-hub-container">
-          {HUB_GROUPS.map((section, si) => {
+          {/* Toggle réorganisation */}
+          <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 16 }}>
+            <button
+              onClick={() => setIsReordering((v) => !v)}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+                fontSize: 12,
+                fontWeight: 600,
+                padding: "6px 12px",
+                borderRadius: 8,
+                border: "1px solid var(--border)",
+                background: isReordering ? "var(--pdm-vert)" : "var(--surface)",
+                color: isReordering ? "white" : "var(--text-2)",
+                cursor: "pointer",
+                transition: "all var(--dur-fast)",
+              }}
+            >
+              <Icon name="layers" size={13} />
+              {isReordering ? "Terminer la réorganisation" : "Réorganiser les sections"}
+            </button>
+          </div>
+
+          {orderedGroups.map((section, si) => {
             const visible = section.items.filter((it) => canAccess(it));
             if (visible.length === 0 && !effectiveAdmin) return null;
             const items = effectiveAdmin ? section.items : visible;
+            const idx = sectionOrder.indexOf(section.key);
+            const isFirst = idx === 0;
+            const isLast = idx === sectionOrder.length - 1;
             return (
-              <section key={section.group} style={{ marginBottom: 42, animation: `refonte-fade-in 500ms ${si * 80}ms var(--ease-out) both` }}>
+              <section key={section.key} style={{ marginBottom: 42, animation: `refonte-fade-in 500ms ${si * 80}ms var(--ease-out) both` }}>
                 <div className="refonte-section-head">
                   <div
                     style={{
@@ -221,7 +299,44 @@ export default function DashboardRefonte() {
                   </div>
                   <h2>{section.group}</h2>
                   <div className="refonte-section-divider" />
-                  <div className="refonte-section-count">{items.length} modules</div>
+                  {isReordering ? (
+                    <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
+                      <button
+                        onClick={() => moveSection(section.key, "up")}
+                        disabled={isFirst}
+                        title="Monter"
+                        style={{
+                          width: 28, height: 28, borderRadius: 6,
+                          border: "1px solid var(--border)",
+                          background: "var(--surface)",
+                          color: isFirst ? "var(--text-3)" : "var(--text-1)",
+                          cursor: isFirst ? "not-allowed" : "pointer",
+                          opacity: isFirst ? 0.4 : 1,
+                          display: "inline-flex", alignItems: "center", justifyContent: "center",
+                        }}
+                      >
+                        ↑
+                      </button>
+                      <button
+                        onClick={() => moveSection(section.key, "down")}
+                        disabled={isLast}
+                        title="Descendre"
+                        style={{
+                          width: 28, height: 28, borderRadius: 6,
+                          border: "1px solid var(--border)",
+                          background: "var(--surface)",
+                          color: isLast ? "var(--text-3)" : "var(--text-1)",
+                          cursor: isLast ? "not-allowed" : "pointer",
+                          opacity: isLast ? 0.4 : 1,
+                          display: "inline-flex", alignItems: "center", justifyContent: "center",
+                        }}
+                      >
+                        ↓
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="refonte-section-count">{items.length} modules</div>
+                  )}
                 </div>
                 <div className="refonte-hub-grid">
                   {items.map((item, i) => (
@@ -231,6 +346,7 @@ export default function DashboardRefonte() {
               </section>
             );
           })}
+
 
           {/* Activité récente */}
           <section>
