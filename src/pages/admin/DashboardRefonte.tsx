@@ -30,6 +30,7 @@ interface HubItem {
 }
 
 interface HubGroup {
+  key: SectionKey;
   group: string;
   icon: IconName;
   items: HubItem[];
