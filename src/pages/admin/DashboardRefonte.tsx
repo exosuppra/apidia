@@ -75,6 +75,7 @@ const HUB_GROUPS: HubGroup[] = [
         desc: "Formulaire de règlement pour les jeux concours sur les réseaux sociaux",
         cta: "Ouvrir le formulaire",
         to: "",
+        permKey: "reglement-jeux",
         external: () => window.open("https://docs.google.com/forms/d/e/1FAIpQLSd4FV1uH-bnFXS_9XtuBWUrJxx1Q_ml4mhvoEhEN9L6-hDJHA/viewform?usp=header", "_blank"),
       },
     ],
