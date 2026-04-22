@@ -170,7 +170,7 @@ export default function AdminLayoutRefonte({ children }: AdminLayoutRefonteProps
         <aside className="refonte-sidebar">
           <div className="refonte-sidebar-header" style={{ display: "flex", flexDirection: collapsed ? "row" : "column", alignItems: "center", gap: collapsed ? 10 : 8, padding: "0 4px", textAlign: "center" }}>
             <span className="refonte-logo-halo">
-              {collapsed ? <ApidiaLogo size={36} /> : <ApidiaLogo size={120} full />}
+              {collapsed ? <ApidiaLogo size={44} full /> : <ApidiaLogo size={120} full />}
             </span>
             {!collapsed && (
               <div style={{ minWidth: 0 }}>
