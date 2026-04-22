@@ -248,12 +248,39 @@ export default function DashboardRefonte() {
 
         {/* Rubriques */}
         <div className="refonte-hub-container">
-          {HUB_GROUPS.map((section, si) => {
+          {/* Toggle réorganisation */}
+          <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 16 }}>
+            <button
+              onClick={() => setIsReordering((v) => !v)}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+                fontSize: 12,
+                fontWeight: 600,
+                padding: "6px 12px",
+                borderRadius: 8,
+                border: "1px solid var(--border)",
+                background: isReordering ? "var(--pdm-vert)" : "var(--surface)",
+                color: isReordering ? "white" : "var(--text-2)",
+                cursor: "pointer",
+                transition: "all var(--dur-fast)",
+              }}
+            >
+              <Icon name="layers" size={13} />
+              {isReordering ? "Terminer la réorganisation" : "Réorganiser les sections"}
+            </button>
+          </div>
+
+          {orderedGroups.map((section, si) => {
             const visible = section.items.filter((it) => canAccess(it));
             if (visible.length === 0 && !effectiveAdmin) return null;
             const items = effectiveAdmin ? section.items : visible;
+            const idx = sectionOrder.indexOf(section.key);
+            const isFirst = idx === 0;
+            const isLast = idx === sectionOrder.length - 1;
             return (
-              <section key={section.group} style={{ marginBottom: 42, animation: `refonte-fade-in 500ms ${si * 80}ms var(--ease-out) both` }}>
+              <section key={section.key} style={{ marginBottom: 42, animation: `refonte-fade-in 500ms ${si * 80}ms var(--ease-out) both` }}>
                 <div className="refonte-section-head">
                   <div
                     style={{
@@ -272,7 +299,44 @@ export default function DashboardRefonte() {
                   </div>
                   <h2>{section.group}</h2>
                   <div className="refonte-section-divider" />
-                  <div className="refonte-section-count">{items.length} modules</div>
+                  {isReordering ? (
+                    <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
+                      <button
+                        onClick={() => moveSection(section.key, "up")}
+                        disabled={isFirst}
+                        title="Monter"
+                        style={{
+                          width: 28, height: 28, borderRadius: 6,
+                          border: "1px solid var(--border)",
+                          background: "var(--surface)",
+                          color: isFirst ? "var(--text-3)" : "var(--text-1)",
+                          cursor: isFirst ? "not-allowed" : "pointer",
+                          opacity: isFirst ? 0.4 : 1,
+                          display: "inline-flex", alignItems: "center", justifyContent: "center",
+                        }}
+                      >
+                        ↑
+                      </button>
+                      <button
+                        onClick={() => moveSection(section.key, "down")}
+                        disabled={isLast}
+                        title="Descendre"
+                        style={{
+                          width: 28, height: 28, borderRadius: 6,
+                          border: "1px solid var(--border)",
+                          background: "var(--surface)",
+                          color: isLast ? "var(--text-3)" : "var(--text-1)",
+                          cursor: isLast ? "not-allowed" : "pointer",
+                          opacity: isLast ? 0.4 : 1,
+                          display: "inline-flex", alignItems: "center", justifyContent: "center",
+                        }}
+                      >
+                        ↓
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="refonte-section-count">{items.length} modules</div>
+                  )}
                 </div>
                 <div className="refonte-hub-grid">
                   {items.map((item, i) => (
@@ -282,6 +346,7 @@ export default function DashboardRefonte() {
               </section>
             );
           })}
+
 
           {/* Activité récente */}
           <section>
