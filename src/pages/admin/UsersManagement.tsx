@@ -29,6 +29,8 @@ const AVAILABLE_PAGES = [
   { key: "planning", label: "Planning éditorial", icon: Calendar },
   { key: "rh", label: "Suivi RH - Projets IA", icon: Clock },
   { key: "missions", label: "Ordres de Mission", icon: Briefcase },
+  { key: "depot-mission", label: "Dépôt ordre de mission (formulaire)", icon: FileText },
+  { key: "reglement-jeux", label: "Règlement jeux concours (formulaire)", icon: FileText },
   { key: "intense-verdon", label: "Intense Verdon Edito", icon: Globe },
   { key: "stats-web", label: "Statistiques Web", icon: BarChart3 },
   { key: "stats-ereputation", label: "E-réputation Google", icon: Star },

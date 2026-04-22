@@ -47,6 +47,7 @@ const HUB_GROUPS: HubGroup[] = [
         desc: "Formulaire de dépôt d'un ordre de mission",
         cta: "Ouvrir le formulaire",
         to: "",
+        permKey: "depot-mission",
         external: () => window.open("https://forms.gle/EdcyDLrVuwaLjka87", "_blank"),
       },
     ],
@@ -74,6 +75,7 @@ const HUB_GROUPS: HubGroup[] = [
         desc: "Formulaire de règlement pour les jeux concours sur les réseaux sociaux",
         cta: "Ouvrir le formulaire",
         to: "",
+        permKey: "reglement-jeux",
         external: () => window.open("https://docs.google.com/forms/d/e/1FAIpQLSd4FV1uH-bnFXS_9XtuBWUrJxx1Q_ml4mhvoEhEN9L6-hDJHA/viewform?usp=header", "_blank"),
       },
     ],
@@ -147,7 +149,6 @@ export default function DashboardRefonte() {
   const effectiveAdmin = isAdmin && !hasGranularPerms;
 
   const canAccess = (item: HubItem) => {
-    if (item.external) return true;
     if (!item.permKey) return true;
     if (effectiveAdmin) return true;
     return permissions.includes(item.permKey);
