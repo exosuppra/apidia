@@ -9,6 +9,7 @@ import NotificationsBell from "@/components/NotificationsBell";
 import ProfileMenu from "@/components/ProfileMenu";
 import { Icon, ApidiaLogo, Avatar, Button, IconName } from "@/pages/refonte/primitives";
 import { useAdminInterface } from "@/hooks/useAdminInterface";
+import { useTheme } from "@/context/ThemeContext";
 import "@/pages/refonte/refonte-tokens.css";
 
 /* ===============================================================
@@ -48,6 +49,7 @@ export default function AdminLayoutRefonte({ children }: AdminLayoutRefonteProps
   const navigate = useNavigate();
   const location = useLocation();
   const [, setInterface] = useAdminInterface();
+  const { theme } = useTheme();
   const [permissions, setPermissions] = useState<{ apidia: boolean; oto: boolean }>({ apidia: false, oto: false });
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [collapsed, setCollapsed] = useState<boolean>(() => {
@@ -84,15 +86,12 @@ export default function AdminLayoutRefonte({ children }: AdminLayoutRefonteProps
     };
   }, [drawerOpen]);
 
-  // Applique le thème PdM
+  // Applique le thème PdM (sans toucher aux thèmes globaux comme "unicorn" gérés via ThemeProvider)
   useEffect(() => {
     const root = document.documentElement;
-    const previous = Array.from(root.classList).filter((c) => c.startsWith("theme-"));
-    previous.forEach((c) => root.classList.remove(c));
     root.classList.add("theme-tourisme");
     return () => {
       root.classList.remove("theme-tourisme");
-      previous.forEach((c) => root.classList.add(c));
     };
   }, []);
 
@@ -161,7 +160,7 @@ export default function AdminLayoutRefonte({ children }: AdminLayoutRefonteProps
   const pageTitle = resolvePageTitle(location.pathname);
 
   return (
-    <div className="refonte-root" data-accent="jaune" data-density="comfy" data-motion="on">
+    <div className={`refonte-root${theme === "unicorn" ? " theme-unicorn" : ""}`} data-accent="jaune" data-density="comfy" data-motion="on">
       <div className="refonte-shell" data-drawer-open={drawerOpen} data-collapsed={collapsed}>
         {/* Backdrop pour drawer mobile */}
         <div className="refonte-mobile-drawer-backdrop" onClick={() => setDrawerOpen(false)} />
