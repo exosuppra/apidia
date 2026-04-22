@@ -729,3 +729,263 @@
     font-size: 22px !important;
   }
 }
+
+/* ================================================================
+   🦄 SUPER THÈME LICORNE pour le dashboard New Gen
+   Activé via <div class="refonte-root theme-unicorn">
+   ================================================================ */
+
+@keyframes unicorn-rainbow-text {
+  0%   { background-position: 0% 50%; }
+  100% { background-position: 200% 50%; }
+}
+@keyframes unicorn-halo-pulse {
+  0%, 100% { box-shadow: 0 0 24px rgba(181,102,255,0.45), 0 0 48px rgba(255,122,198,0.25); }
+  50%      { box-shadow: 0 0 36px rgba(255,122,198,0.6), 0 0 64px rgba(122,217,255,0.4); }
+}
+@keyframes unicorn-rainbow-border {
+  0%   { background-position: 0% 50%; }
+  100% { background-position: 300% 50%; }
+}
+@keyframes unicorn-status-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255,122,198,0.55); background: #FF7AC6; }
+  33%      { box-shadow: 0 0 0 6px rgba(181,102,255,0.0); background: #B566FF; }
+  66%      { box-shadow: 0 0 0 6px rgba(122,217,255,0.0); background: #7AD9FF; }
+}
+
+.refonte-root.theme-unicorn {
+  /* ===== Palette magique ===== */
+  --unicorn-violet: #B566FF;
+  --unicorn-rose: #FF7AC6;
+  --unicorn-cyan: #7AD9FF;
+  --unicorn-jaune: #FFE066;
+  --unicorn-lavande: #F5EEFF;
+  --unicorn-pearl: #FFFCFF;
+
+  /* Override des accents PdM */
+  --pdm-vert: var(--unicorn-violet);
+  --pdm-turquoise: var(--unicorn-cyan);
+  --pdm-jaune: var(--unicorn-rose);
+  --vert-700: #8B3FD9;
+  --vert-600: #A04FF0;
+  --vert-500: var(--unicorn-violet);
+  --vert-400: #C98FFF;
+  --vert-200: #E8D4FF;
+  --vert-100: #F2E5FF;
+  --vert-50:  #FAF3FF;
+  --turq-700: #3FA8D9;
+  --turq-600: #5BC1EE;
+  --turq-500: var(--unicorn-cyan);
+  --turq-400: #A1E4FF;
+  --turq-200: #D0EFFF;
+  --turq-100: #E5F6FF;
+  --turq-50:  #F2FAFF;
+  --jaune-600: #FF5BB6;
+  --jaune-500: var(--unicorn-rose);
+  --jaune-400: #FFA3D6;
+  --jaune-200: #FFD0E8;
+  --jaune-100: #FFE5F2;
+
+  /* Surface lavande pailletée */
+  --bg: var(--unicorn-lavande);
+  --surface: var(--unicorn-pearl);
+  --surface-2: #F8F0FF;
+  --surface-3: #F0E5FF;
+  --border: #E8D4FF;
+  --border-strong: #D4B8FF;
+
+  /* Sidebar : dégradé violet -> magenta */
+  --gris-900: #5B21B6;
+  --gris-950: #3B0F7A;
+}
+
+.refonte-root.theme-unicorn {
+  background:
+    radial-gradient(circle at 12% 18%, rgba(255,122,198,0.18) 0, transparent 35%),
+    radial-gradient(circle at 88% 22%, rgba(181,102,255,0.16) 0, transparent 38%),
+    radial-gradient(circle at 50% 88%, rgba(122,217,255,0.16) 0, transparent 42%),
+    var(--unicorn-lavande);
+}
+
+/* Étoiles scintillantes en fond du shell */
+.refonte-root.theme-unicorn .refonte-shell {
+  background:
+    radial-gradient(2px 2px at 18% 22%, rgba(255,224,102,0.7) 50%, transparent 60%),
+    radial-gradient(1.5px 1.5px at 72% 14%, rgba(255,122,198,0.7) 50%, transparent 60%),
+    radial-gradient(1.5px 1.5px at 38% 78%, rgba(181,102,255,0.6) 50%, transparent 60%),
+    radial-gradient(2px 2px at 86% 64%, rgba(122,217,255,0.7) 50%, transparent 60%),
+    radial-gradient(1.5px 1.5px at 8% 60%, rgba(255,224,102,0.6) 50%, transparent 60%),
+    radial-gradient(1.5px 1.5px at 60% 38%, rgba(255,122,198,0.5) 50%, transparent 60%),
+    var(--unicorn-lavande);
+  background-size: 600px 600px;
+}
+
+/* ===== Sidebar : dégradé magique ===== */
+.refonte-root.theme-unicorn .refonte-sidebar {
+  background:
+    linear-gradient(180deg, #6D28D9 0%, #9333EA 45%, #DB2777 100%);
+  border-right: 1px solid rgba(255,255,255,0.12);
+}
+
+/* Logo halo pulsé */
+.refonte-root.theme-unicorn .refonte-logo-halo {
+  display: inline-flex;
+  border-radius: 50%;
+  padding: 4px;
+  animation: unicorn-halo-pulse 3.2s ease-in-out infinite;
+}
+
+/* Indicateur de nav actif arc-en-ciel */
+.refonte-root.theme-unicorn .refonte-nav-active-indicator {
+  background: linear-gradient(180deg, #FFE066, #FF7AC6, #B566FF, #7AD9FF) !important;
+  box-shadow: 0 0 8px rgba(255,122,198,0.7);
+}
+.refonte-root.theme-unicorn .refonte-sidebar-nav-item.active {
+  background: rgba(255,255,255,0.18) !important;
+  color: #FFE066 !important;
+  text-shadow: 0 0 12px rgba(255,224,102,0.5);
+}
+
+/* Status dot rainbow pulse */
+.refonte-root.theme-unicorn .refonte-status-dot {
+  animation: unicorn-status-pulse 2.4s ease-in-out infinite !important;
+}
+
+/* ===== Topbar : ligne arc-en-ciel ===== */
+.refonte-root.theme-unicorn .refonte-topbar {
+  background: rgba(255,252,255,0.85);
+  backdrop-filter: blur(12px);
+  border-bottom: none;
+  position: relative;
+}
+.refonte-root.theme-unicorn .refonte-topbar::after {
+  content: "";
+  position: absolute;
+  left: 0; right: 0; bottom: 0; height: 2px;
+  background: linear-gradient(90deg, #FF7AC6, #B566FF, #7AD9FF, #FFE066, #FF7AC6);
+  background-size: 300% 100%;
+  animation: unicorn-rainbow-border 8s linear infinite;
+}
+
+/* ===== Titres arc-en-ciel animés ===== */
+.refonte-root.theme-unicorn .refonte-topbar h1,
+.refonte-root.theme-unicorn .refonte-hero-title,
+.refonte-root.theme-unicorn .refonte-section-head h2 {
+  background: linear-gradient(90deg, #FF7AC6, #B566FF, #7AD9FF, #FFE066, #FF7AC6);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  animation: unicorn-rainbow-text 10s linear infinite;
+  text-shadow: none;
+}
+
+/* ===== Hero ===== */
+.refonte-root.theme-unicorn .refonte-hero {
+  background:
+    linear-gradient(135deg, rgba(255,224,255,0.6), rgba(212,184,255,0.4));
+}
+.refonte-root.theme-unicorn .refonte-hero-eyebrow {
+  background: linear-gradient(90deg, #B566FF, #FF7AC6);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* ===== Cards magiques ===== */
+.refonte-root.theme-unicorn .refonte-hub-grid > * {
+  background: var(--unicorn-pearl);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  transition: transform var(--dur-med) var(--ease-spring),
+              box-shadow var(--dur-med) var(--ease-out),
+              border-color var(--dur-med) var(--ease-out);
+  position: relative;
+}
+.refonte-root.theme-unicorn .refonte-hub-grid > *:hover {
+  transform: translateY(-3px);
+  border-color: transparent;
+  box-shadow:
+    0 0 0 2px transparent,
+    0 12px 28px rgba(181,102,255,0.18),
+    0 4px 12px rgba(255,122,198,0.14);
+  background:
+    linear-gradient(var(--unicorn-pearl), var(--unicorn-pearl)) padding-box,
+    linear-gradient(120deg, #FF7AC6, #B566FF, #7AD9FF, #FFE066, #FF7AC6) border-box;
+  border: 2px solid transparent;
+  background-size: auto, 300% 100%;
+  animation: unicorn-rainbow-border 6s linear infinite;
+}
+
+/* ===== Boutons primaires ===== */
+.refonte-root.theme-unicorn button[data-variant="primary"],
+.refonte-root.theme-unicorn .refonte-btn-primary {
+  background: linear-gradient(135deg, #B566FF 0%, #FF7AC6 100%) !important;
+  color: white !important;
+  box-shadow:
+    0 4px 14px rgba(181,102,255,0.45),
+    0 2px 6px rgba(255,122,198,0.3),
+    inset 0 1px 0 rgba(255,255,255,0.3);
+}
+.refonte-root.theme-unicorn button[data-variant="primary"]:hover,
+.refonte-root.theme-unicorn .refonte-btn-primary:hover {
+  box-shadow:
+    0 6px 22px rgba(181,102,255,0.6),
+    0 4px 10px rgba(255,122,198,0.4),
+    inset 0 1px 0 rgba(255,255,255,0.4);
+  transform: translateY(-1px);
+}
+
+/* ===== Faisceau "rays" recolorisés ===== */
+.refonte-root.theme-unicorn [class*="faisceau"],
+.refonte-root.theme-unicorn [class*="rays"] {
+  filter: hue-rotate(280deg) saturate(1.4);
+}
+
+/* ===== Avatars ===== */
+.refonte-root.theme-unicorn [class*="avatar"],
+.refonte-root.theme-unicorn .refonte-avatar {
+  box-shadow: 0 0 0 2px transparent,
+              0 0 0 3px rgba(181,102,255,0.4);
+}
+
+/* ===== Scrollbar ===== */
+.refonte-root.theme-unicorn *::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #B566FF, #FF7AC6) !important;
+  background-clip: padding-box !important;
+}
+.refonte-root.theme-unicorn *::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #FF7AC6, #B566FF) !important;
+  background-clip: padding-box !important;
+}
+
+/* ===== Section divider rainbow ===== */
+.refonte-root.theme-unicorn .refonte-section-divider {
+  background: linear-gradient(90deg, transparent, #B566FF, #FF7AC6, transparent);
+  height: 2px;
+  opacity: 0.5;
+}
+
+/* ===== Reduced motion ===== */
+.refonte-root.theme-unicorn[data-motion="off"] .refonte-logo-halo,
+.refonte-root.theme-unicorn[data-motion="off"] .refonte-status-dot,
+.refonte-root.theme-unicorn[data-motion="off"] .refonte-topbar::after,
+.refonte-root.theme-unicorn[data-motion="off"] .refonte-topbar h1,
+.refonte-root.theme-unicorn[data-motion="off"] .refonte-hero-title,
+.refonte-root.theme-unicorn[data-motion="off"] .refonte-section-head h2,
+.refonte-root.theme-unicorn[data-motion="off"] .refonte-hub-grid > *:hover {
+  animation: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .refonte-root.theme-unicorn .refonte-logo-halo,
+  .refonte-root.theme-unicorn .refonte-status-dot,
+  .refonte-root.theme-unicorn .refonte-topbar::after,
+  .refonte-root.theme-unicorn .refonte-topbar h1,
+  .refonte-root.theme-unicorn .refonte-hero-title,
+  .refonte-root.theme-unicorn .refonte-section-head h2,
+  .refonte-root.theme-unicorn .refonte-hub-grid > *:hover {
+    animation: none !important;
+  }
+}
