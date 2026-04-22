@@ -25,6 +25,7 @@ import {
   rectIntersection,
 } from "@dnd-kit/core";
 import { useDraggable } from "@dnd-kit/core";
+import { snapCenterToCursor } from "@dnd-kit/modifiers";
 import type { Task, Tag } from "@/types/planning";
 
 interface CalendarViewProps {
