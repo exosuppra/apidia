@@ -32,6 +32,7 @@ export default function ProfileMenu({ profile }: ProfileMenuProps) {
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <button
+          className="profile-menu-trigger"
           style={{
             display: "flex",
             alignItems: "center",
@@ -46,9 +47,9 @@ export default function ProfileMenu({ profile }: ProfileMenuProps) {
           }}
         >
           <Avatar initials={profile.initials} size={30} color="vert" />
-          <div style={{ fontSize: 12, textAlign: "left" }}>
-            <div style={{ fontWeight: 600 }}>{profile.name}</div>
-            <div style={{ color: "var(--text-3)", fontSize: 10 }}>{profile.role}</div>
+          <div className="profile-menu-text" style={{ fontSize: 12, textAlign: "left", maxWidth: 160, overflow: "hidden" }}>
+            <div style={{ fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{profile.name}</div>
+            <div style={{ color: "var(--text-3)", fontSize: 10, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{profile.role}</div>
           </div>
         </button>
       </DropdownMenuTrigger>
