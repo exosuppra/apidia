@@ -676,3 +676,14 @@ All colors MUST be HSL.
     padding-right: 0.75rem !important;
   }
 }
+
+/* ProfileMenu : masquer le texte sur petits écrans, garder l'avatar */
+@media (max-width: 640px) {
+  .profile-menu-trigger .profile-menu-text {
+    display: none !important;
+  }
+  .profile-menu-trigger {
+    padding: 0 !important;
+    background: transparent !important;
+  }
+}
