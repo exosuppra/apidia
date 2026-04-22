@@ -122,10 +122,16 @@ export default function DashboardRefonte() {
     load();
   }, [user]);
 
+  // Si l'utilisateur a des permissions granulaires définies, elles priment sur le rôle admin.
+  // Cela évite qu'un utilisateur configuré avec un sous-ensemble de droits voie tout
+  // simplement parce qu'il aurait également le rôle admin (configuration historique).
+  const hasGranularPerms = permissions.length > 0;
+  const effectiveAdmin = isAdmin && !hasGranularPerms;
+
   const canAccess = (item: HubItem) => {
     if (item.external) return true;
     if (!item.permKey) return true;
-    if (isAdmin) return true;
+    if (effectiveAdmin) return true;
     return permissions.includes(item.permKey);
   };
 
