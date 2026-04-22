@@ -461,22 +461,22 @@ export default function AdminDashboard() {
       />
       
       <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/5">
-        <div className="container mx-auto p-6">
+        <div className="container mx-auto p-3 sm:p-6">
           {/* Header */}
-          <div className="flex items-center justify-between mb-8">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6 sm:mb-8">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
                 <Shield className="w-5 h-5 text-primary" />
               </div>
-              <div>
-                <h1 className="text-2xl font-bold">Administration</h1>
-                <p className="text-sm text-muted-foreground">
+              <div className="min-w-0">
+                <h1 className="text-xl sm:text-2xl font-bold">Administration</h1>
+                <p className="text-xs sm:text-sm text-muted-foreground truncate">
                   Connecté en tant que {user?.email}
                 </p>
               </div>
             </div>
             
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <Button
                 variant={isReordering ? "default" : "ghost"}
                 size="sm"
@@ -484,12 +484,13 @@ export default function AdminDashboard() {
                 title="Personnaliser l'ordre des sections"
               >
                 <GripVertical className="w-4 h-4 mr-1" />
-                {isReordering ? "Terminé" : "Réorganiser"}
+                <span className="hidden xs:inline">{isReordering ? "Terminé" : "Réorganiser"}</span>
+                <span className="xs:hidden">{isReordering ? "OK" : "Ordre"}</span>
               </Button>
               <ThemeSelector />
               <Button onClick={handleLogout} variant="outline" size="sm">
-                <LogOut className="w-4 h-4 mr-2" />
-                Déconnexion
+                <LogOut className="w-4 h-4 sm:mr-2" />
+                <span className="hidden sm:inline">Déconnexion</span>
               </Button>
             </div>
           </div>

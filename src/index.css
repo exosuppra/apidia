@@ -569,3 +569,121 @@ All colors MUST be HSL.
   background-size: 200% 100%;
   animation: unicorn-rainbow 3s linear infinite;
 }
+
+/* ================================================================
+   📱 Global mobile responsive fixes
+   ================================================================ */
+@layer utilities {
+  /* Empêche tout débordement horizontal du document */
+  html, body {
+    overflow-x: hidden;
+    max-width: 100vw;
+  }
+
+  /* Toutes les images responsives par défaut */
+  img, video, iframe {
+    max-width: 100%;
+    height: auto;
+  }
+  iframe {
+    height: revert;
+  }
+}
+
+@media (max-width: 768px) {
+  /* Containers Tailwind : padding plus serré */
+  .container {
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+  }
+
+  /* Réduit le padding global des pages admin (p-6 -> p-3) */
+  .min-h-screen > .container.mx-auto.p-6 {
+    padding: 0.75rem !important;
+  }
+
+  /* Tables : scroll horizontal plutôt que de casser la mise en page */
+  table {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    white-space: nowrap;
+  }
+
+  /* Wrapper de table */
+  .table-responsive,
+  [class*="overflow-x-auto"] {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Dialogs / sheets : garder une marge confortable */
+  [role="dialog"] {
+    max-width: calc(100vw - 1rem) !important;
+  }
+
+  /* Cards : éviter overflow */
+  .card, [class*="Card"] {
+    max-width: 100%;
+  }
+
+  /* CardHeader : empêche les titres + boutons côte à côte de déborder */
+  [class*="CardHeader"] {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  /* Boutons flottants chat : remonter légèrement pour ne pas masquer le contenu */
+  .fixed.bottom-6.right-6 {
+    bottom: 1rem !important;
+    right: 1rem !important;
+  }
+
+  /* Si l'interface refonte affiche sa bottom-nav (62px), monter le chat au-dessus */
+  .refonte-root .fixed.bottom-6.right-6,
+  .refonte-root .fixed.bottom-4.right-4 {
+    bottom: calc(78px + env(safe-area-inset-bottom)) !important;
+  }
+
+  /* Champs de formulaire : largeur 100% */
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="search"],
+  input[type="tel"],
+  input[type="url"],
+  input[type="number"],
+  textarea,
+  select {
+    max-width: 100%;
+  }
+
+  /* iOS : empêcher le zoom auto sur focus input */
+  input, select, textarea {
+    font-size: max(16px, 1em);
+  }
+
+  /* Header titres : autoriser le retour à la ligne */
+  h1, h2, h3 {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+  }
+}
+
+/* Très petits écrans (≤ 380px) */
+@media (max-width: 380px) {
+  .container {
+    padding-left: 0.75rem !important;
+    padding-right: 0.75rem !important;
+  }
+}
+
+/* ProfileMenu : masquer le texte sur petits écrans, garder l'avatar */
+@media (max-width: 640px) {
+  .profile-menu-trigger .profile-menu-text {
+    display: none !important;
+  }
+  .profile-menu-trigger {
+    padding: 0 !important;
+    background: transparent !important;
+  }
+}
