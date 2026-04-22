@@ -126,21 +126,29 @@ export default function DashboardRefonte() {
   const [loading, setLoading] = useState(true);
   const [activity, setActivity] = useState<ActivityRow[]>([]);
   const [profileFirstName, setProfileFirstName] = useState<string>("");
+  const [sectionOrder, setSectionOrder] = useState<SectionKey[]>(DEFAULT_ORDER);
+  const [isReordering, setIsReordering] = useState(false);
 
   useEffect(() => {
     const load = async () => {
       if (!user) return;
       try {
-        const [permResult, roleResult, logsResult, profileResult] = await Promise.all([
+        const [permResult, roleResult, logsResult, profileResult, orderResult] = await Promise.all([
           supabase.from("admin_permissions").select("page_key").eq("user_id", (user as any).id),
           supabase.rpc("has_role", { _user_id: (user as any).id, _role: "admin" }),
           supabase.from("user_action_logs").select("*").order("created_at", { ascending: false }).limit(8),
           supabase.from("profiles").select("first_name").eq("id", (user as any).id).maybeSingle(),
+          supabase.from("admin_dashboard_order").select("section_order").eq("user_id", (user as any).id).maybeSingle(),
         ]);
         setPermissions((permResult.data || []).map((p: any) => p.page_key));
         setIsAdmin(roleResult.data === true);
         setActivity((logsResult.data as any as ActivityRow[]) || []);
         setProfileFirstName((profileResult.data as any)?.first_name || "");
+        const saved = (orderResult.data as any)?.section_order as SectionKey[] | undefined;
+        if (saved && Array.isArray(saved)) {
+          const merged = [...saved.filter((k) => SECTION_KEYS.includes(k)), ...DEFAULT_ORDER.filter((k) => !saved.includes(k))];
+          setSectionOrder(merged);
+        }
       } catch (e) {
         // fail silent — Hub reste utilisable même si certaines requêtes échouent
         console.warn("DashboardRefonte load error", e);
@@ -150,6 +158,40 @@ export default function DashboardRefonte() {
     };
     load();
   }, [user]);
+
+  const saveSectionOrder = useCallback(async (newOrder: SectionKey[]) => {
+    if (!user) return;
+    const uid = (user as any).id;
+    const { data: existing } = await supabase
+      .from("admin_dashboard_order")
+      .select("id")
+      .eq("user_id", uid)
+      .maybeSingle();
+    if (existing) {
+      await supabase
+        .from("admin_dashboard_order")
+        .update({ section_order: newOrder as unknown as any, updated_at: new Date().toISOString() })
+        .eq("user_id", uid);
+    } else {
+      await supabase.from("admin_dashboard_order").insert({ user_id: uid, section_order: newOrder as unknown as any });
+    }
+  }, [user]);
+
+  const moveSection = (key: SectionKey, direction: "up" | "down") => {
+    const idx = sectionOrder.indexOf(key);
+    if (idx === -1) return;
+    if (direction === "up" && idx === 0) return;
+    if (direction === "down" && idx === sectionOrder.length - 1) return;
+    const newOrder = [...sectionOrder];
+    const swapIdx = direction === "up" ? idx - 1 : idx + 1;
+    [newOrder[idx], newOrder[swapIdx]] = [newOrder[swapIdx], newOrder[idx]];
+    setSectionOrder(newOrder);
+    saveSectionOrder(newOrder);
+  };
+
+  const orderedGroups = sectionOrder
+    .map((k) => HUB_GROUPS.find((g) => g.key === k))
+    .filter((g): g is HubGroup => Boolean(g));
 
   // Si l'utilisateur a des permissions granulaires définies, elles priment sur le rôle admin.
   // Cela évite qu'un utilisateur configuré avec un sous-ensemble de droits voie tout
