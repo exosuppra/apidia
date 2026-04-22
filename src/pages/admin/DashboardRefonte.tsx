@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthProvider";
 import { supabase } from "@/integrations/supabase/client";
@@ -6,6 +6,10 @@ import { Icon, Chip, IconName } from "@/pages/refonte/primitives";
 import { format } from "date-fns";
 import { fr as frLocale } from "date-fns/locale";
 import Seo from "@/components/Seo";
+
+type SectionKey = "rh-admin" | "donnees-touristiques" | "reseaux-sociaux" | "projet-web";
+const DEFAULT_ORDER: SectionKey[] = ["rh-admin", "donnees-touristiques", "reseaux-sociaux", "projet-web"];
+const SECTION_KEYS: SectionKey[] = ["rh-admin", "donnees-touristiques", "reseaux-sociaux", "projet-web"];
 
 /* ===============================================================
    DashboardRefonte · Hub admin en charte Pays de Manosque
