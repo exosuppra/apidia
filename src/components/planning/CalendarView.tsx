@@ -328,6 +328,7 @@ export function CalendarView({ tasks, tags, onRefresh, onDateDoubleClick, onTask
     <DndContext
       sensors={sensors}
       collisionDetection={collisionDetection}
+      modifiers={[snapCenterToCursor]}
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
