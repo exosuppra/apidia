@@ -122,10 +122,16 @@ export default function DashboardRefonte() {
     load();
   }, [user]);
 
+  // Si l'utilisateur a des permissions granulaires définies, elles priment sur le rôle admin.
+  // Cela évite qu'un utilisateur configuré avec un sous-ensemble de droits voie tout
+  // simplement parce qu'il aurait également le rôle admin (configuration historique).
+  const hasGranularPerms = permissions.length > 0;
+  const effectiveAdmin = isAdmin && !hasGranularPerms;
+
   const canAccess = (item: HubItem) => {
     if (item.external) return true;
     if (!item.permKey) return true;
-    if (isAdmin) return true;
+    if (effectiveAdmin) return true;
     return permissions.includes(item.permKey);
   };
 
@@ -173,9 +179,9 @@ export default function DashboardRefonte() {
         {/* Rubriques */}
         <div className="refonte-hub-container">
           {HUB_GROUPS.map((section, si) => {
-            const visible = section.items.filter((it) => canAccess(it) || isAdmin);
-            if (visible.length === 0 && !isAdmin) return null;
-            const items = isAdmin ? section.items : visible;
+            const visible = section.items.filter((it) => canAccess(it));
+            if (visible.length === 0 && !effectiveAdmin) return null;
+            const items = effectiveAdmin ? section.items : visible;
             return (
               <section key={section.group} style={{ marginBottom: 42, animation: `refonte-fade-in 500ms ${si * 80}ms var(--ease-out) both` }}>
                 <div className="refonte-section-head">
