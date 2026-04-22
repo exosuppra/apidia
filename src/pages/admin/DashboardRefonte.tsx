@@ -149,7 +149,6 @@ export default function DashboardRefonte() {
   const effectiveAdmin = isAdmin && !hasGranularPerms;
 
   const canAccess = (item: HubItem) => {
-    if (item.external) return true;
     if (!item.permKey) return true;
     if (effectiveAdmin) return true;
     return permissions.includes(item.permKey);
