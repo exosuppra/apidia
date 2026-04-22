@@ -989,3 +989,26 @@
     animation: none !important;
   }
 }
+
+/* ===== Image licorne en arrière-plan du dashboard ===== */
+.refonte-root.theme-unicorn .refonte-main {
+  position: relative;
+  isolation: isolate;
+}
+.refonte-root.theme-unicorn .refonte-main::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background-image: url("/src/assets/unicorn-bg.jpg");
+  background-repeat: no-repeat;
+  background-position: center center;
+  background-size: cover;
+  opacity: 0.18;
+  pointer-events: none;
+  z-index: 0;
+  filter: saturate(1.1);
+}
+.refonte-root.theme-unicorn .refonte-main > * {
+  position: relative;
+  z-index: 1;
+}
