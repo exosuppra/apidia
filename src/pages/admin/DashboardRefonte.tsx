@@ -40,6 +40,15 @@ const HUB_GROUPS: HubGroup[] = [
       { id: "rh", icon: "clock", title: "Suivi RH – Projets IA", desc: "Suivi des heures de travail et valorisation des projets IA", cta: "Accéder au suivi RH", to: "/admin/rh", permKey: "rh" },
       { id: "missions", icon: "briefcase", title: "Ordres de Mission", desc: "Suivi des ordres de mission et frais associés", cta: "Accéder aux missions", to: "/admin/missions", permKey: "missions" },
       { id: "santons", icon: "bell", title: "Planning Foire aux Santons", desc: "Gestion des bénévoles et planning de la Foire aux Santons", cta: "Accéder au planning", to: "/admin/planning-santons", permKey: "planning-santons" },
+      {
+        id: "depot-mission",
+        icon: "inbox",
+        title: "Dépôt ordre de mission",
+        desc: "Formulaire de dépôt d'un ordre de mission",
+        cta: "Ouvrir le formulaire",
+        to: "",
+        external: () => window.open("https://forms.gle/EdcyDLrVuwaLjka87", "_blank"),
+      },
     ],
   },
   {
