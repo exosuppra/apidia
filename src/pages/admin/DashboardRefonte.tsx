@@ -38,6 +38,7 @@ interface HubGroup {
 
 const HUB_GROUPS: HubGroup[] = [
   {
+    key: "rh-admin",
     group: "RH & Administration",
     icon: "users",
     items: [
@@ -58,6 +59,7 @@ const HUB_GROUPS: HubGroup[] = [
     ],
   },
   {
+    key: "donnees-touristiques",
     group: "Accueil & Qualification de la donnée touristique",
     icon: "pin",
     items: [
@@ -69,6 +71,7 @@ const HUB_GROUPS: HubGroup[] = [
     ],
   },
   {
+    key: "reseaux-sociaux",
     group: "Gestion de Projet Réseaux sociaux",
     icon: "share",
     items: [
@@ -86,6 +89,7 @@ const HUB_GROUPS: HubGroup[] = [
     ],
   },
   {
+    key: "projet-web",
     group: "Gestion de Projet Web",
     icon: "globe",
     items: [
